@@ -72,7 +72,11 @@ export default function NewSurveyPage() {
 
   // ── Form state ─────────────────────────────────────────────────────────
 
-  const [surveyId] = useState(generateSurveyId)
+const [surveyId, setSurveyId] = useState("")
+
+useEffect(() => {
+  setSurveyId(generateSurveyId())
+}, [])
 
   // Branch details — flat key-value record
   const [branchValues, setBranchValues] = useState<Record<string, string>>({})
