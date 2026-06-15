@@ -6,8 +6,9 @@ const ADMIN_EMAILS = ["psbsisify@gmail.com", "vimalverma8287@gmail.com"]
 // GET /api/surveys/[id]
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -16,12 +17,11 @@ export async function GET(
   const { data, error } = await supabase
     .from("surveys")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", id)
     .single()
 
   if (error || !data) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  // Engineers can only view their own surveys
   const isAdmin = ADMIN_EMAILS.includes(user.email ?? "")
   if (!isAdmin && data.surveyor_emp_id !== user.user_metadata?.emp_id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
@@ -33,8 +33,9 @@ export async function GET(
 // PATCH /api/surveys/[id]  — admin only
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -47,7 +48,7 @@ export async function PATCH(
   const { data, error } = await supabase
     .from("surveys")
     .update({ ...body, updated_at: new Date().toISOString() })
-    .eq("id", params.id)
+    .eq("id", id)
     .select()
     .single()
 
