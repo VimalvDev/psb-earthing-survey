@@ -28,10 +28,6 @@ export function SurveyorSection({ user }: SurveyorSectionProps) {
           <LockedInput label="Contact" placeholder="—" value={user.mobile_number} />
         </div>
       )}
-
-      <p className="text-[11px] text-gray-400 mt-3">
-        Surveyor info is pulled from your login account. Contact admin to update details.
-      </p>
     </section>
   )
 }

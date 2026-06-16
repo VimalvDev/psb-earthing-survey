@@ -1,78 +1,86 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useState, useRef } from "react";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { FiPlus, FiLoader } from "react-icons/fi"
-import { LockedInput } from "@/components/ui/LockedInput"
-import { SectionHeading } from "@/components/ui/SectionHeading"
-import { createClient } from "@/lib/supabase/client"
+} from "@/components/ui/select";
+import { FiPlus, FiLoader } from "react-icons/fi";
+import { LockedInput } from "@/components/ui/LockedInput";
+import { SectionHeading } from "@/components/ui/SectionHeading";
+import { createClient } from "@/lib/supabase/client";
 
-// Shape of a branch row from Supabase
 interface BranchData {
-  bic: string
-  branch_name: string
-  zone: string
-  district: string
-  state: string
-  address: string
-  manager_name: string
-  phone_no: string
+  bic: string;
+  branch_name: string;
+  zone: string;
+  district: string;
+  state: string;
+  address: string;
+  manager_name: string;
+  phone_no: string;
 }
 
 interface BranchDetailsSectionProps {
-  // Parent form state setters — passed down from page
-  onChange: (field: string, value: string) => void
-  values: Record<string, string>
+  onChange: (field: string, value: string) => void;
+  values: Record<string, string>;
 }
 
 export function BranchDetailsSection({ onChange, values }: BranchDetailsSectionProps) {
-  const [loading, setLoading] = useState(false)
-  const [notFound, setNotFound] = useState(false)
-  const [showSecondPhone, setShowSecondPhone] = useState(false)
+  const [loading, setLoading] = useState(false);
+  const [notFound, setNotFound] = useState(false);
+  const [showSecondPhone, setShowSecondPhone] = useState(false);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  const supabase = createClient()
+  const supabase = createClient();
 
-  // Called when engineer finishes typing branch code and tabs/clicks away
-  async function handleBranchCodeBlur(e: React.FocusEvent<HTMLInputElement>) {
-    const code = e.target.value.trim().toUpperCase()
-    if (!code) return
+  async function fetchBranchByCode(code: string) {
+    if (!code || code.length < 3) return;
 
-    setLoading(true)
-    setNotFound(false)
+    setLoading(true);
+    setNotFound(false);
 
     const { data, error } = await supabase
       .from("branches")
       .select("*")
-      .eq("bic", code)
-      .single()
+      .ilike("bic", code)
+      .single();
 
-    setLoading(false)
+    setLoading(false);
 
     if (error || !data) {
-      setNotFound(true)
-      // Clear any previously filled fields
-      ;["branch_name", "zone", "district", "state", "address", "manager_name", "phone_no"].forEach(
+      setNotFound(true);
+      ["branch_name", "zone", "district", "state", "address", "manager_name", "phone_no"].forEach(
         (f) => onChange(f, "")
-      )
-      return
+      );
+      return;
     }
 
-    const branch = data as BranchData
-    onChange("branch_name", branch.branch_name)
-    onChange("zone", branch.zone)
-    onChange("district", branch.district)
-    onChange("state", branch.state)
-    onChange("address", branch.address)
-    onChange("manager_name", branch.manager_name)
-    onChange("phone_no", branch.phone_no)
+    const branch = data as BranchData;
+    onChange("branch_name", branch.branch_name);
+    onChange("zone", branch.zone);
+    onChange("district", branch.district);
+    onChange("state", branch.state);
+    onChange("address", branch.address);
+    onChange("manager_name", branch.manager_name);
+    onChange("phone_no", branch.phone_no);
+    setNotFound(false);
+  }
+
+  function handleBranchCodeChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const value = e.target.value;
+    onChange("bic", value);
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    debounceRef.current = setTimeout(() => {
+      fetchBranchByCode(value.trim().toUpperCase());
+    }, 500);
   }
 
   return (
@@ -87,8 +95,7 @@ export function BranchDetailsSection({ onChange, values }: BranchDetailsSectionP
             <Input
               placeholder="e.g. A0001"
               value={values.bic ?? ""}
-              onChange={(e) => onChange("bic", e.target.value)}
-              onBlur={handleBranchCodeBlur}
+              onChange={handleBranchCodeChange}
               className={notFound ? "border-[#E41E23] focus-visible:ring-[#E41E23]" : ""}
             />
             {loading && (
@@ -106,19 +113,40 @@ export function BranchDetailsSection({ onChange, values }: BranchDetailsSectionP
           label="Branch Name"
           placeholder="Auto-filled from Branch Code"
           value={values.branch_name}
+          onChange={(v) => onChange("branch_name", v)}
         />
       </div>
 
       {/* State / District / Zone */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-        <LockedInput label="State" placeholder="Auto-filled" value={values.state} />
-        <LockedInput label="District" placeholder="Auto-filled" value={values.district} />
-        <LockedInput label="Zone" placeholder="Auto-filled" value={values.zone} />
+        <LockedInput
+          label="State"
+          placeholder="Auto-filled"
+          value={values.state}
+          onChange={(v) => onChange("state", v)}
+        />
+        <LockedInput
+          label="District"
+          placeholder="Auto-filled"
+          value={values.district}
+          onChange={(v) => onChange("district", v)}
+        />
+        <LockedInput
+          label="Zone"
+          placeholder="Auto-filled"
+          value={values.zone}
+          onChange={(v) => onChange("zone", v)}
+        />
       </div>
 
       {/* Address */}
       <div className="flex flex-col gap-1.5 mb-4">
-        <LockedInput label="Address" placeholder="Auto-filled" value={values.address} />
+        <LockedInput
+          label="Address"
+          placeholder="Auto-filled"
+          value={values.address}
+          onChange={(v) => onChange("address", v)}
+        />
       </div>
 
       {/* Branch Manager + Phone */}
@@ -189,5 +217,5 @@ export function BranchDetailsSection({ onChange, values }: BranchDetailsSectionP
         </div>
       </div>
     </section>
-  )
+  );
 }
