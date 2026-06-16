@@ -41,32 +41,33 @@ export function ChecklistSection({ checked, onChange }: ChecklistSectionProps) {
 
   return (
     <section className="bg-white border border-gray-100 rounded-xl p-5">
-      <div className="flex items-center gap-3 mb-5">
-        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest whitespace-nowrap">
-          Visual Inspection Checklist
-        </h2>
-        <div className="flex-1 h-px bg-gray-100" />
-        {/* Checked count */}
-        <span className="text-[11px] text-gray-400 shrink-0">
-          {checkedCount}/{CHECKLIST_ITEMS.length}
-        </span>
-        <span className="text-gray-200 text-xs">|</span>
-        <button
-          type="button"
-          onClick={selectAll}
-          className="text-xs text-gray-500 hover:text-[#027D3F] transition-colors duration-150 font-medium shrink-0"
-        >
-          Select All
-        </button>
-        <span className="text-gray-200 text-xs">|</span>
-        <button
-          type="button"
-          onClick={clearAll}
-          className="text-xs text-gray-500 hover:text-[#E41E23] transition-colors duration-150 font-medium shrink-0"
-        >
-          Clear All
-        </button>
-      </div>
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-5">
+  <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
+    Visual Inspection Checklist
+  </h2>
+  <div className="flex-1 h-px bg-gray-100 hidden sm:block" />
+  <div className="flex items-center gap-2 ml-auto">
+    <span className="text-[11px] text-gray-400">
+      {checkedCount}/{CHECKLIST_ITEMS.length}
+    </span>
+    <span className="text-gray-200 text-xs">|</span>
+    <button
+      type="button"
+      onClick={selectAll}
+      className="text-xs text-gray-500 hover:text-[#027D3F] transition-colors duration-150 font-medium"
+    >
+      Select All
+    </button>
+    <span className="text-gray-200 text-xs">|</span>
+    <button
+      type="button"
+      onClick={clearAll}
+      className="text-xs text-gray-500 hover:text-[#E41E23] transition-colors duration-150 font-medium"
+    >
+      Clear All
+    </button>
+  </div>
+</div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {CHECKLIST_ITEMS.map((item) => (

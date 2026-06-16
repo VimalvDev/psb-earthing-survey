@@ -80,24 +80,24 @@ export function ManagerSignature({ signature, onChange }: ManagerSignatureProps)
           <button
             type="button"
             onClick={() => { setMethod("draw"); setIsEmpty(true) }}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border-2 text-sm font-medium transition-all duration-150
+            className={`flex-1 flex items-center justify-center gap-1.5 py-3.5 rounded-lg border-2 text-sm font-medium leading-tight transition-all duration-150
               ${method === "draw"
                 ? "border-gray-900 bg-gray-900 text-white"
                 : "border-gray-200 text-gray-500 hover:border-gray-300"}`}
           >
-            <FiEdit3 size={14} />
-            Draw on Screen
+            <FiEdit3 size={16} />
+            <span>Draw on Screen</span>
           </button>
           <button
             type="button"
             onClick={() => { setMethod("photo"); onChange(null) }}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border-2 text-sm font-medium transition-all duration-150
+            className={`flex-1 flex items-center justify-center gap-1.5 py-3.5 rounded-lg border-2 text-sm font-medium leading-tight transition-all duration-150
               ${method === "photo"
                 ? "border-gray-900 bg-gray-900 text-white"
                 : "border-gray-200 text-gray-500 hover:border-gray-300"}`}
           >
-            <FiCamera size={14} />
-            Photo of Signature
+            <FiCamera size={16} />
+            <span>Photo of Signature</span>
           </button>
         </div>
       )}
@@ -137,7 +137,7 @@ export function ManagerSignature({ signature, onChange }: ManagerSignatureProps)
               </div>
               <div className="text-center">
                 <p className="text-sm font-medium text-gray-700">Tap to sign</p>
-                <p className="text-[11px] text-gray-400 mt-0.5">Opens fullscreen landscape pad</p>
+                <p className="text-[11px] text-gray-400 mt-0.5">Opens fullscreen signature pad</p>
               </div>
             </button>
           </div>
@@ -183,44 +183,25 @@ export function ManagerSignature({ signature, onChange }: ManagerSignatureProps)
         </div>
       )}
 
-      {/* ── Fullscreen Modal — entire UI rotated 90° for landscape feel ── */}
+      {/* ── Fullscreen Modal ── */}
       {modalOpen && (
-        <>
-          {/* Backdrop covers real screen */}
-          <div className="lg:hidden fixed inset-0 z-50 bg-white" />
-
-          {/* Rotated container — positioned to fill screen in landscape orientation */}
-          <div
-            className="lg:hidden fixed z-50"
-            style={{
-              // Rotate the whole modal 90° clockwise
-              // Position it so it fills the screen after rotation
-              top: "50%",
-              left: "50%",
-              width: "100vh",   // after rotation, width becomes screen height
-              height: "100vw",  // after rotation, height becomes screen width
-              transform: "translate(-50%, -50%) rotate(90deg)",
-              transformOrigin: "center center",
-              display: "flex",
-              flexDirection: "column",
-              background: "white",
-            }}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
-              <div>
-                <p className="text-sm font-semibold text-gray-900">Manager Signature</p>
-                <p className="text-[11px] text-gray-400">Sign using multiple strokes · tap Done when finished</p>
-              </div>
-              <button type="button"
-                onClick={() => { setModalOpen(false); setIsEmpty(true) }}
-                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">
-                <FiX size={16} />
-              </button>
+        <div className="lg:hidden fixed inset-0 z-50 bg-white flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Manager Signature</p>
+              <p className="text-[11px] text-gray-400">Sign using multiple strokes · tap Done when finished</p>
             </div>
+            <button type="button"
+              onClick={() => { setModalOpen(false); setIsEmpty(true) }}
+              className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 shrink-0">
+              <FiX size={16} />
+            </button>
+          </div>
 
-            {/* Canvas — fills remaining space */}
-            <div className="flex-1 relative bg-white">
+          {/* Signature box — fixed aspect, centered, not stretched */}
+          <div className="flex-1 flex items-center justify-center p-6 bg-gray-50">
+            <div className="relative w-full max-w-md aspect-[16/10] bg-white rounded-2xl border-2 border-dashed border-gray-200 overflow-hidden shadow-sm">
               <SignatureCanvas
                 ref={modalSigRef}
                 penColor="#1a1a1a"
@@ -235,24 +216,24 @@ export function ManagerSignature({ signature, onChange }: ManagerSignatureProps)
               />
               {isEmpty && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <p className="text-gray-200 text-2xl font-light select-none tracking-widest">Sign here</p>
+                  <p className="text-gray-300 text-xl font-light select-none tracking-widest">Sign here</p>
                 </div>
               )}
             </div>
-
-            {/* Bottom action bar */}
-            <div className="flex items-center gap-3 px-4 py-3 border-t border-gray-100 bg-white shrink-0">
-              <button type="button" onClick={() => handleClear(modalSigRef)}
-                className="flex items-center gap-2 text-sm text-gray-500 hover:text-[#E41E23] border border-gray-200 px-4 py-2.5 rounded-xl transition-colors duration-150">
-                <FiTrash2 size={14} /> Clear
-              </button>
-              <button type="button" onClick={() => handleDone(modalSigRef)} disabled={isEmpty}
-                className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold text-white bg-gray-900 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed py-2.5 rounded-xl transition-colors duration-150">
-                <FiCheck size={14} /> Done — Save Signature
-              </button>
-            </div>
           </div>
-        </>
+
+          {/* Bottom action bar */}
+          <div className="flex items-center gap-3 px-4 py-3 border-t border-gray-100 bg-white shrink-0">
+            <button type="button" onClick={() => handleClear(modalSigRef)}
+              className="flex items-center gap-2 text-sm text-gray-500 hover:text-[#E41E23] border border-gray-200 px-4 py-2.5 rounded-xl transition-colors duration-150">
+              <FiTrash2 size={14} /> Clear
+            </button>
+            <button type="button" onClick={() => handleDone(modalSigRef)} disabled={isEmpty}
+              className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold text-white bg-gray-900 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed py-2.5 rounded-xl transition-colors duration-150">
+              <FiCheck size={14} /> Done — Save Signature
+            </button>
+          </div>
+        </div>
       )}
     </section>
   )

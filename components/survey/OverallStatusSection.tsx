@@ -12,7 +12,7 @@ interface OverallStatusSectionProps {
   status: OverallStatus
   remarks: string
   nextInspectionDate: string
-  autoSuggestedStatus: OverallStatus  // computed from readings by parent
+  autoSuggestedStatus: OverallStatus
   onStatusChange: (s: OverallStatus) => void
   onRemarksChange: (r: string) => void
   onNextDateChange: (d: string) => void
@@ -49,19 +49,19 @@ export function OverallStatusSection({
   onNextDateChange,
 }: OverallStatusSectionProps) {
   return (
-    <section className="bg-white border border-gray-100 rounded-xl p-5">
+    <section className="bg-white border border-gray-100 rounded-xl p-4 md:p-5">
       <SectionHeading>Overall Earthing Status</SectionHeading>
 
       {/* Auto-suggest indicator */}
       {autoSuggestedStatus && autoSuggestedStatus !== status && (
-        <div className="mb-3 flex items-center gap-2 text-[11px] text-gray-500 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2">
-          <FiAlertTriangle size={11} className="text-[#8A9C08] shrink-0" />
-          Based on readings, suggested status is{" "}
-          <strong className="text-gray-700">{autoSuggestedStatus}</strong>.
+        <div className="mb-3 flex items-center gap-2 text-[10px] text-gray-500 bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-1.5">
+          <FiAlertTriangle size={10} className="text-[#8A9C08] shrink-0" />
+          Suggested:{" "}
+          <strong className="text-gray-700">{autoSuggestedStatus}</strong>
           <button
             type="button"
             onClick={() => onStatusChange(autoSuggestedStatus)}
-            className="ml-auto text-[#027D3F] font-medium hover:underline"
+            className="ml-auto text-[#027D3F] font-semibold hover:underline whitespace-nowrap"
           >
             Apply
           </button>
@@ -69,7 +69,7 @@ export function OverallStatusSection({
       )}
 
       {/* Pass / Partial / Fail toggle */}
-      <div className="flex gap-2 mb-5">
+      <div className="flex gap-2 mb-4">
         {STATUS_CONFIG.map(({ value, icon: Icon, activeClass, hoverClass }) => {
           const isActive = status === value
           return (
@@ -77,13 +77,13 @@ export function OverallStatusSection({
               key={value}
               type="button"
               onClick={() => onStatusChange(value)}
-              className={`flex-1 flex items-center justify-center gap-2 text-sm py-3 rounded-xl border-2 font-semibold transition-all duration-150
+              className={`flex-1 flex items-center justify-center gap-1.5 text-xs py-2 rounded-lg border-2 font-semibold transition-all duration-150
                 ${isActive
                   ? activeClass
                   : `bg-white border-gray-200 text-gray-400 ${hoverClass}`
                 }`}
             >
-              <Icon size={15} />
+              <Icon size={13} />
               {value}
             </button>
           )
@@ -91,21 +91,22 @@ export function OverallStatusSection({
       </div>
 
       {/* Observations */}
-      <div className="flex flex-col gap-1.5 mb-4">
-        <Label className="text-sm font-medium text-gray-700">Observations / Remarks</Label>
+      <div className="flex flex-col gap-1 mb-3">
+        <Label className="text-xs font-medium text-gray-600">Observations / Remarks</Label>
         <Textarea
-          placeholder="Describe any issues, observations, or recommendations for rectification..."
-          className="min-h-22.5 resize-none bg-[#FAF6EE] border-gray-200 focus:ring-[#027D3F]"
+          placeholder="Issues, observations, or rectification notes..."
+          className="min-h-[80px] text-sm resize-none bg-[#FAF6EE] border-gray-200 focus:ring-[#027D3F] placeholder:text-xs"
           value={remarks}
           onChange={(e) => onRemarksChange(e.target.value)}
         />
       </div>
 
       {/* Next Inspection Due */}
-      <div className="flex flex-col gap-1.5 max-w-55">
-        <Label className="text-sm font-medium text-gray-700">Next Inspection Due</Label>
+      <div className="flex flex-col gap-1 max-w-[200px]">
+        <Label className="text-xs font-medium text-gray-600">Next Inspection Due</Label>
         <Input
           type="date"
+          className="h-9 text-sm"
           value={nextInspectionDate}
           onChange={(e) => onNextDateChange(e.target.value)}
         />

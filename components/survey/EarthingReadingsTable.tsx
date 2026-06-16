@@ -15,7 +15,6 @@ import { FiPlus } from "react-icons/fi"
 import { SectionHeading } from "@/components/ui/SectionHeading"
 import { StatusBadge, getStatus, BadgeStatus } from "@/components/ui/StatusBadge"
 
-// The 4 fixed earth pit rows
 const EARTH_PITS = [
   { epId: "EP-1", label: "Main Building" },
   { epId: "EP-2", label: "Server Rack / UPS" },
@@ -23,21 +22,19 @@ const EARTH_PITS = [
   { epId: "EP-4", label: "Lightning Arrester" },
 ]
 
-// Equipment makes and their models
 const EQUIPMENT_OPTIONS: Record<string, string[]> = {
   WACO: ["KEW 4105A", "4102AH", "4300"],
   FLUKE: ["1625-2 GEO", "1623-2 GEO"],
 }
 
 export interface ReadingsData {
-  readings: Record<string, string>   // { "EP-1": "0.8", "EP-2": "", ... }
+  readings: Record<string, string>
   equipment: { make: string; model: string }[]
 }
 
 interface EarthingReadingsTableProps {
   data: ReadingsData
   onChange: (data: ReadingsData) => void
-  // Called every time readings change so parent can auto-calc overall status
   onStatusChange: (statuses: BadgeStatus[]) => void
 }
 
@@ -46,23 +43,14 @@ export function EarthingReadingsTable({
   onChange,
   onStatusChange,
 }: EarthingReadingsTableProps) {
-  // Update a single reading value
   function handleReadingChange(epId: string, value: string) {
     const newReadings = { ...data.readings, [epId]: value }
-    const newData = { ...data, readings: newReadings }
-    onChange(newData)
-
-    // Push all statuses to parent for overall status calculation
+    onChange({ ...data, readings: newReadings })
     const statuses = EARTH_PITS.map((ep) => getStatus(newReadings[ep.epId] ?? ""))
     onStatusChange(statuses)
   }
 
-  // Equipment row handlers
-  function handleEquipmentChange(
-    index: number,
-    field: "make" | "model",
-    value: string
-  ) {
+  function handleEquipmentChange(index: number, field: "make" | "model", value: string) {
     const updated = data.equipment.map((eq, i) =>
       i === index ? { ...eq, [field]: value, ...(field === "make" ? { model: "" } : {}) } : eq
     )
@@ -74,23 +62,23 @@ export function EarthingReadingsTable({
   }
 
   function removeEquipmentRow(index: number) {
-    if (data.equipment.length === 1) return // keep at least one row
+    if (data.equipment.length === 1) return
     onChange({ ...data, equipment: data.equipment.filter((_, i) => i !== index) })
   }
 
   return (
-    <section className="bg-white border border-gray-100 rounded-xl p-5">
-      <SectionHeading>Earthing Resistance Readings (Ohms)</SectionHeading>
+    <section className="bg-white border border-gray-100 rounded-xl p-4 md:p-5">
+      <SectionHeading>Earthing Readings (Ohms)</SectionHeading>
 
-      {/* Table header */}
-      <div className="grid grid-cols-[auto_2fr_1fr_auto] gap-3 pb-2 border-b border-gray-100 mb-1">
-        <span className="text-[11px] font-semibold text-gray-400 w-8">EP</span>
-        <span className="text-[11px] font-semibold text-gray-400">Point / Location</span>
-        <span className="text-[11px] font-semibold text-gray-400 text-right">Reading (Ω)</span>
-        <span className="text-[11px] font-semibold text-gray-400 w-14 text-center">Status</span>
+      {/* ── Desktop table header (hidden on mobile) ── */}
+      <div className="hidden md:grid md:grid-cols-[auto_2fr_1fr_auto] gap-3 pb-2 border-b border-gray-100 mb-1">
+        <span className="text-[10px] font-semibold text-gray-400 w-8">EP</span>
+        <span className="text-[10px] font-semibold text-gray-400">Point / Location</span>
+        <span className="text-[10px] font-semibold text-gray-400 text-right">Reading (Ω)</span>
+        <span className="text-[10px] font-semibold text-gray-400 w-14 text-center">Status</span>
       </div>
 
-      {/* Reading rows */}
+      {/* ── Rows ── */}
       {EARTH_PITS.map((pit, idx) => {
         const value = data.readings[pit.epId] ?? ""
         const status = getStatus(value)
@@ -99,73 +87,100 @@ export function EarthingReadingsTable({
         return (
           <div
             key={pit.epId}
-            className={`grid grid-cols-[auto_2fr_1fr_auto] gap-3 items-center py-2.5 ${
-              isLast ? "" : "border-b border-gray-50"
-            }`}
+            className={`py-2 ${isLast ? "" : "border-b border-gray-50"}`}
           >
-            <span className="text-[11px] font-mono text-gray-400 w-8">{pit.epId}</span>
-            <span className="text-sm text-gray-700 leading-snug">{pit.label}</span>
-            <Input
-              type="number"
-              step="0.1"
-              min="0"
-              placeholder="0.0"
-              value={value}
-              onChange={(e) => handleReadingChange(pit.epId, e.target.value)}
-              className="h-9 text-right tabular-nums"
-            />
-            <StatusBadge status={status} />
+            {/* Mobile layout */}
+            <div className="md:hidden">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-[9px] font-mono font-semibold text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded shrink-0">
+                  {pit.epId}
+                </span>
+                <span className="text-xs font-medium text-gray-800 leading-tight">
+                  {pit.label}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 flex-1">
+                  <span className="text-[10px] text-gray-400 shrink-0">Reading (Ω)</span>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    placeholder="0.0"
+                    value={value}
+                    onChange={(e) => handleReadingChange(pit.epId, e.target.value)}
+                    className="h-8 text-xs text-right tabular-nums flex-1"
+                  />
+                </div>
+                <StatusBadge status={status} />
+              </div>
+            </div>
+
+            {/* Desktop layout */}
+            <div className="hidden md:grid md:grid-cols-[auto_2fr_1fr_auto] gap-3 items-center">
+              <span className="text-[10px] font-mono text-gray-400 w-8">{pit.epId}</span>
+              <span className="text-xs text-gray-700 leading-snug">{pit.label}</span>
+              <Input
+                type="number"
+                step="0.1"
+                min="0"
+                placeholder="0.0"
+                value={value}
+                onChange={(e) => handleReadingChange(pit.epId, e.target.value)}
+                className="h-8 text-xs text-right tabular-nums"
+              />
+              <StatusBadge status={status} />
+            </div>
           </div>
         )
       })}
 
       {/* Divider */}
-      <div className="h-px bg-gray-100 my-4" />
+      <div className="h-px bg-gray-100 my-3" />
 
-      {/* Test Equipment */}
-      <div className="flex flex-col gap-3">
-        <Label className="text-sm font-medium text-gray-700">Test Equipment Used</Label>
+      {/* ── Test Equipment ── */}
+      <div className="flex flex-col gap-2">
+        <Label className="text-xs font-medium text-gray-600">Test Equipment Used</Label>
 
         {data.equipment.map((eq, idx) => (
-          <div key={idx} className="grid grid-cols-2 gap-3 items-center">
+          <div key={idx} className="flex flex-col sm:grid sm:grid-cols-2 gap-2 sm:items-center">
             {/* Make */}
             <Select
               value={eq.make}
               onValueChange={(v) => handleEquipmentChange(idx, "make", v ?? "")}
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-8 text-xs">
                 <SelectValue placeholder="Make" />
               </SelectTrigger>
               <SelectContent>
                 {Object.keys(EQUIPMENT_OPTIONS).map((make) => (
-                  <SelectItem key={make} value={make}>{make}</SelectItem>
+                  <SelectItem key={make} value={make} className="text-xs">{make}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
-            {/* Model — depends on selected make */}
+            {/* Model + remove */}
             <div className="flex gap-2 items-center">
               <Select
                 value={eq.model}
                 onValueChange={(v) => handleEquipmentChange(idx, "model", v ?? "")}
                 disabled={!eq.make}
               >
-                <SelectTrigger>
+                <SelectTrigger className="flex-1 h-8 text-xs">
                   <SelectValue placeholder={eq.make ? "Model" : "Select make first"} />
                 </SelectTrigger>
                 <SelectContent>
                   {(EQUIPMENT_OPTIONS[eq.make] ?? []).map((model) => (
-                    <SelectItem key={model} value={model}>{model}</SelectItem>
+                    <SelectItem key={model} value={model} className="text-xs">{model}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
 
-              {/* Remove button — only show if more than 1 row */}
               {data.equipment.length > 1 && (
                 <button
                   type="button"
                   onClick={() => removeEquipmentRow(idx)}
-                  className="text-xs text-gray-400 hover:text-[#E41E23] transition-colors duration-150 shrink-0"
+                  className="text-[10px] text-gray-400 hover:text-[#E41E23] transition-colors duration-150 shrink-0 w-6 h-6 flex items-center justify-center rounded hover:bg-red-50"
                 >
                   ✕
                 </button>
@@ -178,9 +193,9 @@ export function EarthingReadingsTable({
           type="button"
           variant="outline"
           onClick={addEquipmentRow}
-          className="w-full text-sm text-gray-500 border-dashed border-gray-200 hover:border-[#027D3F] hover:text-[#027D3F] transition-colors duration-150 flex items-center gap-1.5"
+          className="w-full h-8 text-xs text-gray-500 border-dashed border-gray-200 hover:border-[#027D3F] hover:text-[#027D3F] transition-colors duration-150 flex items-center gap-1.5"
         >
-          <FiPlus size={14} />
+          <FiPlus size={12} />
           Add Another Equipment
         </Button>
       </div>

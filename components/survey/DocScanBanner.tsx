@@ -4,7 +4,6 @@ import { useRef, useState } from "react"
 import { FiFileText, FiUpload, FiLoader, FiCheckCircle, FiAlertTriangle } from "react-icons/fi"
 
 interface DocScanBannerProps {
-  // Parent provides this callback — receives the parsed fields from OCR
   onFieldsExtracted: (fields: Record<string, string>) => void
 }
 
@@ -21,24 +20,17 @@ export function DocScanBanner({ onFieldsExtracted }: DocScanBannerProps) {
       setScanState("error")
       return
     }
-
     setScanState("uploading")
     setErrorMsg("")
-
-    // Convert to base64
     const base64 = await fileToBase64(file)
-
     setScanState("processing")
-
     try {
       const res = await fetch("/api/ocr", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image: base64, mimeType: file.type }),
       })
-
       if (!res.ok) throw new Error("OCR request failed")
-
       const { fields } = await res.json()
       onFieldsExtracted(fields)
       setScanState("done")
@@ -59,6 +51,8 @@ export function DocScanBanner({ onFieldsExtracted }: DocScanBannerProps) {
     if (file) handleFile(file)
   }
 
+  const isActive = scanState === "uploading" || scanState === "processing"
+
   return (
     <div
       className={`rounded-xl border-2 border-dashed p-4 mb-5 transition-colors duration-150
@@ -71,12 +65,14 @@ export function DocScanBanner({ onFieldsExtracted }: DocScanBannerProps) {
       onDrop={handleDrop}
       onDragOver={(e) => e.preventDefault()}
     >
-      <div className="flex items-start gap-3">
+      {/* ── Top row: icon + button (button right-aligned on all screen sizes) ── */}
+      <div className="flex items-center justify-between gap-3 mb-2">
+
         {/* Icon */}
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0
+        <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0
           ${scanState === "done" ? "bg-[#027D3F]/10" : "bg-[#E6F1FB]"}`}
         >
-          {scanState === "processing" || scanState === "uploading" ? (
+          {isActive ? (
             <FiLoader className="w-4 h-4 text-[#185FA5] animate-spin" />
           ) : scanState === "done" ? (
             <FiCheckCircle className="w-4 h-4 text-[#027D3F]" />
@@ -87,30 +83,12 @@ export function DocScanBanner({ onFieldsExtracted }: DocScanBannerProps) {
           )}
         </div>
 
-        {/* Text */}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900">
-            {scanState === "idle" && "Have a paper form? Scan to auto-fill"}
-            {scanState === "uploading" && "Uploading image..."}
-            {scanState === "processing" && "Reading document with AI..."}
-            {scanState === "done" && "Fields auto-filled — please review and correct"}
-            {scanState === "error" && "Scan failed"}
-          </p>
-          <p className="text-[11px] text-gray-400 mt-0.5">
-            {scanState === "idle" && "Photo or scan of handwritten/printed form → AI reads it → fields filled automatically"}
-            {scanState === "uploading" && "Please wait"}
-            {scanState === "processing" && "Claude Vision is extracting field values"}
-            {scanState === "done" && "Review all fields carefully before submitting"}
-            {scanState === "error" && errorMsg}
-          </p>
-        </div>
-
-        {/* Action */}
+        {/* Action button — always top-right */}
         {(scanState === "idle" || scanState === "error") && (
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-[#185FA5] bg-[#E6F1FB] hover:bg-[#185FA5] hover:text-white px-3 py-2 rounded-lg transition-colors duration-150"
+            className="flex items-center gap-1.5 text-xs font-medium text-[#185FA5] bg-[#E6F1FB] hover:bg-[#185FA5] hover:text-white px-3 py-2 rounded-lg transition-colors duration-150 whitespace-nowrap"
           >
             <FiUpload size={12} />
             Upload / Capture
@@ -120,14 +98,35 @@ export function DocScanBanner({ onFieldsExtracted }: DocScanBannerProps) {
           <button
             type="button"
             onClick={() => setScanState("idle")}
-            className="shrink-0 text-xs text-gray-400 hover:text-gray-600 transition-colors duration-150"
+            className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-150 whitespace-nowrap"
           >
             Scan again
           </button>
         )}
+        {isActive && (
+          <span className="text-xs text-gray-400 whitespace-nowrap">Please wait...</span>
+        )}
       </div>
 
-      {/* Hidden file input — accepts images, triggers camera on mobile */}
+      {/* ── Text block — full width below, no wrapping pressure ── */}
+      <div className="pl-0">
+        <p className="text-sm font-medium text-gray-900 leading-snug">
+          {scanState === "idle" && "Have a paper form? Scan to auto-fill"}
+          {scanState === "uploading" && "Uploading image..."}
+          {scanState === "processing" && "Reading document with AI..."}
+          {scanState === "done" && "Fields auto-filled — please review and correct"}
+          {scanState === "error" && "Scan failed"}
+        </p>
+        <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">
+          {scanState === "idle" && "Photo or scan of handwritten/printed form → AI reads it → fields filled automatically"}
+          {scanState === "uploading" && "Preparing your image"}
+          {scanState === "processing" && "Claude Vision is extracting field values"}
+          {scanState === "done" && "Review all fields carefully before submitting"}
+          {scanState === "error" && errorMsg}
+        </p>
+      </div>
+
+      {/* Hidden file input */}
       <input
         ref={fileInputRef}
         type="file"
@@ -140,13 +139,12 @@ export function DocScanBanner({ onFieldsExtracted }: DocScanBannerProps) {
   )
 }
 
-// Utility: File → base64 string (strips data URL prefix)
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => {
       const result = reader.result as string
-      resolve(result.split(",")[1]) // strip "data:image/jpeg;base64,"
+      resolve(result.split(",")[1])
     }
     reader.onerror = reject
     reader.readAsDataURL(file)
