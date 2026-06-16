@@ -39,7 +39,7 @@ function generateSurveyId(): string {
 function calcOverallStatus(statuses: BadgeStatus[]): OverallStatus {
   const withValues = statuses.filter((s) => s !== "--")
   if (withValues.length === 0) return ""
-  if (withValues.every((s) => s === "OK" || s === "Good")) return "Pass"
+  if (withValues.every((s) => s === "Good" || s === "Pass")) return "Pass"
   if (withValues.some((s) => s === "Fail")) return "Fail"
   return "Partial"
 }
