@@ -211,15 +211,7 @@ export function EarthingReadingsTable({
             </div>
           ))}
 
-          <Button
-            type="button"
-            variant="outline"
-            onClick={addEquipmentRow}
-            className="text-xs text-gray-500 border-dashed border-gray-200 hover:border-[#027D3F] hover:text-[#027D3F] transition-colors duration-150 flex items-center gap-1.5"
-          >
-            <FiPlus size={12} />
-            Add Equipment
-          </Button>
+          
         </div>
       </div>
     </section>
