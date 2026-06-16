@@ -43,14 +43,13 @@ export function ChecklistSection({ checked, onChange }: ChecklistSectionProps) {
     <section className="bg-white border border-gray-100 rounded-xl p-5">
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-5">
   <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
-    Visual Inspection Checklist
+    Inspection Checklist
   </h2>
   <div className="flex-1 h-px bg-gray-100 hidden sm:block" />
-  <div className="flex items-center gap-2 ml-auto">
     <span className="text-[11px] text-gray-400">
       {checkedCount}/{CHECKLIST_ITEMS.length}
     </span>
-    <span className="text-gray-200 text-xs">|</span>
+  <div className="flex items-center gap-2 mr-auto">
     <button
       type="button"
       onClick={selectAll}
