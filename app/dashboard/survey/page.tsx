@@ -97,19 +97,28 @@ useEffect(() => {
   // Checklist
   const [checklist, setChecklist] = useState<Record<string, boolean>>({})
 
-  // Overall status — auto-suggested + manually overrideable
+ // Overall status — auto-suggested + manually overrideable
   const [overallStatus, setOverallStatus] = useState<OverallStatus>("")
+  const [statusTouched, setStatusTouched] = useState(false)
   const [remarks, setRemarks] = useState("")
   const [nextInspectionDate, setNextInspectionDate] = useState("")
 
   // When reading statuses change → re-compute suggested overall status
   const suggestedStatus = calcOverallStatus(readingStatuses)
-
-  // Site photo
+// Site photo
   const [sitePhoto, setSitePhoto] = useState<SitePhoto | null>(null)
 
   // Manager signature
   const [signature, setSignature] = useState<ManagerSignatureData | null>(null)
+  // Auto-apply suggestion until the user manually picks a status
+  useEffect(() => {
+    if (!statusTouched) setOverallStatus(suggestedStatus)
+  }, [suggestedStatus, statusTouched])
+
+  function handleStatusChange(s: OverallStatus) {
+    setStatusTouched(true)
+    setOverallStatus(s)
+  }
 
   // ── Doc scan: OCR fills branch fields ─────────────────────────────────
 
@@ -163,7 +172,7 @@ useEffect(() => {
       checklist,
       overall_status:     overallStatus,
       remarks,
-      next_inspection_date: nextInspectionDate,
+      next_inspection_date: nextInspectionDate || null,
       site_photo:         sitePhoto ? { base64: sitePhoto.base64, mimeType: sitePhoto.mimeType, timestamp: sitePhoto.timestamp, latitude: sitePhoto.latitude, longitude: sitePhoto.longitude, altitude: sitePhoto.altitude } : null,
       signature:          signature ? { method: signature.method, base64: signature.base64, mimeType: signature.mimeType } : null,
     }
@@ -235,12 +244,12 @@ useEffect(() => {
             onChange={setChecklist}
           />
 
-          <OverallStatusSection
+         <OverallStatusSection
             status={overallStatus}
             remarks={remarks}
             nextInspectionDate={nextInspectionDate}
             autoSuggestedStatus={suggestedStatus}
-            onStatusChange={setOverallStatus}
+            onStatusChange={handleStatusChange}
             onRemarksChange={setRemarks}
             onNextDateChange={setNextInspectionDate}
           />
