@@ -3,17 +3,9 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import {
-  FiAlertTriangle,
-  FiCheckCircle,
-  FiChevronDown,
-  FiClipboard,
-  FiDownload,
-  FiFileText,
-  FiFilter,
-  FiLoader,
-  FiPlus,
-  FiX,
-  FiXCircle,
+  FiAlertTriangle, FiCheckCircle, FiChevronDown,
+  FiClipboard, FiDownload, FiFileText, FiFilter,
+  FiPlus, FiX, FiXCircle,
 } from "react-icons/fi"
 import { createClient } from "@/lib/supabase/client"
 
@@ -21,17 +13,12 @@ import { RecordCard } from "@/components/records/RecordCard"
 import { FiltersPanel, FilterChips } from "@/components/records/FiltersPanel"
 import { Pagination } from "@/components/records/Pagination"
 import {
-  SurveyRecord,
-  Filters,
-  SortBy,
-  DEFAULT_FILTERS,
-  ITEMS_PER_PAGE,
+  SurveyRecord, Filters, SortBy,
+  DEFAULT_FILTERS, ITEMS_PER_PAGE,
   getActiveFilterCount,
-  matchesFilters,
-  sortRecords,
 } from "@/components/records/types"
 
-// ── CSV export helper ──────────────────────────────────────────────────────
+// ── CSV export ─────────────────────────────────────────────────────────────
 
 function toCsvCell(value: string) {
   return `"${String(value).replaceAll('"', '""')}"`
@@ -61,79 +48,167 @@ function exportCsv(records: SurveyRecord[]) {
   URL.revokeObjectURL(url)
 }
 
+// ── Skeleton ───────────────────────────────────────────────────────────────
+
+function SkeletonCard() {
+  return (
+    <div className="flex gap-4 rounded-xl border border-gray-100 bg-white p-4 animate-pulse">
+      <div className="w-14 h-14 shrink-0 rounded-lg bg-gray-100" />
+      <div className="flex-1 flex flex-col gap-2.5">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex flex-col gap-1.5">
+            <div className="h-4 w-48 bg-gray-100 rounded" />
+            <div className="h-3 w-20 bg-gray-100 rounded" />
+          </div>
+          <div className="h-6 w-16 bg-gray-100 rounded-md" />
+        </div>
+        <div className="flex gap-4 mt-1">
+          <div className="h-3 w-32 bg-gray-100 rounded" />
+          <div className="h-3 w-24 bg-gray-100 rounded" />
+          <div className="h-3 w-20 bg-gray-100 rounded" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SkeletonList() {
+  return (
+    <div className="flex flex-col gap-3">
+      {Array.from({ length: ITEMS_PER_PAGE }).map((_, i) => (
+        <SkeletonCard key={i} />
+      ))}
+    </div>
+  )
+}
+
+function StatSkeleton() {
+  return <div className="rounded-xl border border-gray-100 bg-white px-4 py-3 h-[72px] animate-pulse" />
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────
 
 export default function RecordsPage() {
   const supabase = createClient()
 
-  // ── Data state ─────────────────────────────────────────────────────────
   const [records, setRecords] = useState<SurveyRecord[]>([])
+  const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState("")
 
-  // ── Filter / sort / page state ─────────────────────────────────────────
+  const [statsLoading, setStatsLoading] = useState(true)
+  const [passCount, setPassCount] = useState(0)
+  const [partialCount, setPartialCount] = useState(0)
+  const [failCount, setFailCount] = useState(0)
+
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
   const [sortBy, setSortBy] = useState<SortBy>("newest")
   const [currentPage, setCurrentPage] = useState(1)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
 
-  // ── Fetch from Supabase ────────────────────────────────────────────────
+  const [allStates, setAllStates] = useState<string[]>([])
+  const [allZones, setAllZones] = useState<string[]>([])
+
+  // ── Fetch filter options once ──────────────────────────────────────────
   useEffect(() => {
-    async function fetchRecords() {
+    async function fetchFilterOptions() {
+      const { data } = await supabase
+        .from("surveys")
+        .select("state, zone")
+      if (data) {
+        setAllStates([...new Set(data.map((r) => r.state).filter(Boolean))].sort() as string[])
+        setAllZones([...new Set(data.map((r) => r.zone).filter(Boolean))].sort() as string[])
+      }
+    }
+    fetchFilterOptions()
+  }, [])
+
+  // ── Build base query ───────────────────────────────────────────────────
+  function buildBaseQuery() {
+    let q = supabase.from("surveys").select(
+      "id, survey_id, bic, branch_name, state, district, zone, visit_date, surveyor_emp_id, surveyor_email, overall_status, readings, site_photo, created_at",
+      { count: "exact" }
+    )
+
+    const search = filters.search.trim()
+    if (search) {
+      q = q.or(
+        `branch_name.ilike.%${search}%,bic.ilike.%${search}%,district.ilike.%${search}%,state.ilike.%${search}%,surveyor_emp_id.ilike.%${search}%`
+      )
+    }
+    if (filters.status !== "All") q = q.eq("overall_status", filters.status)
+    if (filters.state) q = q.eq("state", filters.state)
+    if (filters.zone)  q = q.eq("zone", filters.zone)
+    if (filters.dateFrom) q = q.gte("visit_date", filters.dateFrom)
+    if (filters.dateTo)   q = q.lte("visit_date", filters.dateTo)
+
+    if (sortBy === "newest") q = q.order("created_at", { ascending: false })
+    if (sortBy === "oldest") q = q.order("created_at", { ascending: true })
+    if (sortBy === "branch") q = q.order("branch_name", { ascending: true })
+    if (sortBy === "status") q = q.order("overall_status", { ascending: true })
+
+    return q
+  }
+
+  // ── Fetch current page ─────────────────────────────────────────────────
+  useEffect(() => {
+    async function fetchPage() {
       setLoading(true)
       setFetchError("")
 
-      const { data, error } = await supabase
-        .from("surveys")
-        .select(
-          "id, survey_id, bic, branch_name, state, district, zone, visit_date, surveyor_emp_id, surveyor_email, overall_status, readings, site_photo, created_at"
-        )
-        .order("created_at", { ascending: false })
+      const from = (currentPage - 1) * ITEMS_PER_PAGE
+      const to   = from + ITEMS_PER_PAGE - 1
+
+      const { data, error, count } = await buildBaseQuery().range(from, to)
 
       setLoading(false)
 
-      if (error) {
-        setFetchError("Failed to load records. Please refresh.")
-        return
-      }
+      if (error) { setFetchError("Failed to load records. Please refresh."); return }
 
       setRecords((data as SurveyRecord[]) ?? [])
+      setTotalCount(count ?? 0)
     }
+    fetchPage()
+  }, [filters, sortBy, currentPage])
 
-    fetchRecords()
-  }, [])
+  // ── Fetch stats ────────────────────────────────────────────────────────
+  useEffect(() => {
+    async function fetchStats() {
+      setStatsLoading(true)
 
-  // ── Derived filter options from real data ──────────────────────────────
-  const states = useMemo(
-    () => [...new Set(records.map((r) => r.state).filter(Boolean))].sort() as string[],
-    [records]
-  )
-  const zones = useMemo(
-    () => [...new Set(records.map((r) => r.zone).filter(Boolean))].sort() as string[],
-    [records]
-  )
+      const base = supabase.from("surveys").select("overall_status", { count: "exact", head: true })
 
-  // ── Filtered + sorted records ──────────────────────────────────────────
-  const filteredRecords = useMemo(() => {
-    const filtered = records.filter((r) => matchesFilters(r, filters))
-    return sortRecords(filtered, sortBy)
-  }, [records, filters, sortBy])
+      const applyFilters = (q: any) => {
+        const search = filters.search.trim()
+        if (search) q = q.or(`branch_name.ilike.%${search}%,bic.ilike.%${search}%,district.ilike.%${search}%,state.ilike.%${search}%`)
+        if (filters.state) q = q.eq("state", filters.state)
+        if (filters.zone)  q = q.eq("zone", filters.zone)
+        if (filters.dateFrom) q = q.gte("visit_date", filters.dateFrom)
+        if (filters.dateTo)   q = q.lte("visit_date", filters.dateTo)
+        return q
+      }
 
-  // ── Pagination ─────────────────────────────────────────────────────────
-  const totalPages = Math.max(1, Math.ceil(filteredRecords.length / ITEMS_PER_PAGE))
-  const safePage = Math.min(currentPage, totalPages)
-  const pageStart = filteredRecords.length ? (safePage - 1) * ITEMS_PER_PAGE + 1 : 0
-  const pageEnd = Math.min(safePage * ITEMS_PER_PAGE, filteredRecords.length)
-  const paginatedRecords = filteredRecords.slice(pageStart - 1, pageEnd)
+      const [p, pa, f] = await Promise.all([
+        applyFilters(supabase.from("surveys").select("*", { count: "exact", head: true }).eq("overall_status", "Pass")),
+        applyFilters(supabase.from("surveys").select("*", { count: "exact", head: true }).eq("overall_status", "Partial")),
+        applyFilters(supabase.from("surveys").select("*", { count: "exact", head: true }).eq("overall_status", "Fail")),
+      ])
 
-  // Reset to page 1 when filters change
+      setPassCount(p.count ?? 0)
+      setPartialCount(pa.count ?? 0)
+      setFailCount(f.count ?? 0)
+      setStatsLoading(false)
+    }
+    fetchStats()
+  }, [filters])
+
+  // ── Reset page on filter/sort change ──────────────────────────────────
   useEffect(() => { setCurrentPage(1) }, [filters, sortBy])
 
-  // ── Stats ──────────────────────────────────────────────────────────────
-  const passCount = filteredRecords.filter((r) => r.overall_status === "Pass").length
-  const failCount = filteredRecords.filter((r) => r.overall_status === "Fail").length
-  const partialCount = filteredRecords.filter((r) => r.overall_status === "Partial").length
-
+  // ── Derived ────────────────────────────────────────────────────────────
+  const totalPages  = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE))
+  const pageStart   = totalCount === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1
+  const pageEnd     = Math.min(currentPage * ITEMS_PER_PAGE, totalCount)
   const activeFilterCount = getActiveFilterCount(filters)
 
   function setFilter<K extends keyof Filters>(key: K, value: Filters[K]) {
@@ -146,19 +221,15 @@ export default function RecordsPage() {
   }
 
   // ── Render ─────────────────────────────────────────────────────────────
-
   return (
     <div className="flex flex-col gap-6">
 
-      {/* ── Page header ──────────────────────────────────────────────────── */}
+      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Survey Records</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            All submitted earthing inspections · PSB Pan-India
-          </p>
+          <p className="text-sm text-gray-500 mt-1">All submitted earthing inspections · PSB Pan-India</p>
         </div>
-
         <Link
           href="/dashboard/survey"
           className="inline-flex items-center gap-2 rounded-xl bg-[#027D3F] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#02612f] self-start sm:self-auto"
@@ -168,59 +239,38 @@ export default function RecordsPage() {
         </Link>
       </div>
 
-      {/* ── Stat cards ───────────────────────────────────────────────────── */}
+      {/* Stat cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard
-          label="Total"
-          value={filteredRecords.length}
-          icon={<FiFileText size={16} className="text-gray-400" />}
-          className="border-gray-100 bg-white"
-          valueClass="text-gray-900"
-        />
-        <StatCard
-          label="Pass"
-          value={passCount}
-          icon={<FiCheckCircle size={16} className="text-[#027D3F]" />}
-          className="border-[#B9DEC8] bg-[#E8F5EE]"
-          valueClass="text-[#027D3F]"
-        />
-        <StatCard
-          label="Partial"
-          value={partialCount}
-          icon={<FiAlertTriangle size={16} className="text-[#768A06]" />}
-          className="border-[#E7E9A9] bg-[#F6F8D7]"
-          valueClass="text-[#768A06]"
-        />
-        <StatCard
-          label="Fail"
-          value={failCount}
-          icon={<FiXCircle size={16} className="text-[#D81F26]" />}
-          className="border-[#F5B9B9] bg-[#FDECEC]"
-          valueClass="text-[#D81F26]"
-        />
+        {statsLoading ? (
+          <><StatSkeleton /><StatSkeleton /><StatSkeleton /><StatSkeleton /></>
+        ) : (
+          <>
+            <StatCard label="Total"   value={totalCount}   icon={<FiFileText size={16} className="text-gray-400" />}       className="border-gray-100 bg-white"       valueClass="text-gray-900" />
+            <StatCard label="Pass"    value={passCount}    icon={<FiCheckCircle size={16} className="text-[#027D3F]" />}   className="border-[#B9DEC8] bg-[#E8F5EE]" valueClass="text-[#027D3F]" />
+            <StatCard label="Partial" value={partialCount} icon={<FiAlertTriangle size={16} className="text-[#768A06]" />} className="border-[#E7E9A9] bg-[#F6F8D7]" valueClass="text-[#768A06]" />
+            <StatCard label="Fail"    value={failCount}    icon={<FiXCircle size={16} className="text-[#D81F26]" />}       className="border-[#F5B9B9] bg-[#FDECEC]" valueClass="text-[#D81F26]" />
+          </>
+        )}
       </div>
 
-      {/* ── Main layout ──────────────────────────────────────────────────── */}
+      {/* Main layout */}
       <div className="flex gap-6 items-start">
 
-        {/* Sidebar filters — desktop only */}
+        {/* Sidebar */}
         <aside className="hidden lg:block w-[260px] shrink-0">
           <FiltersPanel
-            filters={filters}
-            setFilter={setFilter}
+            filters={filters} setFilter={setFilter}
             clearFilters={clearFilters}
-            states={states}
-            zones={zones}
+            states={allStates} zones={allZones}
           />
         </aside>
 
-        {/* Records list */}
+        {/* List */}
         <div className="flex-1 min-w-0 flex flex-col gap-4">
 
-          {/* ── Toolbar ────────────────────────────────────────────────── */}
+          {/* Toolbar */}
           <div className="flex flex-wrap items-center gap-2 justify-between">
             <div className="flex items-center gap-2">
-              {/* Mobile filter button */}
               <button
                 type="button"
                 onClick={() => setMobileFiltersOpen(true)}
@@ -229,29 +279,23 @@ export default function RecordsPage() {
                 <FiFilter size={14} />
                 Filters
                 {activeFilterCount > 0 && (
-                  <span className="rounded bg-[#027D3F] px-1.5 py-0.5 text-[10px] text-white font-bold">
-                    {activeFilterCount}
-                  </span>
+                  <span className="rounded bg-[#027D3F] px-1.5 py-0.5 text-[10px] text-white font-bold">{activeFilterCount}</span>
                 )}
               </button>
-
               <p className="text-sm text-gray-400">
-                <span className="font-bold text-gray-700">{filteredRecords.length}</span> records
+                <span className="font-bold text-gray-700">{totalCount}</span> records
               </p>
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Export CSV */}
               <button
                 type="button"
-                onClick={() => exportCsv(filteredRecords)}
+                onClick={() => exportCsv(records)}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-600 transition hover:border-[#027D3F] hover:text-[#027D3F]"
               >
                 <FiDownload size={14} />
                 Export CSV
               </button>
-
-              {/* Sort */}
               <div className="relative">
                 <select
                   value={sortBy}
@@ -268,26 +312,19 @@ export default function RecordsPage() {
             </div>
           </div>
 
-          {/* Active filter chips */}
-          <FilterChips
-            filters={filters}
-            setFilter={setFilter}
-            clearFilters={clearFilters}
-          />
+          {/* Filter chips */}
+          <FilterChips filters={filters} setFilter={setFilter} clearFilters={clearFilters} />
 
-          {/* ── Records list ───────────────────────────────────────────── */}
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-3">
-              <FiLoader size={24} className="text-[#027D3F] animate-spin" />
-              <p className="text-sm text-gray-400">Loading records…</p>
-            </div>
-          ) : fetchError ? (
+          {/* Records */}
+          {fetchError ? (
             <div className="rounded-xl border border-[#F5B9B9] bg-[#FDECEC] px-5 py-4 text-sm text-[#D81F26]">
               {fetchError}
             </div>
-          ) : paginatedRecords.length > 0 ? (
+          ) : loading ? (
+            <SkeletonList />
+          ) : records.length > 0 ? (
             <div className="flex flex-col gap-3">
-              {paginatedRecords.map((record) => (
+              {records.map((record) => (
                 <RecordCard key={record.id} record={record} />
               ))}
             </div>
@@ -295,14 +332,14 @@ export default function RecordsPage() {
             <EmptyState clearFilters={clearFilters} hasFilters={activeFilterCount > 0} />
           )}
 
-          {/* ── Pagination ─────────────────────────────────────────────── */}
-          {!loading && filteredRecords.length > ITEMS_PER_PAGE && (
+          {/* Pagination */}
+          {!loading && totalCount > ITEMS_PER_PAGE && (
             <Pagination
-              currentPage={safePage}
+              currentPage={currentPage}
               totalPages={totalPages}
               pageStart={pageStart}
               pageEnd={pageEnd}
-              totalRecords={filteredRecords.length}
+              totalRecords={totalCount}
               onPrevious={() => setCurrentPage((p) => Math.max(1, p - 1))}
               onNext={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             />
@@ -310,37 +347,21 @@ export default function RecordsPage() {
         </div>
       </div>
 
-      {/* ── Mobile filters drawer ─────────────────────────────────────────── */}
+      {/* Mobile filters drawer */}
       {mobileFiltersOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <button
-            type="button"
-            aria-label="Close filters"
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setMobileFiltersOpen(false)}
-          />
+          <button type="button" aria-label="Close" className="absolute inset-0 bg-black/40" onClick={() => setMobileFiltersOpen(false)} />
           <div className="absolute inset-x-0 bottom-0 max-h-[88dvh] overflow-y-auto rounded-t-2xl bg-white p-5">
             <div className="mb-5 flex items-center justify-between">
               <div>
                 <p className="text-base font-bold text-gray-900">Filters</p>
                 <p className="text-xs text-gray-400">Applied instantly</p>
               </div>
-              <button
-                type="button"
-                onClick={() => setMobileFiltersOpen(false)}
-                className="rounded-lg border border-gray-200 p-2 text-gray-500"
-              >
+              <button type="button" onClick={() => setMobileFiltersOpen(false)} className="rounded-lg border border-gray-200 p-2 text-gray-500">
                 <FiX size={16} />
               </button>
             </div>
-            <FiltersPanel
-              compact
-              filters={filters}
-              setFilter={setFilter}
-              clearFilters={clearFilters}
-              states={states}
-              zones={zones}
-            />
+            <FiltersPanel compact filters={filters} setFilter={setFilter} clearFilters={clearFilters} states={allStates} zones={allZones} />
           </div>
         </div>
       )}
@@ -350,39 +371,21 @@ export default function RecordsPage() {
 
 // ── Sub-components ─────────────────────────────────────────────────────────
 
-function StatCard({
-  label,
-  value,
-  icon,
-  className,
-  valueClass,
-}: {
-  label: string
-  value: number
-  icon: React.ReactNode
-  className: string
-  valueClass: string
+function StatCard({ label, value, icon, className, valueClass }: {
+  label: string; value: number; icon: React.ReactNode; className: string; valueClass: string
 }) {
   return (
     <div className={`rounded-xl border px-4 py-3 ${className}`}>
       <div className="flex items-center gap-1.5 mb-1">
         {icon}
-        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
-          {label}
-        </p>
+        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{label}</p>
       </div>
       <p className={`text-2xl font-bold ${valueClass}`}>{value}</p>
     </div>
   )
 }
 
-function EmptyState({
-  clearFilters,
-  hasFilters,
-}: {
-  clearFilters: () => void
-  hasFilters: boolean
-}) {
+function EmptyState({ clearFilters, hasFilters }: { clearFilters: () => void; hasFilters: boolean }) {
   return (
     <div className="flex min-h-[280px] flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-white p-8 text-center">
       <FiClipboard size={36} className="text-gray-200" />
@@ -390,16 +393,10 @@ function EmptyState({
         {hasFilters ? "No records match these filters" : "No survey records yet"}
       </p>
       <p className="mt-1 max-w-sm text-sm text-gray-400">
-        {hasFilters
-          ? "Try adjusting your filters or search query."
-          : "Submit your first earthing survey to see it here."}
+        {hasFilters ? "Try adjusting your filters or search query." : "Submit your first earthing survey to see it here."}
       </p>
       {hasFilters && (
-        <button
-          type="button"
-          onClick={clearFilters}
-          className="mt-5 rounded-xl bg-[#027D3F] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#02612f]"
-        >
+        <button type="button" onClick={clearFilters} className="mt-5 rounded-xl bg-[#027D3F] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#02612f]">
           Clear filters
         </button>
       )}
