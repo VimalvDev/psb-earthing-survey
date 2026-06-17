@@ -1,17 +1,17 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import {
   FiAlertTriangle, FiCheckCircle, FiChevronDown,
   FiClipboard, FiDownload, FiFileText, FiFilter,
   FiPlus, FiX, FiXCircle,
 } from "react-icons/fi"
-import { createClient } from "@/lib/supabase/client"
 
 import { RecordCard } from "@/components/records/RecordCard"
 import { FiltersPanel, FilterChips } from "@/components/records/FiltersPanel"
 import { Pagination } from "@/components/records/Pagination"
+import { useSurveyRecords, useSurveyStats, useFilterOptions } from "@/components/records/hooks"
 import {
   SurveyRecord, Filters, SortBy,
   DEFAULT_FILTERS, ITEMS_PER_PAGE,
@@ -91,158 +91,38 @@ function StatSkeleton() {
 // ── Page ───────────────────────────────────────────────────────────────────
 
 export default function RecordsPage() {
-  const supabase = useMemo(() => createClient(), [])
-
-  const [records, setRecords] = useState<SurveyRecord[]>([])
-  const [totalCount, setTotalCount] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [initialLoad, setInitialLoad] = useState(true)
-  const [fetchError, setFetchError] = useState("")
-
-  const [statsLoading, setStatsLoading] = useState(true)
-  const [statsInitialLoad, setStatsInitialLoad] = useState(true)
-  const [passCount, setPassCount] = useState(0)
-  const [partialCount, setPartialCount] = useState(0)
-  const [failCount, setFailCount] = useState(0)
-
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
   const [debouncedSearch, setDebouncedSearch] = useState(DEFAULT_FILTERS.search)
   const [sortBy, setSortBy] = useState<SortBy>("newest")
   const [currentPage, setCurrentPage] = useState(1)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
 
-  const [allStates, setAllStates] = useState<string[]>([])
-  const [allZones, setAllZones] = useState<string[]>([])
-
-  // ── Debounce search text so every keystroke doesn't hit the DB ─────────
   useEffect(() => {
     const timeout = setTimeout(() => setDebouncedSearch(filters.search), SEARCH_DEBOUNCE_MS)
     return () => clearTimeout(timeout)
   }, [filters.search])
 
-  // Filters actually used for querying. State/zone/date apply instantly,
-  // search waits for the debounce above. The input box itself still reads
-  // `filters` directly, so typing never feels delayed on screen.
   const queryFilters = useMemo(
     () => ({ ...filters, search: debouncedSearch }),
     [filters, debouncedSearch]
   )
 
-  // ── Fetch filter options once ──────────────────────────────────────────
-  useEffect(() => {
-    async function fetchFilterOptions() {
-      const { data } = await supabase
-        .from("surveys")
-        .select("state, zone")
-      if (data) {
-        setAllStates([...new Set(data.map((r) => r.state).filter(Boolean))].sort() as string[])
-        setAllZones([...new Set(data.map((r) => r.zone).filter(Boolean))].sort() as string[])
-      }
-    }
-    fetchFilterOptions()
-  }, [supabase])
-
-  // ── Build base query ───────────────────────────────────────────────────
-  const buildBaseQuery = useCallback(() => {
-    let q = supabase.from("surveys").select(
-      "id, survey_id, bic, branch_name, state, district, zone, visit_date, surveyor_emp_id, surveyor_email, overall_status, readings, site_photo, created_at",
-      { count: "exact" }
-    )
-
-    const search = queryFilters.search.trim()
-    if (search) {
-      q = q.or(
-        `branch_name.ilike.%${search}%,bic.ilike.%${search}%,district.ilike.%${search}%,state.ilike.%${search}%,surveyor_emp_id.ilike.%${search}%`
-      )
-    }
-    if (queryFilters.status !== "All") q = q.eq("overall_status", queryFilters.status)
-    if (queryFilters.state) q = q.eq("state", queryFilters.state)
-    if (queryFilters.zone)  q = q.eq("zone", queryFilters.zone)
-    if (queryFilters.dateFrom) q = q.gte("visit_date", queryFilters.dateFrom)
-    if (queryFilters.dateTo)   q = q.lte("visit_date", queryFilters.dateTo)
-
-    if (sortBy === "newest") q = q.order("created_at", { ascending: false })
-    if (sortBy === "oldest") q = q.order("created_at", { ascending: true })
-    if (sortBy === "branch") q = q.order("branch_name", { ascending: true })
-    if (sortBy === "status") q = q.order("overall_status", { ascending: true })
-
-    return q
-  }, [supabase, queryFilters, sortBy])
-
-  // ── Fetch current page ─────────────────────────────────────────────────
-  useEffect(() => {
-    const controller = new AbortController()
-
-    async function fetchPage() {
-      setLoading(true)
-      setFetchError("")
-
-      const from = (currentPage - 1) * ITEMS_PER_PAGE
-      const to   = from + ITEMS_PER_PAGE - 1
-
-      const { data, error, count } = await buildBaseQuery()
-        .range(from, to)
-        .abortSignal(controller.signal)
-
-      if (controller.signal.aborted) return
-
-      setLoading(false)
-      setInitialLoad(false)
-
-      if (error) { setFetchError("Failed to load records. Please refresh."); return }
-
-      setRecords((data as SurveyRecord[]) ?? [])
-      setTotalCount(count ?? 0)
-    }
-
-    fetchPage()
-    return () => controller.abort()
-  }, [buildBaseQuery, currentPage])
-
-  // ── Fetch stats — single round trip, breakdown computed client-side ────
-  useEffect(() => {
-    const controller = new AbortController()
-
-    async function fetchStats() {
-      setStatsLoading(true)
-
-      let q = supabase.from("surveys").select("overall_status")
-
-      const search = queryFilters.search.trim()
-      if (search) q = q.or(`branch_name.ilike.%${search}%,bic.ilike.%${search}%,district.ilike.%${search}%,state.ilike.%${search}%`)
-      if (queryFilters.state) q = q.eq("state", queryFilters.state)
-      if (queryFilters.zone)  q = q.eq("zone", queryFilters.zone)
-      if (queryFilters.dateFrom) q = q.gte("visit_date", queryFilters.dateFrom)
-      if (queryFilters.dateTo)   q = q.lte("visit_date", queryFilters.dateTo)
-
-      const { data, error } = await q.abortSignal(controller.signal)
-
-      if (controller.signal.aborted) return
-
-      setStatsLoading(false)
-      setStatsInitialLoad(false)
-
-      if (error || !data) return
-
-      let pass = 0, partial = 0, fail = 0
-      for (const row of data) {
-        if (row.overall_status === "Pass") pass++
-        else if (row.overall_status === "Partial") partial++
-        else if (row.overall_status === "Fail") fail++
-      }
-      setPassCount(pass)
-      setPartialCount(partial)
-      setFailCount(fail)
-    }
-
-    fetchStats()
-    return () => controller.abort()
-  }, [supabase, queryFilters])
-
-  // ── Reset page on filter/sort change ──────────────────────────────────
   useEffect(() => { setCurrentPage(1) }, [queryFilters, sortBy])
 
-  // ── Derived ────────────────────────────────────────────────────────────
+  const { data: pageData, isLoading: recordsInitialLoading, isFetching: recordsFetching, isError: recordsError } =
+    useSurveyRecords(queryFilters, sortBy, currentPage)
+  const { data: statsData, isLoading: statsInitialLoading, isFetching: statsFetching } =
+    useSurveyStats(queryFilters)
+  const { data: filterOptions } = useFilterOptions()
+
+  const records    = pageData?.records ?? []
+  const totalCount = pageData?.totalCount ?? 0
+  const passCount    = statsData?.pass ?? 0
+  const partialCount = statsData?.partial ?? 0
+  const failCount    = statsData?.fail ?? 0
+  const allStates = filterOptions?.states ?? []
+  const allZones  = filterOptions?.zones ?? []
+
   const totalPages  = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE))
   const pageStart   = totalCount === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1
   const pageEnd     = Math.min(currentPage * ITEMS_PER_PAGE, totalCount)
@@ -258,7 +138,6 @@ export default function RecordsPage() {
     setSortBy("newest")
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-6">
 
@@ -279,20 +158,20 @@ export default function RecordsPage() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {statsInitialLoad && statsLoading ? (
+        {statsInitialLoading ? (
           <><StatSkeleton /><StatSkeleton /><StatSkeleton /><StatSkeleton /></>
         ) : (
           <>
-            <div className={`transition-opacity duration-150 ${statsLoading ? "opacity-50" : "opacity-100"}`}>
+            <div className={`transition-opacity duration-150 ${statsFetching ? "opacity-50" : "opacity-100"}`}>
               <StatCard label="Total" value={totalCount} icon={<FiFileText size={16} className="text-gray-400" />} className="border-gray-100 bg-white" valueClass="text-gray-900" />
             </div>
-            <div className={`transition-opacity duration-150 ${statsLoading ? "opacity-50" : "opacity-100"}`}>
+            <div className={`transition-opacity duration-150 ${statsFetching ? "opacity-50" : "opacity-100"}`}>
               <StatCard label="Pass" value={passCount} icon={<FiCheckCircle size={16} className="text-[#027D3F]" />} className="border-[#B9DEC8] bg-[#E8F5EE]" valueClass="text-[#027D3F]" />
             </div>
-            <div className={`transition-opacity duration-150 ${statsLoading ? "opacity-50" : "opacity-100"}`}>
+            <div className={`transition-opacity duration-150 ${statsFetching ? "opacity-50" : "opacity-100"}`}>
               <StatCard label="Partial" value={partialCount} icon={<FiAlertTriangle size={16} className="text-[#768A06]" />} className="border-[#E7E9A9] bg-[#F6F8D7]" valueClass="text-[#768A06]" />
             </div>
-            <div className={`transition-opacity duration-150 ${statsLoading ? "opacity-50" : "opacity-100"}`}>
+            <div className={`transition-opacity duration-150 ${statsFetching ? "opacity-50" : "opacity-100"}`}>
               <StatCard label="Fail" value={failCount} icon={<FiXCircle size={16} className="text-[#D81F26]" />} className="border-[#F5B9B9] bg-[#FDECEC]" valueClass="text-[#D81F26]" />
             </div>
           </>
@@ -362,14 +241,14 @@ export default function RecordsPage() {
           <FilterChips filters={filters} setFilter={setFilter} clearFilters={clearFilters} />
 
           {/* Records */}
-          {fetchError ? (
+          {recordsError ? (
             <div className="rounded-xl border border-[#F5B9B9] bg-[#FDECEC] px-5 py-4 text-sm text-[#D81F26]">
-              {fetchError}
+              Failed to load records. Please refresh.
             </div>
-          ) : initialLoad && loading ? (
+          ) : recordsInitialLoading ? (
             <SkeletonList />
           ) : records.length > 0 ? (
-            <div className={`flex flex-col gap-3 transition-opacity duration-150 ${loading ? "opacity-50" : "opacity-100"}`}>
+            <div className={`flex flex-col gap-3 transition-opacity duration-150 ${recordsFetching ? "opacity-50" : "opacity-100"}`}>
               {records.map((record) => (
                 <RecordCard key={record.id} record={record} />
               ))}
@@ -379,7 +258,7 @@ export default function RecordsPage() {
           )}
 
           {/* Pagination */}
-          {!initialLoad && totalCount > ITEMS_PER_PAGE && (
+          {!recordsInitialLoading && totalCount > ITEMS_PER_PAGE && (
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}
