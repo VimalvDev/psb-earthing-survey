@@ -10,8 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { FiPlus } from "react-icons/fi";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import {
   StatusBadge,
@@ -55,35 +53,6 @@ export function EarthingReadingsTable({
     );
     onStatusChange(statuses);
   }
-
-  function handleEquipmentChange(
-    index: number,
-    field: "make" | "model",
-    value: string,
-  ) {
-    const updated = data.equipment.map((eq, i) =>
-      i === index
-        ? { ...eq, [field]: value, ...(field === "make" ? { model: "" } : {}) }
-        : eq,
-    );
-    onChange({ ...data, equipment: updated });
-  }
-
-  function addEquipmentRow() {
-    onChange({
-      ...data,
-      equipment: [...data.equipment, { make: "", model: "" }],
-    });
-  }
-
-  function removeEquipmentRow(index: number) {
-    if (data.equipment.length === 1) return;
-    onChange({
-      ...data,
-      equipment: data.equipment.filter((_, i) => i !== index),
-    });
-  }
-
   return (
     <section className="bg-white border border-gray-100 rounded-xl p-4 md:p-5">
       <SectionHeading>Earthing Readings (v)</SectionHeading>
@@ -171,48 +140,40 @@ export function EarthingReadingsTable({
       <div className="h-px bg-gray-100 my-3" />
 
       {/* ── Test Equipment ── */}
-      <div className="flex flex-col">
-
-        <Label className="text-xs font-medium text-gray-600 mb-1.5 ">
+      <div className="flex flex-col gap-2">
+        <Label className="text-xs font-medium text-gray-600">
           Test Equipment Used
         </Label>
-
-        <div className="buttons flex justify-start gap-5 items-center ">
-          {data.equipment.map((eq, idx) => (
-            <div key={idx} className="flex gap-2 items-center">
-              {/* Make */}
-              <Select
-                value={eq.make}
-                onValueChange={(v) =>
-                  handleEquipmentChange(idx, "make", v ?? "")
-                }
+        <div className="flex gap-2">
+          {(["WACO", "FLUKE"] as const).map((make) => {
+            const selected = data.equipment.some((eq) => eq.make === make)
+            return (
+              <button
+                key={make}
+                type="button"
+                onClick={() => {
+                  const has = data.equipment.some((eq) => eq.make === make)
+                  const updated = has
+                    ? data.equipment.filter((eq) => eq.make !== make)
+                    : [...data.equipment, { make, model: "" }]
+                  onChange({ ...data, equipment: updated })
+                }}
+                className={`flex-1 py-2.5 rounded-lg border text-sm font-semibold transition-all duration-150
+                  ${selected
+                    ? "bg-[#027D3F] border-[#027D3F] text-white"
+                    : "bg-white border-gray-200 text-gray-600 hover:border-[#027D3F]/40 hover:text-[#027D3F]"
+                  }`}
               >
-                <SelectTrigger className="flex-1 h-8 text-xs">
-                  <SelectValue placeholder="Make" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.keys(EQUIPMENT_OPTIONS).map((make) => (
-                    <SelectItem key={make} value={make} className="text-xs">
-                      {make}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {data.equipment.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeEquipmentRow(idx)}
-                  className="text-[10px] text-gray-400 hover:text-[#E41E23] transition-colors duration-150 shrink-0 w-6 h-6 flex items-center justify-center rounded hover:bg-red-50"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          ))}
-
-          
+                {make}
+              </button>
+            )
+          })}
         </div>
+        {data.equipment.length === 0 && (
+          <p className="text-[11px] text-gray-400">
+            Select at least one instrument used for testing
+          </p>
+        )}
       </div>
     </section>
   );
