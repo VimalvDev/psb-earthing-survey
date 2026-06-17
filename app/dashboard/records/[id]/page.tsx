@@ -59,26 +59,10 @@ const EP_LABELS: Record<string, string> = {
   "EP-4": "Lightning Arrester",
 }
 
-const OVERALL_CONFIG: Record<OverallStatus, {
-  badge: string
-  icon: React.ReactNode
-  bar: string
-}> = {
-  Pass: {
-    badge: "bg-[#027D3F]/10 text-[#027D3F]",
-    icon: <FiCheckCircle className="w-4 h-4" />,
-    bar: "bg-[#027D3F]",
-  },
-  Partial: {
-    badge: "bg-[#BDD70C]/20 text-[#8A9C08]",
-    icon: <FiAlertTriangle className="w-4 h-4" />,
-    bar: "bg-[#BDD70C]",
-  },
-  Fail: {
-    badge: "bg-[#E41E23]/10 text-[#E41E23]",
-    icon: <FiXCircle className="w-4 h-4" />,
-    bar: "bg-[#E41E23]",
-  },
+const OVERALL_CONFIG: Record<OverallStatus, { badge: string; icon: React.ReactNode; bar: string }> = {
+  Pass:    { badge: "bg-[#027D3F]/10 text-[#027D3F]",  icon: <FiCheckCircle className="w-4 h-4" />,   bar: "bg-[#027D3F]" },
+  Partial: { badge: "bg-[#BDD70C]/20 text-[#8A9C08]",  icon: <FiAlertTriangle className="w-4 h-4" />, bar: "bg-[#BDD70C]" },
+  Fail:    { badge: "bg-[#E41E23]/10 text-[#E41E23]",  icon: <FiXCircle className="w-4 h-4" />,       bar: "bg-[#E41E23]" },
 }
 
 const SURVEY_TYPE_LABELS: Record<string, string> = {
@@ -92,22 +76,17 @@ const SURVEY_TYPE_LABELS: Record<string, string> = {
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—"
-  return new Date(iso).toLocaleDateString("en-IN", {
-    day: "2-digit", month: "short", year: "numeric",
-  })
+  return new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
 }
 
 function formatDateTime(iso: string | null): string {
   if (!iso) return "—"
-  return new Date(iso).toLocaleString("en-IN", {
-    day: "2-digit", month: "short", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
-  })
+  return new Date(iso).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
 }
 
 function getReadingStatus(value: string): { label: string; badge: string } {
   const v = parseFloat(value)
-  if (isNaN(v)) return { label: "—", badge: "bg-gray-100 text-gray-400" }
+  if (isNaN(v)) return { label: "—",    badge: "bg-gray-100 text-gray-400" }
   if (v <= 1)   return { label: "Good", badge: "bg-[#027D3F]/10 text-[#027D3F]" }
   if (v <= 5)   return { label: "OK",   badge: "bg-[#E6F1FB] text-[#185FA5]" }
   return             { label: "Fail",  badge: "bg-[#E41E23]/10 text-[#E41E23]" }
@@ -117,31 +96,153 @@ function canEdit(designation: string): boolean {
   return designation === "Admin" || designation === "Developer"
 }
 
+// ── Skeleton ───────────────────────────────────────────────────────────────
+
+function SkeletonDetail() {
+  return (
+    <div className="min-h-screen bg-[#FAF6EE]">
+      <div className="max-w-6xl mx-auto px-4 lg:px-8 py-6 lg:py-8">
+
+        {/* Top bar skeleton */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
+          <div className="flex gap-2">
+            <div className="h-8 w-24 bg-gray-200 rounded-xl animate-pulse" />
+            <div className="h-8 w-20 bg-gray-200 rounded-xl animate-pulse" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden animate-pulse">
+          {/* Letterhead skeleton */}
+          <div className="bg-gray-200 h-20 w-full" />
+          <div className="h-1 bg-gray-100 w-full" />
+
+          {/* Body skeleton */}
+          <div className="px-6 sm:px-8 py-7 flex flex-col gap-8">
+
+            {/* Section 1 */}
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-3 w-28 bg-gray-100 rounded" />
+                <div className="flex-1 h-px bg-gray-100" />
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="flex flex-col gap-1.5">
+                    <div className="h-2.5 w-16 bg-gray-100 rounded" />
+                    <div className="h-4 w-32 bg-gray-100 rounded" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Section 2 */}
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-3 w-36 bg-gray-100 rounded" />
+                <div className="flex-1 h-px bg-gray-100" />
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex flex-col gap-1.5">
+                    <div className="h-2.5 w-20 bg-gray-100 rounded" />
+                    <div className="h-4 w-28 bg-gray-100 rounded" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Table skeleton */}
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-3 w-32 bg-gray-100 rounded" />
+                <div className="flex-1 h-px bg-gray-100" />
+              </div>
+              <div className="rounded-lg bg-gray-50 p-3 flex flex-col gap-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="h-3 w-10 bg-gray-100 rounded" />
+                    <div className="h-3 w-32 bg-gray-100 rounded" />
+                    <div className="h-3 w-16 bg-gray-100 rounded" />
+                    <div className="h-5 w-12 bg-gray-100 rounded-full" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Checklist skeleton */}
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-3 w-40 bg-gray-100 rounded" />
+                <div className="flex-1 h-px bg-gray-100" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-2.5">
+                    <div className="w-4 h-4 rounded-full bg-gray-100 shrink-0" />
+                    <div className="h-3 bg-gray-100 rounded" style={{ width: `${60 + (i % 3) * 20}%` }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Status skeleton */}
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-3 w-44 bg-gray-100 rounded" />
+                <div className="flex-1 h-px bg-gray-100" />
+              </div>
+              <div className="flex items-center gap-4 mb-4">
+                <div className="h-9 w-24 bg-gray-100 rounded-xl" />
+                <div className="flex flex-col gap-1">
+                  <div className="h-2.5 w-24 bg-gray-100 rounded" />
+                  <div className="h-4 w-20 bg-gray-100 rounded" />
+                </div>
+              </div>
+              <div className="bg-gray-50 rounded-xl h-20" />
+            </div>
+
+            {/* Photos skeleton */}
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-3 w-24 bg-gray-100 rounded" />
+                <div className="flex-1 h-px bg-gray-100" />
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="aspect-[4/3] rounded-xl bg-gray-100" />
+                ))}
+              </div>
+            </div>
+
+          </div>
+
+          {/* Footer skeleton */}
+          <div className="px-6 sm:px-8 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+            <div className="h-3 w-48 bg-gray-200 rounded" />
+            <div className="h-3 w-24 bg-gray-200 rounded" />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Sub-components ─────────────────────────────────────────────────────────
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-3 mb-4">
-      <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest whitespace-nowrap">
-        {children}
-      </span>
+      <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest whitespace-nowrap">{children}</span>
       <div className="flex-1 h-px bg-gray-100" />
     </div>
   )
 }
 
 function Field({
-  label,
-  value,
-  editing,
-  onChange,
-  type = "text",
+  label, value, editing, onChange, type = "text",
 }: {
-  label: string
-  value: string
-  editing?: boolean
-  onChange?: (v: string) => void
-  type?: string
+  label: string; value: string; editing?: boolean; onChange?: (v: string) => void; type?: string
 }) {
   return (
     <div className="flex flex-col gap-1">
@@ -166,55 +267,37 @@ export default function RecordDetailPage() {
   const params = useParams()
   const router = useRouter()
   const supabase = createClient()
-
   const surveyId = params?.id as string
 
-  // ── State ───────────────────────────────────────────────────────────────
   const [record, setRecord] = useState<SurveyDetail | null>(null)
   const [currentUser, setCurrentUser] = useState<LoggedInUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState("")
 
-  // Edit mode
   const [editing, setEditing] = useState(false)
   const [editData, setEditData] = useState<Partial<SurveyDetail>>({})
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState("")
 
-  // ── Load user + record ──────────────────────────────────────────────────
+  // ── Load ────────────────────────────────────────────────────────────────
   useEffect(() => {
     async function load() {
       setLoading(true)
 
-      // Current user
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push("/login"); return }
 
-      const { data: engineer } = await supabase
-        .from("engineers")
-        .select("name, emp_id, designation, email")
-        .eq("email", user.email)
-        .single()
-
-      if (engineer) setCurrentUser({ ...engineer, email: user.email ?? "" })
-
-      // Survey record
-      const { data, error } = await supabase
-        .from("surveys")
-        .select("*")
-        .eq("survey_id", surveyId)
-        .single()
+      const [engineerRes, surveyRes] = await Promise.all([
+        supabase.from("engineers").select("name, emp_id, designation, email").eq("email", user.email).single(),
+        supabase.from("surveys").select("*").eq("survey_id", surveyId).single(),
+      ])
 
       setLoading(false)
 
-      if (error || !data) {
-        setFetchError("Survey record not found.")
-        return
-      }
-
-      setRecord(data as SurveyDetail)
+      if (engineerRes.data) setCurrentUser({ ...engineerRes.data, email: user.email ?? "" })
+      if (surveyRes.error || !surveyRes.data) { setFetchError("Survey record not found."); return }
+      setRecord(surveyRes.data as SurveyDetail)
     }
-
     load()
   }, [surveyId])
 
@@ -245,10 +328,7 @@ export default function RecordDetailPage() {
 
   function toggleChecklist(label: string) {
     const current = editData.checklist ?? record?.checklist ?? {}
-    setEditData((prev) => ({
-      ...prev,
-      checklist: { ...current, [label]: !current[label] },
-    }))
+    setEditData((prev) => ({ ...prev, checklist: { ...current, [label]: !current[label] } }))
   }
 
   async function saveChanges() {
@@ -256,84 +336,61 @@ export default function RecordDetailPage() {
     setSaving(true)
     setSaveError("")
 
-    const payload = {
-      bic:                  editData.bic,
-      branch_name:          editData.branch_name,
-      zone:                 editData.zone,
-      district:             editData.district,
-      state:                editData.state,
-      address:              editData.address,
-      manager_name:         editData.manager_name,
-      phone_no:             editData.phone_no,
-      phone_no_alt:         editData.phone_no_alt,
-      visit_date:           editData.visit_date,
-      survey_type:          editData.survey_type,
-      readings:             editData.readings,
-      checklist:            editData.checklist,
-      overall_status:       editData.overall_status,
-      remarks:              editData.remarks,
-      next_inspection_date: editData.next_inspection_date,
-      updated_at:           new Date().toISOString(),
-    }
-
     const { error } = await supabase
       .from("surveys")
-      .update(payload)
+      .update({
+        bic:                  editData.bic,
+        branch_name:          editData.branch_name,
+        zone:                 editData.zone,
+        district:             editData.district,
+        state:                editData.state,
+        address:              editData.address,
+        manager_name:         editData.manager_name,
+        phone_no:             editData.phone_no,
+        phone_no_alt:         editData.phone_no_alt,
+        visit_date:           editData.visit_date,
+        survey_type:          editData.survey_type,
+        readings:             editData.readings,
+        checklist:            editData.checklist,
+        overall_status:       editData.overall_status,
+        remarks:              editData.remarks,
+        next_inspection_date: editData.next_inspection_date,
+        updated_at:           new Date().toISOString(),
+      })
       .eq("survey_id", record.survey_id)
 
     setSaving(false)
 
-    if (error) {
-      setSaveError("Save failed. Please try again.")
-      return
-    }
+    if (error) { setSaveError("Save failed. Please try again."); return }
 
-    // Refresh record
-    const { data } = await supabase
-      .from("surveys")
-      .select("*")
-      .eq("survey_id", record.survey_id)
-      .single()
-
+    const { data } = await supabase.from("surveys").select("*").eq("survey_id", record.survey_id).single()
     if (data) setRecord(data as SurveyDetail)
     setEditing(false)
     setEditData({})
   }
 
-  // ── Render helpers ──────────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────────────────
+  if (loading) return <SkeletonDetail />
 
-  const r = editing ? { ...record!, ...editData } : record
-  const isAdmin = currentUser ? canEdit(currentUser.designation) : false
-  const overallStatus = (r?.overall_status ?? "") as OverallStatus
-  const overallCfg = OVERALL_CONFIG[overallStatus] ?? OVERALL_CONFIG["Partial"]
-
-  // ── Loading / error states ──────────────────────────────────────────────
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh] gap-3">
-        <FiLoader size={22} className="text-[#027D3F] animate-spin" />
-        <p className="text-sm text-gray-400">Loading record…</p>
-      </div>
-    )
-  }
-
-  if (fetchError || !r) {
+  if (fetchError || !record) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <p className="text-base font-semibold text-gray-700">{fetchError || "Record not found."}</p>
-        <Link href="/dashboard/records" className="text-sm text-[#027D3F] hover:underline">
-          ← Back to Records
-        </Link>
+        <Link href="/dashboard/records" className="text-sm text-[#027D3F] hover:underline">← Back to Records</Link>
       </div>
     )
   }
 
-  // ── Main render ─────────────────────────────────────────────────────────
+  const r = editing ? { ...record, ...editData } : record
+  const isAdmin = currentUser ? canEdit(currentUser.designation) : false
+  const overallStatus = (r.overall_status ?? "") as OverallStatus
+  const overallCfg = OVERALL_CONFIG[overallStatus] ?? OVERALL_CONFIG["Partial"]
+
   return (
     <div className="min-h-screen bg-[#FAF6EE]">
       <div className="max-w-6xl mx-auto px-4 lg:px-8 py-6 lg:py-8">
 
-        {/* ── Top bar (screen only) ─────────────────────────────────────── */}
+        {/* Top bar */}
         <div className="flex items-center justify-between mb-6 print:hidden">
           <Link
             href="/dashboard/records"
@@ -344,7 +401,6 @@ export default function RecordDetailPage() {
           </Link>
 
           <div className="flex items-center gap-2">
-            {/* Edit / Save / Cancel — admin & developer only */}
             {isAdmin && !editing && (
               <button
                 onClick={startEditing}
@@ -387,26 +443,22 @@ export default function RecordDetailPage() {
           </div>
         </div>
 
-        {/* Save error */}
+        {/* Banners */}
         {saveError && (
           <div className="mb-4 px-4 py-3 rounded-xl border border-[#F5B9B9] bg-[#FDECEC] text-sm text-[#D81F26] print:hidden">
             {saveError}
           </div>
         )}
-
-        {/* Edit mode banner */}
         {editing && (
           <div className="mb-4 px-4 py-3 rounded-xl border border-[#E7E9A9] bg-[#F6F8D7] text-sm text-[#768A06] font-medium print:hidden">
             You are editing this record. Changes will be saved to the database.
           </div>
         )}
 
-        {/* ════════════════════════════════════════════════════════════
-            DOCUMENT
-        ════════════════════════════════════════════════════════════ */}
+        {/* Document */}
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden print:rounded-none print:border-0">
 
-          {/* ── Letterhead ───────────────────────────────────────────── */}
+          {/* Letterhead */}
           <div className="bg-[#027D3F] px-6 sm:px-8 py-6 flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-[#BDD70C] flex items-center justify-center shrink-0">
@@ -429,19 +481,19 @@ export default function RecordDetailPage() {
           {/* Status bar */}
           <div className={`h-1 w-full ${overallCfg.bar}`} />
 
-          {/* ── Document body ────────────────────────────────────────── */}
+          {/* Body */}
           <div className="px-6 sm:px-8 py-7 flex flex-col gap-8">
 
             {/* 1. Branch Details */}
             <section>
               <SectionHeading>Branch Details</SectionHeading>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
-                <Field label="Branch Code"  value={r.bic ?? ""} editing={editing} onChange={(v) => setField("bic", v)} />
-                <Field label="Branch Name"  value={r.branch_name ?? ""} editing={editing} onChange={(v) => setField("branch_name", v)} />
-                <Field label="Zone"         value={r.zone ?? ""} editing={editing} onChange={(v) => setField("zone", v)} />
-                <Field label="State"        value={r.state ?? ""} editing={editing} onChange={(v) => setField("state", v)} />
-                <Field label="District"     value={r.district ?? ""} editing={editing} onChange={(v) => setField("district", v)} />
-                <Field label="Visit Date"   value={r.visit_date ?? ""} editing={editing} onChange={(v) => setField("visit_date", v)} type="date" />
+                <Field label="Branch Code" value={r.bic ?? ""} editing={editing} onChange={(v) => setField("bic", v)} />
+                <Field label="Branch Name" value={r.branch_name ?? ""} editing={editing} onChange={(v) => setField("branch_name", v)} />
+                <Field label="Zone"        value={r.zone ?? ""} editing={editing} onChange={(v) => setField("zone", v)} />
+                <Field label="State"       value={r.state ?? ""} editing={editing} onChange={(v) => setField("state", v)} />
+                <Field label="District"    value={r.district ?? ""} editing={editing} onChange={(v) => setField("district", v)} />
+                <Field label="Visit Date"  value={r.visit_date ?? ""} editing={editing} onChange={(v) => setField("visit_date", v)} type="date" />
               </div>
               <div className="mt-4 pt-4 border-t border-gray-50">
                 <Field label="Address" value={r.address ?? ""} editing={editing} onChange={(v) => setField("address", v)} />
@@ -512,15 +564,17 @@ export default function RecordDetailPage() {
                 </table>
               </div>
 
-              {/* Equipment */}
               {(r.equipment ?? []).length > 0 && (
                 <div className="mt-4 pt-4 border-t border-gray-50 flex items-center gap-2 flex-wrap">
                   <span className="text-[11px] text-gray-400 uppercase tracking-wide">Equipment:</span>
-                  {(r.equipment ?? []).map((eq) => (
-                    <span key={eq} className="text-xs font-semibold text-gray-600 bg-gray-100 rounded-lg px-2.5 py-1">
-                      {eq}
-                    </span>
-                  ))}
+                  {(r.equipment ?? []).map((eq, i) => {
+                    const label = typeof eq === "string" ? eq : (eq as any).make ?? ""
+                    return (
+                      <span key={i} className="text-xs font-semibold text-gray-600 bg-gray-100 rounded-lg px-2.5 py-1">
+                        {label}
+                      </span>
+                    )
+                  })}
                 </div>
               )}
             </section>
@@ -539,15 +593,13 @@ export default function RecordDetailPage() {
                       ? <FiCheckCircle className="w-4 h-4 text-[#027D3F] shrink-0" />
                       : <FiCircle className="w-4 h-4 text-gray-300 shrink-0" />
                     }
-                    <span className={`text-sm ${checked ? "text-gray-800" : "text-gray-400"}`}>
-                      {label}
-                    </span>
+                    <span className={`text-sm ${checked ? "text-gray-800" : "text-gray-400"}`}>{label}</span>
                   </div>
                 ))}
               </div>
             </section>
 
-            {/* 5. Overall Status & Remarks */}
+            {/* 5. Overall Status */}
             <section>
               <SectionHeading>Overall Status & Observations</SectionHeading>
               <div className="flex flex-wrap items-center gap-4 mb-4">
@@ -562,24 +614,18 @@ export default function RecordDetailPage() {
                           type="button"
                           onClick={() => setEditData((prev) => ({ ...prev, overall_status: s }))}
                           className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all
-                            ${active
-                              ? `${cfg.badge} border-current`
-                              : "border-gray-200 text-gray-400 hover:border-gray-300"
-                            }`}
+                            ${active ? `${cfg.badge} border-current` : "border-gray-200 text-gray-400 hover:border-gray-300"}`}
                         >
-                          {cfg.icon}
-                          {s}
+                          {cfg.icon}{s}
                         </button>
                       )
                     })}
                   </div>
                 ) : (
                   <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold ${overallCfg.badge}`}>
-                    {overallCfg.icon}
-                    {overallStatus}
+                    {overallCfg.icon}{overallStatus}
                   </span>
                 )}
-
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[11px] text-gray-400 uppercase tracking-wide">Next Inspection</span>
                   {editing ? (
@@ -590,17 +636,12 @@ export default function RecordDetailPage() {
                       className="text-sm font-semibold text-gray-800 border border-gray-200 rounded-lg px-2.5 py-1 outline-none focus:border-[#027D3F] bg-[#FAF6EE]"
                     />
                   ) : (
-                    <span className="text-sm font-semibold text-gray-800">
-                      {formatDate(r.next_inspection_date)}
-                    </span>
+                    <span className="text-sm font-semibold text-gray-800">{formatDate(r.next_inspection_date)}</span>
                   )}
                 </div>
               </div>
-
               <div className="bg-[#FAF6EE] rounded-xl px-4 py-3.5 border border-gray-100">
-                <p className="text-xs text-gray-400 mb-1.5 uppercase tracking-wide font-medium">
-                  Observations / Remarks
-                </p>
+                <p className="text-xs text-gray-400 mb-1.5 uppercase tracking-wide font-medium">Observations / Remarks</p>
                 {editing ? (
                   <textarea
                     rows={3}
@@ -609,14 +650,12 @@ export default function RecordDetailPage() {
                     className="w-full text-sm text-gray-700 bg-white border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#027D3F] focus:ring-1 focus:ring-[#027D3F]/20 resize-none"
                   />
                 ) : (
-                  <p className="text-sm text-gray-700 leading-relaxed">
-                    {r.remarks || "No remarks recorded."}
-                  </p>
+                  <p className="text-sm text-gray-700 leading-relaxed">{r.remarks || "No remarks recorded."}</p>
                 )}
               </div>
             </section>
 
-            {/* 6. Site Photos */}
+            {/* 6. Photos */}
             <section>
               <SectionHeading>Site Photos</SectionHeading>
               {r.site_photo && Object.keys(r.site_photo).length > 0 ? (
@@ -628,11 +667,7 @@ export default function RecordDetailPage() {
                     return (
                       <div key={key} className="flex flex-col gap-1.5">
                         <div className="aspect-[4/3] rounded-xl overflow-hidden border border-gray-100">
-                          <img
-                            src={url}
-                            alt={label}
-                            className="w-full h-full object-cover"
-                          />
+                          <img src={url} alt={label} className="w-full h-full object-cover" />
                         </div>
                         <p className="text-[11px] text-gray-400 text-center">{label}</p>
                       </div>
@@ -656,7 +691,6 @@ export default function RecordDetailPage() {
                   <span className="text-sm font-medium text-gray-700">{formatDateTime(r.created_at)}</span>
                   <span className="text-xs text-gray-400 mt-1 font-mono">{r.survey_id}</span>
                 </div>
-
                 <div className="flex flex-col items-center sm:items-end gap-2 w-full sm:w-auto">
                   <div className="w-full sm:w-64 h-24 rounded-xl border-2 border-dashed border-gray-200 bg-[#FAF6EE] flex items-center justify-center overflow-hidden">
                     {r.signature?.base64 ? (
@@ -679,7 +713,7 @@ export default function RecordDetailPage() {
 
           </div>
 
-          {/* ── Document footer ──────────────────────────────────────── */}
+          {/* Footer */}
           <div className="px-6 sm:px-8 py-4 bg-[#FAF6EE] border-t border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 rounded bg-[#027D3F] flex items-center justify-center">
@@ -691,7 +725,7 @@ export default function RecordDetailPage() {
           </div>
         </div>
 
-        {/* ── Bottom action row (screen only) ─────────────────────────── */}
+        {/* Bottom print button */}
         <div className="flex items-center justify-end gap-2 mt-4 print:hidden">
           <button
             onClick={() => window.print()}
