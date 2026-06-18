@@ -46,7 +46,7 @@ export function RecordCard({ record }: RecordCardProps) {
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0 flex gap-2 ">
             <p className="text-[15px] font-bold text-gray-900 truncate group-hover:text-[#027D3F] transition-colors">
-              {record.bic ?? "—"}
+              {record.bic?.toUpperCase() ?? "—"}
             </p>
             <span className="font-mono text-[11px] text-gray-400 bg-gray-50 border border-gray-100 rounded px-1.5 py-0.5">
               {record.branch_name ?? "Unknown Branch"}

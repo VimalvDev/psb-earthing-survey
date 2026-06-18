@@ -123,8 +123,8 @@ function formatDateTime(iso: string | null): string {
 function getReadingStatus(value: string): { label: string; badge: string } {
   const v = parseFloat(value);
   if (isNaN(v)) return { label: "—", badge: "bg-gray-100 text-gray-400" };
-  if (v <= 1) return { label: "Good", badge: "bg-[#027D3F]/10 text-[#027D3F]" };
-  if (v <= 5) return { label: "OK", badge: "bg-[#E6F1FB] text-[#185FA5]" };
+  if (v <= 2) return { label: "Good", badge: "bg-[#027D3F]/10 text-[#027D3F]" };
+  if (v <= 5) return { label: "Pass", badge: "bg-[#E6F1FB] text-[#185FA5]" };
   return { label: "Fail", badge: "bg-[#E41E23]/10 text-[#E41E23]" };
 }
 

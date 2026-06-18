@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ZoneWiseSummary } from "@/components/summary/ZoneWiseSummary";
 import {
   FiAlertTriangle,
   FiCheckCircle,
@@ -133,6 +134,7 @@ export default function SummaryPage() {
           valueClass="text-[#D81F26]"
         />
       </div>
+      <ZoneWiseSummary />
 
       <div className="rounded-3xl border border-gray-100 bg-white p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
