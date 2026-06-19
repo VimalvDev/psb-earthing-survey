@@ -2,7 +2,9 @@
 
 import { useRef, useState, useEffect } from "react"
 import SignatureCanvas from "react-signature-canvas"
-import { FiEdit3, FiCamera, FiTrash2, FiX, FiCheck, FiMaximize2 } from "react-icons/fi"
+import ReactCrop, { type Crop, type PixelCrop, centerCrop, makeAspectCrop } from "react-image-crop"
+import "react-image-crop/dist/ReactCrop.css"
+import { FiEdit3, FiCamera, FiTrash2, FiX, FiCheck, FiMaximize2, FiCrop } from "react-icons/fi"
 
 export type SignatureMethod = "draw" | "photo"
 
@@ -21,23 +23,65 @@ function getBase64(sigCanvas: SignatureCanvas): string {
   return sigCanvas.getTrimmedCanvas().toDataURL("image/png").split(",")[1]
 }
 
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
+// Renders the selected crop region of an <img> onto a canvas and returns base64 (no data: prefix)
+function getCroppedImageBase64(image: HTMLImageElement, crop: PixelCrop, mimeType = "image/jpeg"): string {
+  const canvas = document.createElement("canvas")
+  const scaleX = image.naturalWidth / image.width
+  const scaleY = image.naturalHeight / image.height
+
+  canvas.width = Math.max(1, Math.round(crop.width * scaleX))
+  canvas.height = Math.max(1, Math.round(crop.height * scaleY))
+
+  const ctx = canvas.getContext("2d")
+  if (!ctx) throw new Error("Could not get canvas context")
+
+  ctx.drawImage(
+    image,
+    crop.x * scaleX,
+    crop.y * scaleY,
+    crop.width * scaleX,
+    crop.height * scaleY,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  )
+
+  return canvas.toDataURL(mimeType, 0.92).split(",")[1]
+}
+
 export function ManagerSignature({ signature, onChange }: ManagerSignatureProps) {
   const [method, setMethod] = useState<SignatureMethod>("draw")
   const [isEmpty, setIsEmpty] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
+
+  // Crop flow state
+  const [rawPhotoSrc, setRawPhotoSrc] = useState<string | null>(null)
+  const [crop, setCrop] = useState<Crop>()
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop>()
+  const cropImgRef = useRef<HTMLImageElement>(null)
 
   const inlineSigRef = useRef<SignatureCanvas>(null)
   const modalSigRef = useRef<SignatureCanvas>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (modalOpen) {
+    if (modalOpen || rawPhotoSrc) {
       document.body.style.overflow = "hidden"
     } else {
       document.body.style.overflow = ""
     }
     return () => { document.body.style.overflow = "" }
-  }, [modalOpen])
+  }, [modalOpen, rawPhotoSrc])
 
   function handleStrokeEnd(ref: React.RefObject<SignatureCanvas | null>) {
     if (ref.current && !ref.current.isEmpty()) setIsEmpty(false)
@@ -59,9 +103,49 @@ export function ManagerSignature({ signature, onChange }: ManagerSignatureProps)
   async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    const base64 = await fileToBase64(file)
-    onChange({ method: "photo", base64, mimeType: file.type })
+    const dataUrl = await fileToBase64(file)
+    setRawPhotoSrc(dataUrl)
+    setCrop(undefined)
+    setCompletedCrop(undefined)
     e.target.value = ""
+  }
+
+  function handleCropImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
+    const { width, height } = e.currentTarget
+    // Default selection: centered box covering most of the image, user can resize/drag from there
+    const initial = centerCrop(
+      makeAspectCrop({ unit: "%", width: 80 }, width / height, width, height),
+      width,
+      height
+    )
+    setCrop(initial)
+  }
+
+  function handleConfirmCrop() {
+    if (!cropImgRef.current || !completedCrop || completedCrop.width === 0) return
+    const base64 = getCroppedImageBase64(cropImgRef.current, completedCrop, "image/jpeg")
+    onChange({ method: "photo", base64, mimeType: "image/jpeg" })
+    setRawPhotoSrc(null)
+  }
+
+  function handleUseFullPhoto() {
+    if (!cropImgRef.current) return
+    const fullCrop: PixelCrop = {
+      unit: "px",
+      x: 0,
+      y: 0,
+      width: cropImgRef.current.width,
+      height: cropImgRef.current.height,
+    }
+    const base64 = getCroppedImageBase64(cropImgRef.current, fullCrop, "image/jpeg")
+    onChange({ method: "photo", base64, mimeType: "image/jpeg" })
+    setRawPhotoSrc(null)
+  }
+
+  function handleCancelCrop() {
+    setRawPhotoSrc(null)
+    setCrop(undefined)
+    setCompletedCrop(undefined)
   }
 
   return (
@@ -183,10 +267,9 @@ export function ManagerSignature({ signature, onChange }: ManagerSignatureProps)
         </div>
       )}
 
-      {/* ── Fullscreen Modal ── */}
+      {/* ── Fullscreen Modal — Draw signature ── */}
       {modalOpen && (
         <div className="lg:hidden fixed inset-0 z-50 bg-white flex flex-col">
-          {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
             <div>
               <p className="text-sm font-semibold text-gray-900">Manager Signature</p>
@@ -199,7 +282,6 @@ export function ManagerSignature({ signature, onChange }: ManagerSignatureProps)
             </button>
           </div>
 
-          {/* Signature box — fixed aspect, centered, not stretched */}
           <div className="flex-1 flex items-center justify-center p-6 bg-gray-50">
             <div className="relative w-full max-w-md aspect-[16/10] bg-white rounded-2xl border-2 border-dashed border-gray-200 overflow-hidden shadow-sm">
               <SignatureCanvas
@@ -222,7 +304,6 @@ export function ManagerSignature({ signature, onChange }: ManagerSignatureProps)
             </div>
           </div>
 
-          {/* Bottom action bar */}
           <div className="flex items-center gap-3 px-4 py-3 border-t border-gray-100 bg-white shrink-0">
             <button type="button" onClick={() => handleClear(modalSigRef)}
               className="flex items-center gap-2 text-sm text-gray-500 hover:text-[#E41E23] border border-gray-200 px-4 py-2.5 rounded-xl transition-colors duration-150">
@@ -235,15 +316,53 @@ export function ManagerSignature({ signature, onChange }: ManagerSignatureProps)
           </div>
         </div>
       )}
+
+      {/* ── Fullscreen Modal — Crop captured photo ── */}
+      {rawPhotoSrc && (
+        <div className="fixed inset-0 z-50 bg-white flex flex-col">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Crop to signature</p>
+              <p className="text-[11px] text-gray-400">Drag the box edges to select just the manager's signature</p>
+            </div>
+            <button type="button" onClick={handleCancelCrop}
+              className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 shrink-0">
+              <FiX size={16} />
+            </button>
+          </div>
+
+          <div className="flex-1 flex items-center justify-center p-4 sm:p-6 bg-gray-50 overflow-auto">
+            <ReactCrop
+              crop={crop}
+              onChange={(_, percentCrop) => setCrop(percentCrop)}
+              onComplete={(c) => setCompletedCrop(c)}
+              className="max-w-full max-h-full"
+            >
+              <img
+                ref={cropImgRef}
+                src={rawPhotoSrc}
+                alt="Captured form"
+                onLoad={handleCropImageLoad}
+                className="max-w-full max-h-[65vh] object-contain"
+              />
+            </ReactCrop>
+          </div>
+
+          <div className="flex items-center gap-3 px-4 py-3 border-t border-gray-100 bg-white shrink-0">
+            <button type="button" onClick={handleUseFullPhoto}
+              className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 px-4 py-2.5 rounded-xl transition-colors duration-150">
+              Use Full Photo
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmCrop}
+              disabled={!completedCrop || completedCrop.width === 0}
+              className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold text-white bg-gray-900 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed py-2.5 rounded-xl transition-colors duration-150">
+              <FiCrop size={14} /> Crop & Save
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   )
-}
-
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve((reader.result as string).split(",")[1])
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
 }

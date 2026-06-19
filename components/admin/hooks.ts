@@ -147,3 +147,31 @@ export function useRevokeSession() {
     },
   })
 }
+
+export function useCreateUser() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (input: {
+      name: string
+      emp_id: string
+      designation: string
+      email: string
+      mobile_number: string
+      password: string
+      role: Role
+    }) => {
+      const res = await fetch("/api/admin/create-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Failed to create user")
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] })
+    },
+  })
+}

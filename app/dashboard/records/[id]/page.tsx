@@ -59,6 +59,7 @@ interface LoggedInUser {
   emp_id: string;
   designation: string;
   email: string;
+  role: "admin" | "manager" | "engineer";
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -128,10 +129,6 @@ function getReadingStatus(value: string): { label: string; badge: string } {
   return { label: "Fail", badge: "bg-[#E41E23]/10 text-[#E41E23]" };
 }
 
-function canEdit(designation: string): boolean {
-  return designation === "Admin" || designation === "Developer";
-}
-
 // ── Skeleton ───────────────────────────────────────────────────────────────
 
 function SkeletonDetail() {
@@ -174,6 +171,8 @@ function SkeletonDetail() {
         </div>
       </div>
     </div>
+
+    
   );
 }
 
@@ -239,6 +238,7 @@ export default function RecordDetailPage() {
   const [editData, setEditData] = useState<Partial<SurveyDetail>>({});
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   // ── Fetch user ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -252,13 +252,22 @@ export default function RecordDetailPage() {
       }
       const { data } = await supabase
         .from("engineers")
-        .select("name, emp_id, designation, email")
+        .select("name, emp_id, designation, email, role")
         .eq("email", user.email)
         .single();
       if (data) setCurrentUser({ ...data, email: user.email ?? "" });
     }
     loadUser();
   }, []);
+
+  useEffect(() => {
+  if (!previewImage) return;
+  function handleKey(e: KeyboardEvent) {
+    if (e.key === "Escape") setPreviewImage(null);
+  }
+  window.addEventListener("keydown", handleKey);
+  return () => window.removeEventListener("keydown", handleKey);
+}, [previewImage]);
 
   // ── Fetch survey via TanStack Query (uses prefetch cache if available) ──
   const {
@@ -386,8 +395,7 @@ export default function RecordDetailPage() {
   }
 
   const r = editing ? { ...record, ...editData } : record;
-  const isAdmin = currentUser ? canEdit(currentUser.designation) : false;
-  const isDeveloper = currentUser?.designation === "Developer";
+  const isAdmin = currentUser?.role === "admin";
   const overallStatus = (r.overall_status ?? "") as OverallStatus;
   const overallCfg = OVERALL_CONFIG[overallStatus] ?? OVERALL_CONFIG["Partial"];
   const hasSignature = !!r.signature?.base64;
@@ -396,7 +404,7 @@ export default function RecordDetailPage() {
   return (
     <>
       {/* ── Print styles ─────────────────────────────────────────────────── */}
- <style>{`
+      <style>{`
   @media print {
     header, nav, aside, footer,
     [data-sidebar], [data-nav],
@@ -432,7 +440,7 @@ export default function RecordDetailPage() {
                   Edit
                 </button>
               )}
-              {isDeveloper && !editing && (
+              {isAdmin && !editing && (
                 <button
                   onClick={handleDelete}
                   className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-white bg-[#E41E23] rounded-xl hover:bg-[#c01a1f] transition-all"
@@ -844,13 +852,18 @@ export default function RecordDetailPage() {
                       if (!url) return null;
                       return (
                         <div key={key} className="flex flex-col gap-1.5">
-                          <div className="aspect-[4/3] rounded-xl overflow-hidden border border-gray-100">
+                          <button
+                            type="button"
+                            onClick={() => setPreviewImage(url)}
+                            className="aspect-[4/3] rounded-xl overflow-hidden border border-gray-100 cursor-zoom-in group relative"
+                          >
                             <img
                               src={url}
                               alt={label}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
                             />
-                          </div>
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                          </button>
                           <p className="text-[11px] text-gray-400 text-center">
                             {label}
                           </p>
@@ -914,9 +927,29 @@ export default function RecordDetailPage() {
               </span>
             </div>
           </div>
-
-        </div>
+</div>
       </div>
+
+      {previewImage && (
+        <div
+          className="fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 sm:p-8 print:hidden"
+          onClick={() => setPreviewImage(null)}
+        >
+          <button
+            onClick={() => setPreviewImage(null)}
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+            aria-label="Close preview"
+          >
+            <FiX size={20} />
+          </button>
+          <img
+            src={previewImage}
+            alt="Full size preview"
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-full max-h-full object-contain rounded-lg"
+          />
+        </div>
+      )}
     </>
   );
 }

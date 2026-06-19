@@ -2,35 +2,37 @@
 
 import { useQuery, keepPreviousData } from "@tanstack/react-query"
 import { createClient } from "@/lib/supabase/client"
-import { ALL_ZONES } from "./zones"
+import { ALL_STATES } from "./states"
 
 function normalize(value: string) {
   return value.trim().toUpperCase().replace(/\s+/g, " ")
 }
 
-const NORMALIZED_ZONES = new Map(ALL_ZONES.map((z) => [normalize(z.key), z]))
 
-export function useZoneWiseCounts() {
+
+const NORMALIZED_STATES = new Map(ALL_STATES.map((s) => [normalize(s.key), s]))
+
+export function useStateWiseCounts() {
   const supabase = createClient()
 
   return useQuery({
-    queryKey: ["survey-zone-counts"],
+    queryKey: ["survey-state-counts"],
     queryFn: async ({ signal }) => {
       const { data, error } = await supabase
         .from("surveys")
-        .select("zone")
+        .select("state")
         .abortSignal(signal)
 
       if (error) throw error
 
       const counts = new Map<string, number>()
-      for (const zone of ALL_ZONES) counts.set(zone.label, 0)
+      for (const state of ALL_STATES) counts.set(state.label, 0)
 
       let otherCount = 0
       for (const row of data ?? []) {
-        const raw = row.zone?.trim()
+        const raw = row.state?.trim()
         if (!raw) continue
-        const match = NORMALIZED_ZONES.get(normalize(raw))
+        const match = NORMALIZED_STATES.get(normalize(raw))
         if (match) {
           counts.set(match.label, (counts.get(match.label) ?? 0) + 1)
         } else {
@@ -38,9 +40,9 @@ export function useZoneWiseCounts() {
         }
       }
 
-      const breakdown = ALL_ZONES.map((zone) => ({
-        zone: zone.label,
-        count: counts.get(zone.label) ?? 0,
+      const breakdown = ALL_STATES.map((state) => ({
+        state: state.label,
+        count: counts.get(state.label) ?? 0,
       })).sort((a, b) => b.count - a.count)
 
       return { breakdown, otherCount }
