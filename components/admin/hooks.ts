@@ -62,11 +62,22 @@ export function useUpdateRole() {
 
   return useMutation({
     mutationFn: async ({ id, role }: { id: string; role: Role }) => {
-      const { error } = await supabase.from("engineers").update({ role }).eq("id", id)
+      const { data, error } = await supabase
+        .from("engineers")
+        .update({ role })
+        .eq("id", id)
+        .select()
+
       if (error) throw error
+      if (!data || data.length === 0) {
+        throw new Error("Update blocked — likely an RLS policy issue. Check that the 'Admins can update roles' policy exists on the engineers table.")
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] })
+    },
+    onError: (err) => {
+      alert(err instanceof Error ? err.message : "Failed to update role")
     },
   })
 }
