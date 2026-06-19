@@ -420,7 +420,7 @@ export default function RecordDetailPage() {
               className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#027D3F] transition-colors group"
             >
               <FiArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-              Back to Records
+              Back
             </Link>
             <div className="flex items-center gap-2">
               {isAdmin && !editing && (
@@ -915,16 +915,6 @@ export default function RecordDetailPage() {
             </div>
           </div>
 
-          {/* Bottom print button */}
-          <div className="flex items-center justify-end gap-2 mt-4 print:hidden">
-            <button
-              onClick={() => window.print()}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-[#027D3F] rounded-xl hover:bg-[#02612f] transition-colors"
-            >
-              <FiPrinter size={15} />
-              Print / Save PDF
-            </button>
-          </div>
         </div>
       </div>
     </>

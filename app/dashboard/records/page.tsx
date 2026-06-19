@@ -216,20 +216,6 @@ export default function RecordsPage() {
         </Link>
       </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {statsLoading ? (
-          <><StatSkeleton /><StatSkeleton /><StatSkeleton /><StatSkeleton /></>
-        ) : (
-          <>
-            <StatCard label="Total"   value={totalCount}          icon={<FiFileText size={16} className="text-gray-400" />}       className="border-gray-100 bg-white"       valueClass="text-gray-900" />
-            <StatCard label="Pass"    value={stats?.pass ?? 0}    icon={<FiCheckCircle size={16} className="text-[#027D3F]" />}   className="border-[#B9DEC8] bg-[#E8F5EE]" valueClass="text-[#027D3F]" />
-            <StatCard label="Partial" value={stats?.partial ?? 0} icon={<FiAlertTriangle size={16} className="text-[#768A06]" />} className="border-[#E7E9A9] bg-[#F6F8D7]" valueClass="text-[#768A06]" />
-            <StatCard label="Fail"    value={stats?.fail ?? 0}    icon={<FiXCircle size={16} className="text-[#D81F26]" />}       className="border-[#F5B9B9] bg-[#FDECEC]" valueClass="text-[#D81F26]" />
-          </>
-        )}
-      </div>
-
       {/* Main layout */}
       <div className="flex gap-6 items-start">
 
