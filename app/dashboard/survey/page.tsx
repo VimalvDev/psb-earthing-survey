@@ -248,9 +248,6 @@ export default function NewSurveyPage() {
         </div>
       </div>
 
-      {/* ── Doc scan banner — top of form ────────────────────────────────── */}
-      <DocScanBanner onFieldsExtracted={handleOcrFields} />
-
       {/* ── Two-column grid ──────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-5 items-start">
         {/* ═══ LEFT COLUMN ════════════════════════════════════════════════ */}

@@ -108,23 +108,6 @@ export function DocScanBanner({ onFieldsExtracted }: DocScanBannerProps) {
         )}
       </div>
 
-      {/* ── Text block — full width below, no wrapping pressure ── */}
-      <div className="pl-0">
-        <p className="text-sm font-medium text-gray-900 leading-snug">
-          {scanState === "idle" && "Have a paper form? Scan to auto-fill"}
-          {scanState === "uploading" && "Uploading image..."}
-          {scanState === "processing" && "Reading document with AI..."}
-          {scanState === "done" && "Fields auto-filled — please review and correct"}
-          {scanState === "error" && "Scan failed"}
-        </p>
-        <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">
-          {scanState === "idle" && "Photo or scan of handwritten/printed form → AI reads it → fields filled automatically"}
-          {scanState === "uploading" && "Preparing your image"}
-          {scanState === "processing" && "Claude Vision is extracting field values"}
-          {scanState === "done" && "Review all fields carefully before submitting"}
-          {scanState === "error" && errorMsg}
-        </p>
-      </div>
 
       {/* Hidden file input */}
       <input

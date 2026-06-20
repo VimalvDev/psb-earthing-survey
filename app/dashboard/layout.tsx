@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
-import { FiZap, FiPlus, FiList, FiBarChart2, FiLogOut, FiShield, FiSettings } from "react-icons/fi"
+import Image from "next/image"
+import { FiPlus, FiList, FiBarChart2, FiLogOut, FiShield, FiSettings } from "react-icons/fi"
 import { createClient } from "@/lib/supabase/client"
 
 interface SidebarUser {
@@ -93,13 +94,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <aside className="hidden lg:flex fixed top-0 left-0 h-full w-64 bg-[#027D3F] flex-col z-30">
 
         {/* Brand Header */}
-        <div className="flex items-center gap-3 px-5 py-5 border-b border-white/10">
-          <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-[#BDD70C]">
-            <FiZap className="text-[#027D3F] w-4 h-4" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold text-white leading-tight">PSB Earthing Survey</span>
-            <span className="text-[10px] text-white/50 tracking-wide uppercase">Pan India Inspection</span>
+        <div className="flex items-center justify-between gap-2 px-5 py-5 border-b border-white/10">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Image
+              src="/structureindia.png"
+              alt="Structure India"
+              width={28}
+              height={28}
+              className="object-contain brightness-0 invert shrink-0"
+            />
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-semibold text-white leading-tight truncate">PSB Earthing Survey</span>
+              <span className="text-[10px] text-white/50 tracking-wide uppercase">Pan India Inspection</span>
+            </div>
           </div>
         </div>
 
@@ -165,9 +172,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <header className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-[#027D3F] flex items-center justify-between px-4 z-30">
 
         <div className="flex items-center gap-2.5">
-          <div className="flex items-center justify-center w-7 h-7 rounded-md bg-[#BDD70C]">
-            <FiZap className="text-[#027D3F] w-3.5 h-3.5" />
-          </div>
+          <Image
+            src="/structureindia.png"
+            alt="Structure India"
+            width={22}
+            height={22}
+            className="object-contain brightness-0 invert"
+          />
           <div className="flex flex-col">
             <span className="text-sm font-semibold text-white leading-tight">PSB Earthing</span>
             <span className="text-[9px] text-white/50 tracking-wide uppercase leading-none">Pan India</span>

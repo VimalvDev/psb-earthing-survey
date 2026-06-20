@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import Image from "next/image";
 import Link from "next/link";
 import {
   FiArrowLeft,
@@ -171,8 +172,6 @@ function SkeletonDetail() {
         </div>
       </div>
     </div>
-
-    
   );
 }
 
@@ -261,13 +260,13 @@ export default function RecordDetailPage() {
   }, []);
 
   useEffect(() => {
-  if (!previewImage) return;
-  function handleKey(e: KeyboardEvent) {
-    if (e.key === "Escape") setPreviewImage(null);
-  }
-  window.addEventListener("keydown", handleKey);
-  return () => window.removeEventListener("keydown", handleKey);
-}, [previewImage]);
+    if (!previewImage) return;
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setPreviewImage(null);
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [previewImage]);
 
   // ── Fetch survey via TanStack Query (uses prefetch cache if available) ──
   const {
@@ -510,11 +509,17 @@ export default function RecordDetailPage() {
             {/* Letterhead */}
             <div className="bg-[#027D3F] px-6 sm:px-8 py-6 flex items-start justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-[#BDD70C] flex items-center justify-center shrink-0">
-                  <FiZap className="w-5 h-5 text-[#027D3F]" />
+                <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center shrink-0 p-2">
+                  <Image
+                    src="/psb_logo.png"
+                    alt="Punjab & Sind Bank"
+                    width={32}
+                    height={32}
+                    className="object-contain"
+                  />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-white leading-tight">
+                  <p className="text-base font-bold text-white leading-tight">
                     Punjab & Sind Bank
                   </p>
                   <p className="text-xs text-white/60 mt-0.5">
@@ -531,6 +536,33 @@ export default function RecordDetailPage() {
                 </span>
               </div>
             </div>
+
+            {/* Agency credit strip */}
+            <div className="bg-[#015e30] px-6 sm:px-8 py-2 flex items-center justify-between gap-3">
+              <span className="text-[10px] text-white/50 uppercase tracking-widest">
+                Inspection conducted by
+              </span>
+              <div className="flex items-center gap-3">
+                <Image
+                  src="/structureindia.png"
+                  alt="Structure India"
+                  width={30}
+                  height={30}
+                  className="object-contain brightness-0 invert opacity-80"
+                />
+                <span className="text-white/20 text-xs">|</span>
+                <div className="rounded px-1.5 py-0.5 flex items-center">
+                  <Image
+                    src="/sify.png"
+                    alt="Sify"
+                    width={40}
+                    height={20}
+                    className="object-contain"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className={`h-1 w-full ${overallCfg.bar}`} />
 
             {/* Body */}
@@ -913,13 +945,18 @@ export default function RecordDetailPage() {
             </div>
 
             {/* Footer */}
+            {/* Footer */}
             <div className="px-6 sm:px-8 py-4 bg-[#FAF6EE] border-t border-gray-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded bg-[#027D3F] flex items-center justify-center">
-                  <FiZap className="w-3 h-3 text-[#BDD70C]" />
-                </div>
+                <Image
+                  src="/structureindia.png"
+                  alt="Structure India"
+                  width={14}
+                  height={14}
+                  className="object-contain opacity-60"
+                />
                 <span className="text-[11px] text-gray-400">
-                  PSB Earthing Survey Report
+                  Prepared by Structure India for Punjab & Sind Bank
                 </span>
               </div>
               <span className="text-[9px] text-gray-400 font-mono">
@@ -927,7 +964,7 @@ export default function RecordDetailPage() {
               </span>
             </div>
           </div>
-</div>
+        </div>
       </div>
 
       {previewImage && (
