@@ -1,5 +1,5 @@
 "use client";
-
+import Image from "next/image"
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FiSave, FiZap, FiLoader } from "react-icons/fi";
@@ -233,9 +233,15 @@ export default function NewSurveyPage() {
             Earthing inspection report · PSB Pan-India
           </p>
         </div>
-        <div className="flex items-center gap-2 bg-white border border-gray-100 rounded-xl px-4 py-2.5 self-start sm:self-auto">
-          <div className="w-5 h-5 rounded bg-[#027D3F] flex items-center justify-center shrink-0">
-            <FiZap className="w-3 h-3 text-[#BDD70C]" />
+        <div className="flex items-center gap-2 bg-white border border-gray-100 rounded-xl px-3 py-2.5 self-start sm:self-auto">
+          <div className="w-9 h-9 rounded-md bg-[#027D3F] flex items-center justify-center shrink-0 p-1">
+            <Image
+              src="/structureindia.png"
+              alt="Structure India"
+              width={34}
+              height={34}
+              className="object-contain brightness-0 invert"
+            />
           </div>
           <div className="flex flex-col">
             <span className="text-[10px] text-gray-400 uppercase tracking-wide">
