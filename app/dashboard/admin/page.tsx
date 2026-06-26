@@ -1,9 +1,18 @@
 "use client";
 import ActiveSessionsCard from "@/components/admin/ActiveSessionsCard";
-
 import { useMemo, useState } from "react";
 import CreateUserModal from "@/components/admin/CreateUserModal";
 import { FiUserPlus } from "react-icons/fi";
+
+import {
+  useCurrentRole,
+  useAllUsers,
+  useUpdateRole,
+  useSetUserPassword,
+  useDeleteUser,
+  type Role,
+  type Engineer,
+} from "@/components/admin/hooks";
 import {
   FiUsers,
   FiShield,
@@ -14,15 +23,9 @@ import {
   FiAlertTriangle,
   FiX,
   FiArrowRight,
+  FiTrash2,
 } from "react-icons/fi";
-import {
-  useCurrentRole,
-  useAllUsers,
-  useUpdateRole,
-  useSetUserPassword,
-  type Role,
-  type Engineer,
-} from "@/components/admin/hooks";
+
 import Link from "next/link";
 
 const ROLE_STYLES: Record<Role, string> = {
@@ -172,6 +175,7 @@ function AdminDashboard() {
                   <th className="px-5 py-3">Contact</th>
                   <th className="px-5 py-3">Role</th>
                   <th className="px-5 py-3">Password</th>
+                  <th className="px-5 py-3">Delete</th>
                 </tr>
               </thead>
               <tbody>
@@ -194,7 +198,9 @@ function AdminDashboard() {
           onClose={() => setPasswordTarget(null)}
         />
       )}
-      {showCreateUser && <CreateUserModal onClose={() => setShowCreateUser(false)} />}
+      {showCreateUser && (
+        <CreateUserModal onClose={() => setShowCreateUser(false)} />
+      )}
 
       <ActiveSessionsCard />
     </div>
@@ -233,6 +239,8 @@ function UserRow({
   onSetPassword: () => void;
 }) {
   const updateRole = useUpdateRole();
+  const deleteUser = useDeleteUser();
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const initials = user.name
     .split(" ")
     .map((p) => p[0])
@@ -282,10 +290,44 @@ function UserRow({
           <FiKey size={13} /> Set password
         </button>
       </td>
+      <td className="px-5 py-3.5">
+        {confirmDelete ? (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">Sure?</span>
+            <button
+              onClick={() =>
+                deleteUser.mutate(user.id, {
+                  onSuccess: () => setConfirmDelete(false),
+                })
+              }
+              disabled={deleteUser.isPending}
+              className="text-xs font-semibold text-white bg-[#E41E23] hover:bg-[#c01a1f] px-2 py-1 rounded-lg disabled:opacity-50 flex items-center gap-1"
+            >
+              {deleteUser.isPending ? (
+                <FiLoader size={11} className="animate-spin" />
+              ) : (
+                "Yes"
+              )}
+            </button>
+            <button
+              onClick={() => setConfirmDelete(false)}
+              className="text-xs text-gray-400 hover:text-gray-600"
+            >
+              No
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmDelete(true)}
+            className="text-[#E41E23] flex items-center justify-center w-full transition-colors hover:text-[#c01a1f]"
+          >
+            <FiTrash2 size={13} />
+          </button>
+        )}
+      </td>
     </tr>
   );
 }
-
 function SetPasswordModal({
   user,
   onClose,
