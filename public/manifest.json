@@ -1,0 +1,24 @@
+{
+  "name": "PSB Earthing Survey",
+  "short_name": "PSB Survey",
+  "description": "Pan-India earthing inspection system for Punjab & Sind Bank",
+  "start_url": "/dashboard/survey",
+  "display": "standalone",
+  "background_color": "#FAF6EE",
+  "theme_color": "#027D3F",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

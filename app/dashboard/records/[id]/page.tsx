@@ -395,6 +395,8 @@ export default function RecordDetailPage() {
 
   const r = editing ? { ...record, ...editData } : record;
   const isAdmin = currentUser?.role === "admin";
+  const canEditRecord =
+    currentUser?.role === "admin" || currentUser?.role === "manager";
   const overallStatus = (r.overall_status ?? "") as OverallStatus;
   const overallCfg = OVERALL_CONFIG[overallStatus] ?? OVERALL_CONFIG["Partial"];
   const hasSignature = !!r.signature?.base64;
@@ -430,7 +432,7 @@ export default function RecordDetailPage() {
               Back
             </Link>
             <div className="flex items-center gap-2">
-              {isAdmin && !editing && (
+              {canEditRecord && !editing && (
                 <button
                   onClick={startEditing}
                   className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl hover:border-[#027D3F] hover:text-[#027D3F] transition-all"
@@ -439,7 +441,7 @@ export default function RecordDetailPage() {
                   Edit
                 </button>
               )}
-              {isAdmin && !editing && (
+              {canEditRecord && !editing && (
                 <button
                   onClick={handleDelete}
                   className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-white bg-[#E41E23] rounded-xl hover:bg-[#c01a1f] transition-all"

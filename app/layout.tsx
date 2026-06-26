@@ -15,11 +15,19 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
-
-// app/layout.tsx
 export const metadata = {
   title: "PSB Earthing Survey",
-  description: "Pan-India earthing inspection system",
+  description: "Pan-India earthing inspection system for Punjab & Sind Bank.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "PSB Survey",
+  },
+}
+
+export const viewport = {
+  themeColor: "#027D3F",
 }
 export default function RootLayout({
   children,
