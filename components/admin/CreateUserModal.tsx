@@ -53,7 +53,7 @@ export default function CreateUserModal({ onClose }: { onClose: () => void }) {
             <FiUserPlus size={15} className="text-[#027D3F]" />
             <h3 className="font-semibold text-gray-900">Add new user</h3>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600">
             <FiX size={18} />
           </button>
         </div>

@@ -16,6 +16,8 @@ import {
 import {
   FiUsers,
   FiShield,
+  FiUserCheck,
+  FiUser,
   FiKey,
   FiSearch,
   FiCheck,
@@ -24,6 +26,7 @@ import {
   FiX,
   FiArrowRight,
   FiTrash2,
+  FiChevronDown,
 } from "react-icons/fi";
 
 import Link from "next/link";
@@ -105,18 +108,20 @@ function AdminDashboard() {
             Manage access roles and account recovery for all engineers.
           </p>
         </div>
-        <Link
-          href="/dashboard/settings"
-          className="text-sm font-medium text-[#027D3F] hover:underline flex items-center gap-1"
-        >
-          Manage your own password in Settings <FiArrowRight size={13} />
-        </Link>
-        <button
-          onClick={() => setShowCreateUser(true)}
-          className="h-9 px-4 rounded-xl bg-[#027D3F] hover:bg-[#02612f] text-white text-sm font-semibold flex items-center gap-2 transition-colors"
-        >
-          <FiUserPlus size={14} /> Add User
-        </button>
+        <div className="flex items-center gap-4">
+          <Link
+            href="/dashboard/settings"
+            className="text-sm font-medium text-[#027D3F] hover:underline flex items-center gap-1"
+          >
+            Manage your own password in Settings <FiArrowRight size={13} />
+          </Link>
+          <button
+            onClick={() => setShowCreateUser(true)}
+            className="h-9 px-4 rounded-xl bg-[#027D3F] hover:bg-[#02612f] text-white text-sm font-semibold flex items-center gap-2 transition-colors"
+          >
+            <FiUserPlus size={14} /> Add User
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -124,21 +129,37 @@ function AdminDashboard() {
           label="Total Users"
           value={counts.total}
           icon={<FiUsers size={16} />}
+          bg="bg-[#FEF3EA]"
+          border="border-[#F8DDC0]"
+          iconBg="bg-[#EF9447]/15"
+          iconColor="text-[#EF9447]"
         />
         <StatTile
           label="Admins"
           value={counts.admin}
           icon={<FiShield size={16} />}
+          bg="bg-[#EAF3DE]"
+          border="border-[#CFE3B4]"
+          iconBg="bg-[#3B6D11]/15"
+          iconColor="text-[#3B6D11]"
         />
         <StatTile
           label="Managers"
           value={counts.manager}
-          icon={<FiShield size={16} />}
+          icon={<FiUserCheck size={16} />}
+          bg="bg-[#FAEEDA]"
+          border="border-[#F0D9A8]"
+          iconBg="bg-[#854F0B]/15"
+          iconColor="text-[#854F0B]"
         />
         <StatTile
           label="Engineers"
           value={counts.engineer}
-          icon={<FiShield size={16} />}
+          icon={<FiUser size={16} />}
+          bg="bg-[#E6F1FB]"
+          border="border-[#BEDCF5]"
+          iconBg="bg-[#185FA5]/15"
+          iconColor="text-[#185FA5]"
         />
       </div>
 
@@ -211,20 +232,28 @@ function StatTile({
   label,
   value,
   icon,
+  bg,
+  border,
+  iconBg,
+  iconColor,
 }: {
   label: string;
   value: number;
   icon: React.ReactNode;
+  bg: string;
+  border: string;
+  iconBg: string;
+  iconColor: string;
 }) {
   return (
-    <div className="bg-[#FEF3EA] border border-[#F8DDC0] rounded-2xl p-4 flex items-center justify-between">
+    <div className={`${bg} border ${border} rounded-2xl p-4 flex items-center justify-between`}>
       <div>
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
           {label}
         </p>
         <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
       </div>
-      <div className="w-9 h-9 rounded-xl bg-[#EF9447]/15 flex items-center justify-center text-[#EF9447]">
+      <div className={`w-9 h-9 rounded-xl ${iconBg} flex items-center justify-center ${iconColor}`}>
         {icon}
       </div>
     </div>
@@ -271,16 +300,22 @@ function UserRow({
       <td className="px-5 py-3.5 text-gray-600">{user.designation}</td>
       <td className="px-5 py-3.5 text-gray-600">{user.mobile_number ?? "—"}</td>
       <td className="px-5 py-3.5">
-        <select
-          value={user.role}
-          onChange={handleRoleChange}
-          disabled={updateRole.isPending}
-          className={`appearance-none text-xs font-semibold rounded-full pl-3 pr-7 py-1.5 outline-none cursor-pointer transition disabled:opacity-50 ${ROLE_STYLES[user.role]}`}
-        >
-          <option value="admin">Admin</option>
-          <option value="manager">Manager</option>
-          <option value="engineer">Engineer</option>
-        </select>
+        <div className="relative inline-block">
+          <select
+            value={user.role}
+            onChange={handleRoleChange}
+            disabled={updateRole.isPending}
+            className={`appearance-none text-xs font-semibold rounded-full pl-3 pr-7 py-1.5 outline-none cursor-pointer transition disabled:opacity-50 ${ROLE_STYLES[user.role]}`}
+          >
+            <option value="admin">Admin</option>
+            <option value="manager">Manager</option>
+            <option value="engineer">Engineer</option>
+          </select>
+          <FiChevronDown
+            size={12}
+            className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 opacity-60"
+          />
+        </div>
       </td>
       <td className="px-5 py-3.5">
         <button
@@ -301,6 +336,7 @@ function UserRow({
                 })
               }
               disabled={deleteUser.isPending}
+              aria-label={`Confirm delete ${user.name}`}
               className="text-xs font-semibold text-white bg-[#E41E23] hover:bg-[#c01a1f] px-2 py-1 rounded-lg disabled:opacity-50 flex items-center gap-1"
             >
               {deleteUser.isPending ? (
@@ -311,6 +347,7 @@ function UserRow({
             </button>
             <button
               onClick={() => setConfirmDelete(false)}
+              aria-label="Cancel delete"
               className="text-xs text-gray-400 hover:text-gray-600"
             >
               No
@@ -319,6 +356,7 @@ function UserRow({
         ) : (
           <button
             onClick={() => setConfirmDelete(true)}
+            aria-label={`Delete ${user.name}`}
             className="text-[#E41E23] flex items-center justify-center w-full transition-colors hover:text-[#c01a1f]"
           >
             <FiTrash2 size={13} />
@@ -328,6 +366,7 @@ function UserRow({
     </tr>
   );
 }
+
 function SetPasswordModal({
   user,
   onClose,
@@ -338,9 +377,9 @@ function SetPasswordModal({
   const setPassword = useSetUserPassword();
   const [newPassword, setNewPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [status, setStatus] = useState<
-    "idle" | "success" | "error" | "mismatch"
-  >("idle");
+  const [status, setStatus] = useState<"idle" | "success" | "error" | "mismatch">(
+    "idle"
+  );
   const [errorMsg, setErrorMsg] = useState("");
 
   function handleSubmit() {
@@ -378,6 +417,7 @@ function SetPasswordModal({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="text-gray-400 hover:text-gray-600"
           >
             <FiX size={18} />
