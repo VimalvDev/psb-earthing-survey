@@ -109,12 +109,6 @@ function AdminDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <Link
-            href="/dashboard/settings"
-            className="text-sm font-medium text-[#027D3F] hover:underline flex items-center gap-1"
-          >
-            Manage your own password in Settings <FiArrowRight size={13} />
-          </Link>
           <button
             onClick={() => setShowCreateUser(true)}
             className="h-9 px-4 rounded-xl bg-[#027D3F] hover:bg-[#02612f] text-white text-sm font-semibold flex items-center gap-2 transition-colors"
