@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import {
@@ -29,6 +29,36 @@ export default function LoginPage() {
   const [resetLoading, setResetLoading] = useState(false)
   const [resetError, setResetError] = useState("")
   const [resetSent, setResetSent] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0)
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Cooldown timer for resend
+  useEffect(() => {
+    if (resendCooldown <= 0) {
+      if (cooldownRef.current) clearInterval(cooldownRef.current)
+      return
+    }
+    cooldownRef.current = setInterval(() => {
+      setResendCooldown((prev) => prev - 1)
+    }, 1000)
+    return () => { if (cooldownRef.current) clearInterval(cooldownRef.current) }
+  }, [resendCooldown])
+
+  const handleResend = useCallback(async () => {
+    if (resendCooldown > 0 || !resetIdentifier.trim()) return
+    setResetLoading(true)
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier: resetIdentifier.trim() }),
+      })
+      if (res.ok) {
+        setResendCooldown(60)
+      }
+    } catch { /* silently fail */ }
+    setResetLoading(false)
+  }, [resendCooldown, resetIdentifier])
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -87,25 +117,28 @@ export default function LoginPage() {
 
     setResetLoading(true)
 
-    const email = await lookupEmail(resetIdentifier.trim())
-    if (!email) {
-      setResetError("Employee ID not found. Contact your admin.")
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier: resetIdentifier.trim() }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setResetError(data.error || "Failed to send reset email. Please try again.")
+        setResetLoading(false)
+        return
+      }
+
       setResetLoading(false)
-      return
+      setResetSent(true)
+      setResendCooldown(60)
+    } catch {
+      setResetLoading(false)
+      setResetError("Something went wrong. Please try again later.")
     }
-
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    })
-
-    setResetLoading(false)
-
-    if (error) {
-      setResetError("Failed to send reset email. Please try again.")
-      return
-    }
-
-    setResetSent(true)
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -367,18 +400,33 @@ export default function LoginPage() {
                     </div>
                     <h2 className="text-xl font-bold text-gray-900">Check your email</h2>
                     <p className="text-sm text-gray-500 max-w-xs">
-                      A password reset link has been sent to your registered email. It expires in 10 minutes.
+                      A password reset link has been sent to your registered email. It expires in 60 minutes.
                     </p>
                     <p className="text-xs text-gray-400">
-                      Didn't receive it? Check your spam folder or contact admin.
+                      Didn't receive it? Check your spam folder or try resending.
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => { setView("login"); setResetSent(false); setResetIdentifier("") }}
-                      className="mt-2 text-sm font-semibold text-[#027D3F] hover:underline"
-                    >
-                      Back to login
-                    </button>
+                    <div className="flex items-center gap-4 mt-2">
+                      <button
+                        type="button"
+                        onClick={handleResend}
+                        disabled={resendCooldown > 0 || resetLoading}
+                        className="text-sm font-semibold text-[#027D3F] hover:underline disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed"
+                      >
+                        {resetLoading
+                          ? "Sending…"
+                          : resendCooldown > 0
+                            ? `Resend in ${resendCooldown}s`
+                            : "Resend email"}
+                      </button>
+                      <span className="text-gray-300">|</span>
+                      <button
+                        type="button"
+                        onClick={() => { setView("login"); setResetSent(false); setResetIdentifier(""); setResendCooldown(0) }}
+                        className="text-sm font-semibold text-gray-500 hover:text-gray-700 hover:underline"
+                      >
+                        Back to login
+                      </button>
+                    </div>
                   </div>
                 )}
               </>
