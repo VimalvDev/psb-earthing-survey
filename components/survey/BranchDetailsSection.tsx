@@ -84,8 +84,9 @@ export function BranchDetailsSection({ onChange, values }: BranchDetailsSectionP
     <section className="bg-white border border-gray-100 rounded-xl p-4 md:p-5">
       <SectionHeading>Branch Details</SectionHeading>
 
-      {/* Branch Code + Name */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div className="flex flex-col gap-2">
+        {/* Branch Code + Name */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
           <Label className="text-xs font-medium text-gray-600">Branch Code</Label>
           <div className="relative">
@@ -115,19 +116,19 @@ export function BranchDetailsSection({ onChange, values }: BranchDetailsSectionP
       </div>
 
       {/* State / District / Zone */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <LockedInput label="State" placeholder="Auto-filled" value={values.state} onChange={(v) => onChange("state", v)} />
         <LockedInput label="District" placeholder="Auto-filled" value={values.district} onChange={(v) => onChange("district", v)} />
         <LockedInput label="Zone" placeholder="Auto-filled" value={values.zone} onChange={(v) => onChange("zone", v)} />
       </div>
 
       {/* Address */}
-      <div className="mb-3">
+      <div className="w-full">
         <LockedInput label="Address" placeholder="Auto-filled" value={values.address} onChange={(v) => onChange("address", v)} />
       </div>
 
       {/* Branch Manager + Phone */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
           <Label className="text-xs font-medium text-gray-600">Branch Manager Name</Label>
           <Input
@@ -196,6 +197,7 @@ export function BranchDetailsSection({ onChange, values }: BranchDetailsSectionP
             </SelectContent>
           </Select>
         </div>
+      </div>
       </div>
     </section>
   );

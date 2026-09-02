@@ -492,10 +492,10 @@ export default function RecordDetailPage() {
   }
 `}</style>
 
-      <div className="min-h-screen bg-[#FAF6EE]">
+      <div>
         <div className="max-w-6xl">
           {/* Top bar — screen only */}
-          <div className="flex items-center justify-between mb-6 print:hidden">
+          <div className="flex items-center justify-between mb-3 print:hidden">
             <Link
               href="/dashboard/records"
               className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#027D3F] transition-colors group"
@@ -602,11 +602,11 @@ export default function RecordDetailPage() {
           {/* Document */}
           <div
             id="print-document"
-            className="flex flex-col gap-6 lg:gap-8 print:block print:bg-white print:gap-0"
+            className="flex flex-col gap-1 lg:gap-1 print:block print:bg-white print:gap-0"
           >
             {/* ── Main Report Header (Hero Banner) ── */}
             <div
-              className="relative overflow-hidden rounded-[14px] shadow-sm border border-gray-100 print:rounded-none print:border-0 print:shadow-none"
+              className="relative overflow-hidden rounded-[14px] border border-gray-100 print:rounded-none print:border-0 print:shadow-none"
               style={{
                 backgroundImage: "url('/psb-header-green.png')",
                 backgroundSize: "cover",
@@ -650,9 +650,14 @@ export default function RecordDetailPage() {
                       Overall: {overallStatus || "—"}
                     </span>
                   </div>
-                  <span className="text-[10px] sm:text-xs text-white/80 font-mono font-medium drop-shadow-sm bg-black/20 px-2 py-1 rounded">
-                    {r.survey_id}
-                  </span>
+                  <div className="flex gap-2">
+                    <span className="text-[10px] sm:text-xs text-white/80 font-mono font-medium drop-shadow-sm bg-black/20 px-2 py-1 rounded">
+                      {r.survey_id}
+                    </span>
+                    <span className="text-[10px] sm:text-xs text-white/90 font-medium drop-shadow-sm bg-black/20 px-2 py-1 rounded uppercase tracking-wider">
+                      {SURVEY_TYPE_LABELS[r.survey_type as keyof typeof SURVEY_TYPE_LABELS] ?? r.survey_type ?? "SURVEY"}
+                    </span>
+                  </div>
                 </div>
 
               </div>
@@ -668,45 +673,40 @@ export default function RecordDetailPage() {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-6">
                 <Field
                   label="Branch Code"
-                  value={r.bic ?? ""}
+                  value={editData.bic ?? r.bic ?? ""}
                   editing={editing}
                   onChange={(v) => setField("bic", v)}
                 />
                 <Field
                   label="Branch Name"
-                  value={r.branch_name ?? ""}
+                  value={editData.branch_name ?? r.branch_name ?? ""}
                   editing={editing}
                   onChange={(v) => setField("branch_name", v)}
                 />
                 <Field
                   label="Zone"
-                  value={r.zone ?? ""}
+                  value={editData.zone ?? r.zone ?? ""}
                   editing={editing}
                   onChange={(v) => setField("zone", v)}
                 />
-              </div>
-
-              <div className="my-6 border-t border-gray-100"></div>
-              
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-6">
                 <Field
                   label="State"
-                  value={r.state ?? ""}
+                  value={editData.state ?? r.state ?? ""}
                   editing={editing}
                   onChange={(v) => setField("state", v)}
                 />
                 <Field
                   label="District"
-                  value={r.district ?? ""}
+                  value={editData.district ?? r.district ?? ""}
                   editing={editing}
                   onChange={(v) => setField("district", v)}
                 />
                 <Field
                   label="Visit Date"
-                  value={formatDate(r.visit_date)}
+                  value={editing ? (editData.visit_date ?? r.visit_date ?? "") : formatDate(r.visit_date)}
                   editing={editing}
                   onChange={(v) => setField("visit_date", v)}
-                  type="text"
+                  type={editing ? "date" : "text"}
                 />
               </div>
 
@@ -715,22 +715,9 @@ export default function RecordDetailPage() {
               <div className="w-full">
                 <Field
                   label="Address"
-                  value={r.address ?? ""}
+                  value={editData.address ?? r.address ?? ""}
                   editing={editing}
                   onChange={(v) => setField("address", v)}
-                />
-              </div>
-
-              <div className="my-6 border-t border-gray-100"></div>
-
-              <div className="w-full sm:w-1/3">
-                <Field
-                  label="Survey Type"
-                  value={
-                    SURVEY_TYPE_LABELS[r.survey_type ?? ""] ??
-                    r.survey_type ??
-                    ""
-                  }
                 />
               </div>
             </section>
@@ -1086,14 +1073,7 @@ export default function RecordDetailPage() {
             )}
 
             {/* Footer */}
-            <div className="mt-8 flex items-center justify-between text-gray-400 print:mt-12">
-              <span className="text-[11px] font-medium tracking-wide">
-                Prepared by Structure India for Punjab & Sind Bank
-              </span>
-              <span className="text-[10px] font-mono font-medium tracking-widest">
-                {r.survey_id}
-              </span>
-            </div>
+            
           </div>
         </div>
       </div>
