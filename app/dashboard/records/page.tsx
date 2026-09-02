@@ -299,8 +299,8 @@ export default function RecordsPage() {
             </div>
           ) : records.length > 0 ? (
             <div className="flex flex-col gap-3">
-              {records.map((record) => (
-                <RecordCard key={record.id} record={record} />
+              {records.map((record, i) => (
+                <RecordCard key={record.id} record={record} index={i} />
               ))}
             </div>
           ) : (

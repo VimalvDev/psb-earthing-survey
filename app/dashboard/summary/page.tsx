@@ -163,8 +163,8 @@ export default function SummaryPage() {
             <SummarySkeleton />
           ) : recentRecords.length > 0 ? (
             <div className="grid gap-3">
-              {recentRecords.map((record) => (
-                <RecordCard key={record.id} record={record} />
+              {recentRecords.map((record, i) => (
+                <RecordCard key={record.id} record={record} index={i} />
               ))}
             </div>
           ) : (

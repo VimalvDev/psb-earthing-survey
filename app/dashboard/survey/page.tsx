@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FiSave, FiZap, FiLoader } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+import { motion, Variants } from "framer-motion";
 
 import { BranchDetailsSection } from "@/components/survey/BranchDetailsSection";
 import { SurveyorSection } from "@/components/survey/SurveyorSection";
@@ -34,6 +35,27 @@ interface LoggedInUser {
   mobile_number: string;
   email: string;
 }
+
+// ── Variants ─────────────────────────────────────────────────────────────
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+    },
+  },
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 15 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.25, ease: "easeOut" },
+  },
+};
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -255,43 +277,62 @@ export default function NewSurveyPage() {
       </div>
 
       {/* ── Two-column grid ──────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-5 items-start">
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-5 items-start"
+      >
         {/* ═══ LEFT COLUMN ════════════════════════════════════════════════ */}
         <div className="flex flex-col gap-5 lg:sticky lg:top-6 lg:self-start">
-          <BranchDetailsSection
-            values={branchValues}
-            onChange={handleBranchChange}
-          />
-          <SurveyorSection user={currentUser} />
+          <motion.div variants={itemVariants}>
+            <BranchDetailsSection
+              values={branchValues}
+              onChange={handleBranchChange}
+            />
+          </motion.div>
+          <motion.div variants={itemVariants}>
+            <SurveyorSection user={currentUser} />
+          </motion.div>
         </div>
 
         {/* ═══ RIGHT COLUMN ═══════════════════════════════════════════════ */}
         <div className="flex flex-col gap-5">
-          <EarthingReadingsTable
-            data={readingsData}
-            onChange={setReadingsData}
-            onStatusChange={setReadingStatuses}
-          />
+          <motion.div variants={itemVariants}>
+            <EarthingReadingsTable
+              data={readingsData}
+              onChange={setReadingsData}
+              onStatusChange={setReadingStatuses}
+            />
+          </motion.div>
 
-          <ChecklistSection checked={checklist} onChange={setChecklist} />
+          <motion.div variants={itemVariants}>
+            <ChecklistSection checked={checklist} onChange={setChecklist} />
+          </motion.div>
 
-          <OverallStatusSection
-            status={overallStatus}
-            remarks={remarks}
-            nextInspectionDate={nextInspectionDate}
-            autoSuggestedStatus={suggestedStatus}
-            onStatusChange={handleStatusChange}
-            onRemarksChange={setRemarks}
-            onNextDateChange={setNextInspectionDate}
-          />
+          <motion.div variants={itemVariants}>
+            <OverallStatusSection
+              status={overallStatus}
+              remarks={remarks}
+              nextInspectionDate={nextInspectionDate}
+              autoSuggestedStatus={suggestedStatus}
+              onStatusChange={handleStatusChange}
+              onRemarksChange={setRemarks}
+              onNextDateChange={setNextInspectionDate}
+            />
+          </motion.div>
 
-          <PhotoCapture
-            surveyId={surveyId}
-            photos={sitePhoto}
-            onChange={setSitePhoto}
-          />
+          <motion.div variants={itemVariants}>
+            <PhotoCapture
+              surveyId={surveyId}
+              photos={sitePhoto}
+              onChange={setSitePhoto}
+            />
+          </motion.div>
 
-          <ManagerSignature signature={signature} onChange={setSignature} />
+          <motion.div variants={itemVariants}>
+            <ManagerSignature signature={signature} onChange={setSignature} />
+          </motion.div>
 
           {/* ── Submit ─────────────────────────────────────────────────── */}
           <div>
@@ -321,7 +362,7 @@ export default function NewSurveyPage() {
             </p>
           </div>
         </div>
-      </div>
+      </motion.div>
     </form>
   );
 }

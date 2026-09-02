@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FiMapPin, FiCalendar, FiUser, FiImage } from "react-icons/fi";
+import { motion } from "framer-motion";
 import {
   SurveyRecord,
   STATUS_CONFIG,
@@ -11,20 +12,25 @@ import {
 
 interface RecordCardProps {
   record: SurveyRecord;
+  index: number;
 }
 
-export function RecordCard({ record }: RecordCardProps) {
+export function RecordCard({ record, index }: RecordCardProps) {
   const status = getStatusFromRecord(record);
   const config = status ? STATUS_CONFIG[status] : null;
   const hasPhoto = !!(record.site_photo?.form || record.site_photo?.site);
   const photoUrl = record.site_photo?.form || record.site_photo?.site || null;
-  console.log(status)
 
   return (
-<Link
-  href={`/dashboard/records/${record.survey_id}`}
-  className="group relative flex gap-4 overflow-hidden rounded-xl border border-gray-100 p-4 transition-all duration-150 hover:-translate-y-0.5 bg-white hover:border-[#027D3F]/30 hover:shadow-sm"
->
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, delay: index * 0.05, ease: "easeOut" }}
+    >
+      <Link
+        href={`/dashboard/records/${record.survey_id}`}
+        className="group relative flex gap-4 overflow-hidden rounded-xl border border-gray-100 p-4 transition-all duration-150 hover:-translate-y-0.5 bg-white hover:border-[#027D3F]/30 hover:shadow-sm"
+      >
       {/* Photo thumbnail */}
       <div
         className={`w-14 h-14 shrink-0 rounded-lg overflow-hidden border flex items-center justify-center
@@ -86,5 +92,6 @@ export function RecordCard({ record }: RecordCardProps) {
         </div>
       </div>
     </Link>
+    </motion.div>
   );
 }
