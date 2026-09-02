@@ -67,9 +67,9 @@ interface LoggedInUser {
 // ── Constants ──────────────────────────────────────────────────────────────
 
 const EP_LABELS: Record<string, string> = {
-  "EP-1": "Phase Neutral (P/N)",
-  "EP-2": "Earth Neutral (E/N)",
-  "EP-3": "Phase Earth (P/E)",
+  "EP-1": "Phase/Neutral (P/N)",
+  "EP-2": "Phase/Earth (P/E)",
+  "EP-3": "Earth/Neutral (E/N)",
   "EP-4": "Lightning Arrester",
 };
 
@@ -125,13 +125,12 @@ function getReadingStatus(value: string, epId?: string): { label: string; badge:
   const v = parseFloat(value);
   if (isNaN(v)) return { label: "—", badge: "bg-gray-100 text-gray-400" };
 
-  if (epId === "EP-1" || epId === "EP-3") {
+  if (epId === "EP-1" || epId === "EP-2") {
     // 210 to 245 range
     if (v >= 210 && v <= 245) return { label: "Pass", badge: "bg-[#E6F1FB] text-[#185FA5]" };
     return { label: "Fail", badge: "bg-[#E41E23]/10 text-[#E41E23]" };
   } else {
     // 0 to 5 range
-    if (v <= 2) return { label: "Good", badge: "bg-[#027D3F]/10 text-[#027D3F]" };
     if (v <= 5) return { label: "Pass", badge: "bg-[#E6F1FB] text-[#185FA5]" };
     return { label: "Fail", badge: "bg-[#E41E23]/10 text-[#E41E23]" };
   }

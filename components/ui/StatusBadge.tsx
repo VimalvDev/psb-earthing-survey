@@ -6,26 +6,24 @@
 //   value <= 5             → "Pass"
 //   value >  5              → "Fail"
 
-export type BadgeStatus = "--" | "Good" | "Pass" | "Fail"
+export type BadgeStatus = "--" | "Pass" | "Fail"
 
 export function getStatus(value: string, epId?: string): BadgeStatus {
   const num = parseFloat(value)
   if (value === "" || isNaN(num)) return "--"
   
-  if (epId === "EP-1" || epId === "EP-3") {
+  if (epId === "EP-1" || epId === "EP-2") {
     if (num >= 210 && num <= 245) return "Pass"
     return "Fail"
   } else {
-    if (num <= 2) return "Good"
     if (num <= 5) return "Pass"
     return "Fail"
   }
 }
 
 const styles: Record<BadgeStatus, string> = {
-  "--":   "bg-gray-100 text-gray-400",
-  "Good": "bg-[#027D3F]/10 text-[#027D3F]",
-  "Pass": "bg-[#BDD70C]/20 text-[#8A9C08]",
+  "--": "bg-gray-100 text-gray-400 border border-transparent",
+  "Pass": "bg-[#E8F5EE] text-[#027D3F] border border-[#B9DEC8]",
   "Fail": "bg-[#E41E23]/10 text-[#E41E23]",
 }
 

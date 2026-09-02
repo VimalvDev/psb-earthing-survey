@@ -18,9 +18,9 @@ import {
 } from "@/components/ui/StatusBadge";
 
 const EARTH_PITS = [
-  { epId: "EP-1", label: "Phase Neutral (P/N)" },
-  { epId: "EP-2", label: "Earth Neutral (E/N)" },
-  { epId: "EP-3", label: "Phase Earth (P/E)" },
+  { epId: "EP-1", label: "Phase/Neutral (P/N)" },
+  { epId: "EP-2", label: "Phase/Earth (P/E)" },
+  { epId: "EP-3", label: "Earth/Neutral (E/N)" },
   { epId: "EP-4", label: "Lightning Arrester" },
 ];
 
