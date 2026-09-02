@@ -172,10 +172,11 @@ export function BranchDetailsSection({ onChange, values }: BranchDetailsSectionP
         <div className="flex flex-col gap-1">
           <Label className="text-xs font-medium text-gray-600">Date of Visit</Label>
           <Input
-            type="date"
+            type="text"
+            placeholder="DD-MM-YYYY"
             value={values.visit_date ?? ""}
             onChange={(e) => onChange("visit_date", e.target.value)}
-            className="h-8 text-xs"
+            className="h-8 text-xs font-mono"
           />
         </div>
         <div className="flex flex-col gap-1">

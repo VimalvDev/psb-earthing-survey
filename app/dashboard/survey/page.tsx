@@ -116,6 +116,7 @@ export default function NewSurveyPage() {
   // Branch details — flat key-value record
   const [branchValues, setBranchValues] = useState<Record<string, string>>({
     survey_type: "annual-audit",
+    visit_date: "01-01-2026",
   });
 
   function handleBranchChange(field: string, value: string) {

@@ -69,7 +69,10 @@ export const STATUS_CONFIG: Record<
 
 export function formatDate(iso: string | null): string {
   if (!iso) return "—"
-  return new Date(iso).toLocaleDateString("en-IN", {
+  if (/^\d{2}-\d{2}-\d{4}$/.test(iso)) return iso
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return iso
+  return d.toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
     year: "numeric",
