@@ -66,10 +66,8 @@ function generateSurveyId(): string {
   return `PSB-${year}-${rand}`;
 }
 
-// Auto-calculate overall status from individual EP reading statuses
 function calcOverallStatus(statuses: BadgeStatus[]): OverallStatus {
   const withValues = statuses.filter((s) => s !== "--");
-  if (withValues.length === 0) return "";
   if (withValues.some((s) => s === "Fail")) return "Fail";
   return "Pass";
 }
@@ -154,7 +152,7 @@ export default function NewSurveyPage() {
   const [checklist, setChecklist] = useState<Record<string, boolean>>({});
 
   // Overall status — auto-suggested + manually overrideable
-  const [overallStatus, setOverallStatus] = useState<OverallStatus>("");
+  const [overallStatus, setOverallStatus] = useState<OverallStatus>("Pass");
   const [statusTouched, setStatusTouched] = useState(false);
   const [remarks, setRemarks] = useState("");
   const [nextInspectionDate, setNextInspectionDate] = useState("");

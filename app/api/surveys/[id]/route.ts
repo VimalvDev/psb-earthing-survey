@@ -83,6 +83,21 @@ export async function DELETE(
   if (!canDelete) return NextResponse.json({ error: "Forbidden — admin only" }, { status: 403 })
 
   // Use admin client to bypass RLS for delete
+  // Fetch survey_id first to delete associated photos
+  const { data: surveyToDel } = await admin
+    .from("surveys")
+    .select("survey_id")
+    .eq("id", id)
+    .single()
+
+  if (surveyToDel?.survey_id) {
+    const { data: files } = await admin.storage.from("survey-photos").list(surveyToDel.survey_id)
+    if (files && files.length > 0) {
+      const paths = files.map((f) => `${surveyToDel.survey_id}/${f.name}`)
+      await admin.storage.from("survey-photos").remove(paths)
+    }
+  }
+
   const { error } = await admin
     .from("surveys")
     .delete()

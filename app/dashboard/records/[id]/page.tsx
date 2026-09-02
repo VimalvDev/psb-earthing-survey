@@ -19,9 +19,11 @@ import {
   FiLoader,
   FiImage,
   FiTrash2,
+  FiDownload,
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
+import { PhotoCapture } from "@/components/survey/PhotoCapture";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -400,6 +402,7 @@ export default function RecordDetailPage() {
         readings: editData.readings,
         checklist: editData.checklist,
         overall_status: editData.overall_status,
+        site_photo: editData.site_photo,
         remarks: editData.remarks,
         next_inspection_date: editData.next_inspection_date,
         updated_at: new Date().toISOString(),
@@ -997,43 +1000,51 @@ export default function RecordDetailPage() {
             </section>
 
             {/* 5. Photos Card */}
-            {hasPhotos && (
+            {(hasPhotos || editing) && (
               <section className="bg-white rounded-[14px] shadow-sm border border-gray-100 p-6 sm:p-8 print:shadow-none print:border-0 print:p-0 print:rounded-none">
                 <h2 className="text-base font-bold text-gray-900 mb-6 flex items-center gap-2 uppercase tracking-wide">
                   <span className="w-1 h-4 bg-[#027D3F] rounded-full inline-block"></span>
                   Photos
                 </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
-                  {(["form", "site", "other"] as const).map((key) => {
-                    const url = r.site_photo?.[key];
-                    const label =
-                      key === "form"
-                        ? "Form Photo"
-                        : key === "site"
-                          ? "Site Photo"
-                          : "Additional";
-                    if (!url) return null;
-                    return (
-                      <div key={key} className="flex flex-col gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setPreviewImage(url)}
-                          className="aspect-[4/3] rounded-[10px] overflow-hidden border border-gray-100 shadow-sm cursor-zoom-in group relative"
-                        >
-                          <img
-                            src={url}
-                            alt={label}
-                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
-                        </button>
-                        <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 text-center">
-                          {label}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
+                {editing ? (
+                  <PhotoCapture
+                    surveyId={r.survey_id}
+                    photos={editData.site_photo ?? r.site_photo ?? {}}
+                    onChange={(p) => setEditData((prev) => ({ ...prev, site_photo: p }))}
+                  />
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+                    {(["form", "site", "other"] as const).map((key) => {
+                      const url = r.site_photo?.[key];
+                      const label =
+                        key === "form"
+                          ? "Form Photo"
+                          : key === "site"
+                            ? "Site Photo"
+                            : "Additional";
+                      if (!url) return null;
+                      return (
+                        <div key={key} className="flex flex-col gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setPreviewImage(url)}
+                            className="aspect-[4/3] rounded-[10px] overflow-hidden border border-gray-100 shadow-sm cursor-zoom-in group relative"
+                          >
+                            <img
+                              src={url}
+                              alt={label}
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
+                          </button>
+                          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 text-center">
+                            {label}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </section>
             )}
 
@@ -1089,21 +1100,52 @@ export default function RecordDetailPage() {
 
       {previewImage && (
         <div
-          className="fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 sm:p-8 print:hidden"
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 sm:p-8 print:hidden"
           onClick={() => setPreviewImage(null)}
         >
-          <button
-            onClick={() => setPreviewImage(null)}
-            className="absolute top-4 right-4 sm:top-6 sm:right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
-            aria-label="Close preview"
-          >
-            <FiX size={20} />
-          </button>
+          {/* Top Actions */}
+          <div className="absolute top-4 right-4 sm:top-6 sm:right-6 flex items-center gap-3 z-[60]">
+            <button
+              onClick={async (e) => {
+                e.stopPropagation();
+                try {
+                  const res = await fetch(previewImage);
+                  const blob = await res.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `survey-photo-${r?.survey_id || Date.now()}.jpg`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                } catch (err) {
+                  // Fallback if CORS blocks the fetch
+                  window.open(previewImage, "_blank");
+                }
+              }}
+              className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center text-white transition-colors backdrop-blur-md"
+              title="Download Image"
+            >
+              <FiDownload size={18} />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setPreviewImage(null);
+              }}
+              className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center text-white transition-colors backdrop-blur-md"
+              aria-label="Close preview"
+            >
+              <FiX size={20} />
+            </button>
+          </div>
+
           <img
             src={previewImage}
             alt="Full size preview"
             onClick={(e) => e.stopPropagation()}
-            className="max-w-full max-h-full object-contain rounded-lg"
+            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
           />
         </div>
       )}
