@@ -114,7 +114,9 @@ export default function NewSurveyPage() {
   }, []);
 
   // Branch details — flat key-value record
-  const [branchValues, setBranchValues] = useState<Record<string, string>>({});
+  const [branchValues, setBranchValues] = useState<Record<string, string>>({
+    survey_type: "annual-audit",
+  });
 
   function handleBranchChange(field: string, value: string) {
     setBranchValues((prev) => ({ ...prev, [field]: value }));
@@ -122,8 +124,12 @@ export default function NewSurveyPage() {
 
   // Earthing readings + equipment
   const [readingsData, setReadingsData] = useState<ReadingsData>({
-    readings: {},
-    equipment: [{ make: "", model: "" }],
+    readings: {
+      "EP-1": "229",
+      "EP-2": "229",
+      "EP-3": "1",
+    },
+    equipment: [{ make: "WACO", model: "KEW 4105A" }],
   });
 
   // Reading statuses — updated live by EarthingReadingsTable
