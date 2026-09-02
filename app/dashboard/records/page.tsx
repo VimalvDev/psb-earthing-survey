@@ -105,12 +105,11 @@ async function fetchStats(filters: Filters) {
     if (filters.dateTo)   q = q.lte("visit_date", filters.dateTo)
     return q
   }
-  const [p, pa, f] = await Promise.all([
+  const [p, f] = await Promise.all([
     applyFilters(supabase.from("surveys").select("*", { count: "exact", head: true }).eq("overall_status", "Pass")),
-    applyFilters(supabase.from("surveys").select("*", { count: "exact", head: true }).eq("overall_status", "Partial")),
     applyFilters(supabase.from("surveys").select("*", { count: "exact", head: true }).eq("overall_status", "Fail")),
   ])
-  return { pass: p.count ?? 0, partial: pa.count ?? 0, fail: f.count ?? 0 }
+  return { pass: p.count ?? 0, fail: f.count ?? 0 }
 }
 
 async function fetchSurveyDetail(surveyId: string) {

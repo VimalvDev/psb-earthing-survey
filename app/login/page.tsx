@@ -191,7 +191,7 @@ export default function LoginPage() {
 
         <div className="relative z-10 flex items-center gap-2 text-white/40 text-xs animate-[fadeInUp_0.6s_ease-out_0.5s_both]">
           <FiCheckCircle size={13} />
-          <span>Threshold bands: Good 0–2Ω · Partial 2.1–5Ω · Fail 5Ω+</span>
+          <span>Threshold bands: Good 0–2Ω · Pass 2.1–5Ω · Fail 5Ω+</span>
         </div>
       </div>
 

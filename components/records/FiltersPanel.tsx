@@ -61,7 +61,7 @@ export function FiltersPanel({
       <div className="flex flex-col gap-2">
         <label className="text-xs font-semibold text-gray-500">Status</label>
         <div className="grid grid-cols-4 gap-1.5 lg:grid-cols-2 xl:grid-cols-4">
-          {(["All", "Pass", "Partial", "Fail"] as StatusFilter[]).map((s) => (
+          {(["All", "Pass", "Fail"] as StatusFilter[]).map((s) => (
             <button
               key={s}
               type="button"

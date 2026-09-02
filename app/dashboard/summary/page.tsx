@@ -68,7 +68,6 @@ export default function SummaryPage() {
 
   const totalCount = pageData?.totalCount ?? 0;
   const passCount = statsData?.pass ?? 0;
-  const partialCount = statsData?.partial ?? 0;
   const failCount = statsData?.fail ?? 0;
   const recentRecords = pageData?.records.slice(0, 5) ?? [];
 
@@ -98,7 +97,7 @@ export default function SummaryPage() {
           </Link>
         </div>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 ">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 ">
         <StatCard
           label="Total"
           value={totalCount}
@@ -114,13 +113,7 @@ export default function SummaryPage() {
           className="border-[#B9DEC8] bg-[#E8F5EE]"
           valueClass="text-[#027D3F]"
         />
-        <StatCard
-          label="Partial"
-          value={partialCount}
-          icon={<FiAlertTriangle size={20} className="text-[#768A06]" />}
-          className="border-[#E7E9A9] bg-[#F6F8D7]"
-          valueClass="text-[#768A06]"
-        />
+
         <StatCard
           label="Fail"
           value={failCount}

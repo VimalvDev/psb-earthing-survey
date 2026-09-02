@@ -1,6 +1,6 @@
 // ── Types ──────────────────────────────────────────────────────────────────
 
-export type SurveyStatus = "Pass" | "Partial" | "Fail"
+export type SurveyStatus = "Pass" | "Fail"
 export type StatusFilter = "All" | SurveyStatus
 export type SortBy = "newest" | "oldest" | "branch" | "status"
 
@@ -58,11 +58,6 @@ export const STATUS_CONFIG: Record<
     badge: "border-[#B9DEC8] bg-[#E8F5EE] text-[#027D3F]",
     rail: "bg-[#027D3F]",
   },
-  Partial: {
-    label: "Partial",
-    badge: "border-[#E7E9A9] bg-[#F6F8D7] text-[#768A06]",
-    rail: "bg-[#BDD70C]",
-  },
   Fail: {
     label: "Fail",
     badge: "border-[#F5B9B9] bg-[#FDECEC] text-[#D81F26]",
@@ -83,7 +78,7 @@ export function formatDate(iso: string | null): string {
 
 export function getStatusFromRecord(record: SurveyRecord): SurveyStatus | null {
   const s = record.overall_status
-  if (s === "Pass" || s === "Partial" || s === "Fail") return s
+  if (s === "Pass" || s === "Fail") return s
   return null
 }
 
@@ -144,7 +139,7 @@ export function sortRecords(
     if (sortBy === "branch")
       return (a.branch_name ?? "").localeCompare(b.branch_name ?? "")
     // status: Fail first
-    const order = { Fail: 0, Partial: 1, Pass: 2 }
+    const order = { Fail: 0, Pass: 1 }
     return (
       (order[a.overall_status as SurveyStatus] ?? 3) -
       (order[b.overall_status as SurveyStatus] ?? 3)

@@ -8,12 +8,18 @@
 
 export type BadgeStatus = "--" | "Good" | "Pass" | "Fail"
 
-export function getStatus(value: string): BadgeStatus {
+export function getStatus(value: string, epId?: string): BadgeStatus {
   const num = parseFloat(value)
   if (value === "" || isNaN(num)) return "--"
-  if (num <= 2) return "Good"
-  if (num <= 5) return "Pass"
-  return "Fail"
+  
+  if (epId === "EP-1" || epId === "EP-3") {
+    if (num >= 210 && num <= 245) return "Pass"
+    return "Fail"
+  } else {
+    if (num <= 2) return "Good"
+    if (num <= 5) return "Pass"
+    return "Fail"
+  }
 }
 
 const styles: Record<BadgeStatus, string> = {

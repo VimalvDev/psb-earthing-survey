@@ -25,7 +25,7 @@ import { createClient } from "@/lib/supabase/client";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type OverallStatus = "Pass" | "Partial" | "Fail";
+type OverallStatus = "Pass" | "Fail";
 
 interface SurveyDetail {
   id: string;
@@ -67,9 +67,9 @@ interface LoggedInUser {
 // ── Constants ──────────────────────────────────────────────────────────────
 
 const EP_LABELS: Record<string, string> = {
-  "EP-1": "Main Building",
-  "EP-2": "Server Rack / UPS",
-  "EP-3": "ATM Rack",
+  "EP-1": "Phase Neutral (P/N)",
+  "EP-2": "Earth Neutral (E/N)",
+  "EP-3": "Phase Earth (P/E)",
   "EP-4": "Lightning Arrester",
 };
 
@@ -81,11 +81,6 @@ const OVERALL_CONFIG: Record<
     badge: "bg-[#027D3F]/10 text-[#027D3F]",
     icon: <FiCheckCircle className="w-4 h-4" />,
     bar: "bg-[#027D3F]",
-  },
-  Partial: {
-    badge: "bg-[#BDD70C]/20 text-[#8A9C08]",
-    icon: <FiAlertTriangle className="w-4 h-4" />,
-    bar: "bg-[#BDD70C]",
   },
   Fail: {
     badge: "bg-[#E41E23]/10 text-[#E41E23]",
@@ -123,12 +118,20 @@ function formatDateTime(iso: string | null): string {
   });
 }
 
-function getReadingStatus(value: string): { label: string; badge: string } {
+function getReadingStatus(value: string, epId?: string): { label: string; badge: string } {
   const v = parseFloat(value);
   if (isNaN(v)) return { label: "—", badge: "bg-gray-100 text-gray-400" };
-  if (v <= 2) return { label: "Good", badge: "bg-[#027D3F]/10 text-[#027D3F]" };
-  if (v <= 5) return { label: "Pass", badge: "bg-[#E6F1FB] text-[#185FA5]" };
-  return { label: "Fail", badge: "bg-[#E41E23]/10 text-[#E41E23]" };
+
+  if (epId === "EP-1" || epId === "EP-3") {
+    // 210 to 245 range
+    if (v >= 210 && v <= 245) return { label: "Pass", badge: "bg-[#E6F1FB] text-[#185FA5]" };
+    return { label: "Fail", badge: "bg-[#E41E23]/10 text-[#E41E23]" };
+  } else {
+    // 0 to 5 range
+    if (v <= 2) return { label: "Good", badge: "bg-[#027D3F]/10 text-[#027D3F]" };
+    if (v <= 5) return { label: "Pass", badge: "bg-[#E6F1FB] text-[#185FA5]" };
+    return { label: "Fail", badge: "bg-[#E41E23]/10 text-[#E41E23]" };
+  }
 }
 
 // ── Skeleton ───────────────────────────────────────────────────────────────
@@ -414,7 +417,7 @@ export default function RecordDetailPage() {
   const canEditRecord =
     currentUser?.role === "admin" || currentUser?.role === "manager";
   const overallStatus = (r.overall_status ?? "") as OverallStatus;
-  const overallCfg = OVERALL_CONFIG[overallStatus] ?? OVERALL_CONFIG["Partial"];
+  const overallCfg = OVERALL_CONFIG[overallStatus] ?? OVERALL_CONFIG["Fail"];
   const hasSignature = !!r.signature?.base64;
   const hasPhotos = !!(r.site_photo && Object.keys(r.site_photo).length > 0);
 
@@ -743,7 +746,7 @@ export default function RecordDetailPage() {
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {Object.entries(r.readings ?? {}).map(([ep, value]) => {
-                      const statusCfg = getReadingStatus(value);
+                      const statusCfg = getReadingStatus(value, ep);
                       return (
                         <tr key={ep} className="hover:bg-gray-50/30 transition-colors">
                           <td className="py-3 px-4 text-xs font-mono text-gray-500 font-medium">
@@ -848,7 +851,7 @@ export default function RecordDetailPage() {
                     </span>
                     {editing ? (
                       <div className="flex gap-2">
-                        {(["Pass", "Partial", "Fail"] as OverallStatus[]).map((s) => {
+                        {(["Pass", "Fail"] as OverallStatus[]).map((s) => {
                           const cfg = OVERALL_CONFIG[s];
                           const active = editData.overall_status === s;
                           return (

@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { FiCheckCircle, FiAlertTriangle, FiXCircle } from "react-icons/fi"
 import { SectionHeading } from "@/components/ui/SectionHeading"
 
-export type OverallStatus = "Pass" | "Partial" | "Fail" | ""
+export type OverallStatus = "Pass" | "Fail" | ""
 
 interface OverallStatusSectionProps {
   status: OverallStatus
@@ -24,12 +24,6 @@ const STATUS_CONFIG = [
     icon: FiCheckCircle,
     activeClass: "bg-[#027D3F]/10 border-[#027D3F] text-[#027D3F]",
     hoverClass: "hover:bg-[#027D3F]/10 hover:border-[#027D3F] hover:text-[#027D3F]",
-  },
-  {
-    value: "Partial" as OverallStatus,
-    icon: FiAlertTriangle,
-    activeClass: "bg-[#BDD70C]/10 border-[#8A9C08] text-[#8A9C08]",
-    hoverClass: "hover:bg-[#BDD70C]/10 hover:border-[#8A9C08] hover:text-[#8A9C08]",
   },
   {
     value: "Fail" as OverallStatus,

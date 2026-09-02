@@ -65,13 +65,12 @@ export function useSurveyStats(filters: Filters) {
       const { data, error } = await q.abortSignal(signal)
       if (error) throw error
 
-      let pass = 0, partial = 0, fail = 0
+      let pass = 0, fail = 0
       for (const row of data ?? []) {
         if (row.overall_status === "Pass") pass++
-        else if (row.overall_status === "Partial") partial++
         else if (row.overall_status === "Fail") fail++
       }
-      return { pass, partial, fail }
+      return { pass, fail }
     },
     placeholderData: keepPreviousData,
   })

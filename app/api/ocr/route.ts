@@ -32,7 +32,7 @@ Return ONLY a valid JSON object with exactly these keys:
 }
 
 For visit_date, use YYYY-MM-DD format.
-For overall_status, use only: "Pass", "Partial", "Fail", or "".
+For overall_status, use only: "Pass", "Fail", or "".
 For ep readings, return numeric values only (e.g. "0.8"), or "" if not found.
 Do not add any explanation, markdown, or text outside the JSON object.`
 

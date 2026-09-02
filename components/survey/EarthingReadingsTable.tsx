@@ -18,9 +18,9 @@ import {
 } from "@/components/ui/StatusBadge";
 
 const EARTH_PITS = [
-  { epId: "EP-1", label: "Main Building" },
-  { epId: "EP-2", label: "Server Rack / UPS" },
-  { epId: "EP-3", label: "ATM Rack" },
+  { epId: "EP-1", label: "Phase Neutral (P/N)" },
+  { epId: "EP-2", label: "Earth Neutral (E/N)" },
+  { epId: "EP-3", label: "Phase Earth (P/E)" },
   { epId: "EP-4", label: "Lightning Arrester" },
 ];
 
@@ -49,7 +49,7 @@ export function EarthingReadingsTable({
     const newReadings = { ...data.readings, [epId]: value };
     onChange({ ...data, readings: newReadings });
     const statuses = EARTH_PITS.map((ep) =>
-      getStatus(newReadings[ep.epId] ?? ""),
+      getStatus(newReadings[ep.epId] ?? "", ep.epId),
     );
     onStatusChange(statuses);
   }
@@ -74,7 +74,7 @@ export function EarthingReadingsTable({
       {/* ── Rows ── */}
       {EARTH_PITS.map((pit, idx) => {
         const value = data.readings[pit.epId] ?? "";
-        const status = getStatus(value);
+        const status = getStatus(value, pit.epId);
         const isLast = idx === EARTH_PITS.length - 1;
 
         return (
