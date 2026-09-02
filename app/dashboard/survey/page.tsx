@@ -82,6 +82,12 @@ export default function NewSurveyPage() {
 
   // ── Auth: load logged-in engineer ──────────────────────────────────────
   const [currentUser, setCurrentUser] = useState<LoggedInUser | null>(null);
+  const [surveyorInfo, setSurveyorInfo] = useState({
+    name: "",
+    emp_id: "",
+    designation: "",
+    mobile_number: "",
+  });
 
   useEffect(() => {
     async function loadUser() {
@@ -100,7 +106,15 @@ export default function NewSurveyPage() {
         .eq("email", user.email)
         .single();
 
-      if (data) setCurrentUser({ ...data, email: user.email ?? "" });
+      if (data) {
+        setCurrentUser({ ...data, email: user.email ?? "" });
+        setSurveyorInfo({
+          name: data.name ?? "",
+          emp_id: data.emp_id ?? "",
+          designation: data.designation ?? "",
+          mobile_number: data.mobile_number ?? "",
+        });
+      }
     }
     loadUser();
   }, []);
@@ -226,6 +240,10 @@ export default function NewSurveyPage() {
     const payload = {
       survey_id: surveyId,
       ...branchValues,
+      surveyor_name: surveyorInfo.name,
+      surveyor_emp_id: surveyorInfo.emp_id,
+      surveyor_designation: surveyorInfo.designation,
+      surveyor_mobile: surveyorInfo.mobile_number,
       visit_date: finalVisitDate || null,
       readings: readingsData.readings,
       equipment: readingsData.equipment,
@@ -309,7 +327,12 @@ export default function NewSurveyPage() {
             />
           </motion.div>
           <motion.div variants={itemVariants}>
-            <SurveyorSection user={currentUser} />
+            <SurveyorSection
+              values={surveyorInfo}
+              onChange={(field, value) =>
+                setSurveyorInfo((prev) => ({ ...prev, [field]: value }))
+              }
+            />
           </motion.div>
         </div>
 

@@ -363,6 +363,25 @@ export default function RecordDetailPage() {
       }
     }
 
+    // 1. Update engineers table if surveyor info was changed
+    if (
+      editData.surveyor_name !== undefined ||
+      editData.surveyor_mobile !== undefined ||
+      editData.surveyor_emp_id !== undefined
+    ) {
+      if (record.surveyor_email) {
+        await supabase
+          .from("engineers")
+          .update({
+            name: editData.surveyor_name ?? record.surveyor_name,
+            mobile_number: editData.surveyor_mobile ?? record.surveyor_mobile,
+            emp_id: editData.surveyor_emp_id ?? record.surveyor_emp_id,
+          })
+          .eq("email", record.surveyor_email);
+      }
+    }
+
+    // 2. Update surveys table
     const { error } = await supabase
       .from("surveys")
       .update({
@@ -377,6 +396,7 @@ export default function RecordDetailPage() {
         phone_no_alt: editData.phone_no_alt,
         visit_date: finalVisitDate,
         survey_type: editData.survey_type,
+        surveyor_emp_id: editData.surveyor_emp_id,
         readings: editData.readings,
         checklist: editData.checklist,
         overall_status: editData.overall_status,
@@ -719,25 +739,35 @@ export default function RecordDetailPage() {
                 Surveyor & Manager Info
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-6">
-                <Field label="Surveyor Name" value={r.surveyor_name || r.surveyor_emp_id || "—"} />
-                <Field label="Surveyor Mobile" value={r.surveyor_mobile || "—"} />
+                <Field
+                  label="Surveyor Name"
+                  value={editData.surveyor_name ?? r.surveyor_name ?? r.surveyor_emp_id ?? ""}
+                  editing={editing}
+                  onChange={(v) => setField("surveyor_name", v)}
+                />
+                <Field
+                  label="Surveyor Mobile"
+                  value={editData.surveyor_mobile ?? r.surveyor_mobile ?? ""}
+                  editing={editing}
+                  onChange={(v) => setField("surveyor_mobile", v)}
+                />
                 <Field
                   label="Branch Manager"
-                  value={r.manager_name ?? "—"}
+                  value={editData.manager_name ?? r.manager_name ?? ""}
                   editing={editing}
                   onChange={(v) => setField("manager_name", v)}
                 />
                 <div className="flex flex-col gap-4">
                   <Field
                     label="Manager Mobile"
-                    value={r.phone_no ?? "—"}
+                    value={editData.phone_no ?? r.phone_no ?? ""}
                     editing={editing}
                     onChange={(v) => setField("phone_no", v)}
                   />
                   {(r.phone_no_alt || editing) && (
                     <Field
                       label="Alternate Mobile"
-                      value={r.phone_no_alt ?? "—"}
+                      value={editData.phone_no_alt ?? r.phone_no_alt ?? ""}
                       editing={editing}
                       onChange={(v) => setField("phone_no_alt", v)}
                     />
