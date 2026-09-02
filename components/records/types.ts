@@ -17,6 +17,10 @@ export interface SurveyRecord {
   surveyor_email: string | null
   overall_status: string | null
   readings: Record<string, string> | null
+  remarks: string | null
+  next_inspection_date: string | null
+  equipment: { make: string; model: string }[] | null
+  checklist: Record<string, boolean> | null
   site_photo: Record<string, string> | null
   created_at: string
 }
@@ -26,6 +30,7 @@ export interface Filters {
   status: StatusFilter
   state: string
   zone: string
+  year: string
   dateFrom: string
   dateTo: string
 }
@@ -37,6 +42,7 @@ export const DEFAULT_FILTERS: Filters = {
   status: "All",
   state: "",
   zone: "",
+  year: "",
   dateFrom: "",
   dateTo: "",
 }
@@ -87,6 +93,7 @@ export function getActiveFilterCount(filters: Filters): number {
     filters.status !== "All",
     filters.state,
     filters.zone,
+    filters.year,
     filters.dateFrom,
     filters.dateTo,
   ].filter(Boolean).length
@@ -117,6 +124,8 @@ export function matchesFilters(record: SurveyRecord, filters: Filters): boolean 
   if (filters.zone && record.zone !== filters.zone) return false
 
   const dateKey = record.visit_date ?? record.created_at.slice(0, 10)
+  
+  if (filters.year && !dateKey.startsWith(filters.year)) return false
   if (filters.dateFrom && dateKey < filters.dateFrom) return false
   if (filters.dateTo && dateKey > filters.dateTo) return false
 

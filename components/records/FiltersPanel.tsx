@@ -9,6 +9,7 @@ interface FiltersPanelProps {
   clearFilters: () => void
   states: string[]
   zones: string[]
+  years: string[]
   compact?: boolean
 }
 
@@ -18,6 +19,7 @@ export function FiltersPanel({
   clearFilters,
   states,
   zones,
+  years,
   compact = false,
 }: FiltersPanelProps) {
   const activeCount = getActiveFilterCount(filters)
@@ -75,6 +77,15 @@ export function FiltersPanel({
           ))}
         </div>
       </div>
+
+      {/* Year */}
+      <SelectField
+        label="Year"
+        value={filters.year}
+        onChange={(v) => setFilter("year", v)}
+        options={years}
+        emptyLabel="All years"
+      />
 
       {/* State */}
       <SelectField
@@ -193,6 +204,9 @@ export function FilterChips({ filters, setFilter, clearFilters }: FilterChipsPro
       )}
       {filters.status !== "All" && (
         <Chip label={`Status: ${filters.status}`} onRemove={() => setFilter("status", "All")} />
+      )}
+      {filters.year && (
+        <Chip label={`Year: ${filters.year}`} onRemove={() => setFilter("year", "")} />
       )}
       {filters.state && (
         <Chip label={`State: ${filters.state}`} onRemove={() => setFilter("state", "")} />

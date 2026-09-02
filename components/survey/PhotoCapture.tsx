@@ -165,7 +165,7 @@ export function PhotoCapture({ surveyId, photos, onChange }: PhotoCaptureProps) 
     <section className="bg-white border border-gray-100 rounded-xl p-5">
       <div className="flex items-center gap-3 mb-5">
         <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
-          Site Photos
+          Photos
         </h2>
         <div className="flex-1 h-px bg-gray-100" />
         <span className="text-[11px] text-gray-400">

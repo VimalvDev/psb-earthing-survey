@@ -20,51 +20,57 @@ export default function ResetPasswordPage() {
   const [tokenError, setTokenError] = useState("")
   const [sessionReady, setSessionReady] = useState(false)
 
-  // ── Verify the token from URL and establish session ────────────────────
+  // ── Exchange token from URL hash for session ──────────────────────────
   useEffect(() => {
-    async function verifyToken() {
+    async function exchangeToken() {
+      // Supabase puts token_hash in the URL as a fragment (#) or query param
+      // We need to check both
+      const hash = window.location.hash
       const params = new URLSearchParams(window.location.search)
 
       // Check for error in URL
       const urlError = params.get("error")
       const errorCode = params.get("error_code")
       if (urlError || errorCode) {
-        setTokenError(
-          errorCode === "otp_expired"
-            ? "This reset link has expired. Please request a new one."
-            : "Invalid reset link. Please request a new one."
-        )
+        if (errorCode === "otp_expired") {
+          setTokenError("This reset link has expired. Please request a new one.")
+        } else {
+          setTokenError("Invalid reset link. Please request a new one.")
+        }
         return
       }
 
-      const tokenHash = params.get("token_hash")
-      const type = params.get("type")
+      // Try to get session from URL (Supabase SSR handles this)
+      const { data, error } = await supabase.auth.getSession()
 
-      if (!tokenHash || type !== "recovery") {
-        setTokenError("Invalid reset link. Please request a new one from the login page.")
+      if (data?.session) {
+        setSessionReady(true)
         return
       }
 
-      // Exchange the token hash for a session
-      const { error } = await supabase.auth.verifyOtp({
-        token_hash: tokenHash,
-        type: "recovery",
+      // If no session yet, listen for PASSWORD_RECOVERY event
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === "PASSWORD_RECOVERY" && session) {
+          setSessionReady(true)
+          subscription.unsubscribe()
+        }
       })
 
-      if (error) {
-        console.error("verifyOtp error:", error)
-        setTokenError(
-          error.message?.includes("expired")
-            ? "This reset link has expired. Please request a new one."
-            : "Invalid or expired reset link. Please request a new one."
-        )
-        return
+      // Also try exchangeCodeForSession if there's a code in URL
+      const code = params.get("code")
+      if (code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+        if (!exchangeError) {
+          setSessionReady(true)
+        } else {
+          setTokenError("Reset link is invalid or expired. Please request a new one.")
+        }
       }
 
-      setSessionReady(true)
+      return () => subscription.unsubscribe()
     }
 
-    verifyToken()
+    exchangeToken()
   }, [])
 
   async function handleReset() {

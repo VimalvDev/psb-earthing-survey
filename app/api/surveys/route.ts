@@ -36,6 +36,21 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json()
 
+  if (body.bic) {
+    const { data: existingSurvey } = await supabase
+      .from("surveys")
+      .select("id")
+      .ilike("bic", body.bic)
+      .single()
+
+    if (existingSurvey) {
+      return NextResponse.json(
+        { error: `A survey for branch code ${body.bic} has already been submitted.` },
+        { status: 400 }
+      )
+    }
+  }
+
   // Attach surveyor identity from session — cannot be faked by client
   const surveyPayload = {
     ...body,

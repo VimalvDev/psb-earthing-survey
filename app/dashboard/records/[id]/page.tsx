@@ -369,9 +369,24 @@ export default function RecordDetailPage() {
 
   async function handleDelete() {
     if (!record) return;
-    await supabase.from("surveys").delete().eq("survey_id", record.survey_id);
-    queryClient.invalidateQueries({ queryKey: ["records"] });
-    router.push("/dashboard/records");
+    if (!confirm("Are you sure you want to delete this survey record? This action cannot be undone.")) return;
+
+    try {
+      const res = await fetch(`/api/surveys/${record.id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || "Failed to delete record.");
+        return;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["records"] });
+      router.push("/dashboard/records");
+    } catch {
+      alert("Something went wrong. Please try again.");
+    }
   }
 
   // ── Render ─────────────────────────────────────────────────────────────
@@ -441,7 +456,7 @@ export default function RecordDetailPage() {
                   Edit
                 </button>
               )}
-              {canEditRecord && !editing && (
+              {isAdmin && !editing && (
                 <button
                   onClick={handleDelete}
                   className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-white bg-[#E41E23] rounded-xl hover:bg-[#c01a1f] transition-all"
@@ -873,7 +888,7 @@ export default function RecordDetailPage() {
               {/* 6. Photos — only if has photos */}
               {hasPhotos && (
                 <section>
-                  <SectionHeading>Site Photos</SectionHeading>
+                  <SectionHeading>Photos</SectionHeading>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {(["form", "site", "other"] as const).map((key) => {
                       const url = r.site_photo?.[key];

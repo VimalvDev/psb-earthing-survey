@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 const ADMIN_EMAILS = ["psbsisify@gmail.com", "vimalverma8287@gmail.com"]
 
@@ -54,4 +55,43 @@ export async function PATCH(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ survey: data })
+}
+
+// DELETE /api/surveys/[id]  — admin only
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params
+
+  // Use server client for auth check
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const isAdminEmail = ADMIN_EMAILS.includes(user.email ?? "")
+
+  // Also check role in engineers table
+  const admin = createAdminClient()
+  const { data: engineer } = await admin
+    .from("engineers")
+    .select("role")
+    .eq("email", user.email)
+    .single()
+
+  const canDelete = isAdminEmail || engineer?.role === "admin"
+  if (!canDelete) return NextResponse.json({ error: "Forbidden — admin only" }, { status: 403 })
+
+  // Use admin client to bypass RLS for delete
+  const { error } = await admin
+    .from("surveys")
+    .delete()
+    .eq("id", id)
+
+  if (error) {
+    console.error("Delete survey error:", error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ success: true })
 }

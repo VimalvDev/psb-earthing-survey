@@ -26,8 +26,27 @@ function toCsvCell(value: string) {
 }
 
 function exportCsv(records: SurveyRecord[]) {
-  const header = ["Survey ID", "Branch Code", "Branch Name", "State", "District", "Zone", "Visit Date", "Surveyor Emp ID", "Overall Status", "Created At"]
-  const rows = records.map((r) => [r.survey_id, r.bic ?? "", r.branch_name ?? "", r.state ?? "", r.district ?? "", r.zone ?? "", r.visit_date ?? "", r.surveyor_emp_id ?? "", r.overall_status ?? "", r.created_at.slice(0, 10)])
+  const header = [
+    "Branch Code", "Branch Name", "State", "District", "Zone", "Visit Date", "Surveyor Emp ID",
+    "EP-1 (V)", "EP-2 (V)", "EP-3 (V)", "EP-4 (V)",
+    "Equipment Make", "Equipment Model",
+    "Remarks", "Next Inspection Date"
+  ]
+  const rows = records.map((r) => {
+    const ep1 = r.readings?.["EP-1"] ?? ""
+    const ep2 = r.readings?.["EP-2"] ?? ""
+    const ep3 = r.readings?.["EP-3"] ?? ""
+    const ep4 = r.readings?.["EP-4"] ?? ""
+    const eqMake = r.equipment?.[0]?.make ?? ""
+    const eqModel = r.equipment?.[0]?.model ?? ""
+
+    return [
+      r.bic ?? "", r.branch_name ?? "", r.state ?? "", r.district ?? "", r.zone ?? "", r.visit_date ?? "", r.surveyor_emp_id ?? "",
+      ep1, ep2, ep3, ep4,
+      eqMake, eqModel,
+      r.remarks ?? "", r.next_inspection_date ?? ""
+    ]
+  })
   const csv = [header, ...rows].map((row) => row.map(toCsvCell).join(",")).join("\n")
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
   const url = URL.createObjectURL(blob)
@@ -45,13 +64,19 @@ const supabase = createClient()
 async function fetchPage(filters: Filters, sortBy: SortBy, page: number) {
   let q = supabase
     .from("surveys")
-    .select("id, survey_id, bic, branch_name, state, district, zone, visit_date, surveyor_emp_id, surveyor_email, overall_status, readings, site_photo, created_at", { count: "exact" })
+    .select("id, survey_id, bic, branch_name, state, district, zone, visit_date, surveyor_emp_id, surveyor_email, overall_status, readings, remarks, next_inspection_date, equipment, site_photo, created_at", { count: "exact" })
 
   const search = filters.search.trim()
   if (search) q = q.or(`branch_name.ilike.%${search}%,bic.ilike.%${search}%,district.ilike.%${search}%,state.ilike.%${search}%,surveyor_emp_id.ilike.%${search}%`)
   if (filters.status !== "All") q = q.eq("overall_status", filters.status)
   if (filters.state) q = q.eq("state", filters.state)
   if (filters.zone)  q = q.eq("zone", filters.zone)
+  
+  if (filters.year) {
+    q = q.gte("visit_date", `${filters.year}-01-01`)
+    q = q.lte("visit_date", `${filters.year}-12-31`)
+  }
+
   if (filters.dateFrom) q = q.gte("visit_date", filters.dateFrom)
   if (filters.dateTo)   q = q.lte("visit_date", filters.dateTo)
 
@@ -72,6 +97,10 @@ async function fetchStats(filters: Filters) {
     if (search) q = q.or(`branch_name.ilike.%${search}%,bic.ilike.%${search}%,district.ilike.%${search}%,state.ilike.%${search}%`)
     if (filters.state) q = q.eq("state", filters.state)
     if (filters.zone)  q = q.eq("zone", filters.zone)
+    if (filters.year) {
+      q = q.gte("visit_date", `${filters.year}-01-01`)
+      q = q.lte("visit_date", `${filters.year}-12-31`)
+    }
     if (filters.dateFrom) q = q.gte("visit_date", filters.dateFrom)
     if (filters.dateTo)   q = q.lte("visit_date", filters.dateTo)
     return q
@@ -91,11 +120,12 @@ async function fetchSurveyDetail(surveyId: string) {
 }
 
 async function fetchFilterOptions() {
-  const { data } = await supabase.from("surveys").select("state, zone")
-  if (!data) return { states: [], zones: [] }
+  const { data } = await supabase.from("surveys").select("state, zone, visit_date")
+  if (!data) return { states: [], zones: [], years: [] }
   return {
     states: [...new Set(data.map((r) => r.state).filter(Boolean))].sort() as string[],
     zones:  [...new Set(data.map((r) => r.zone).filter(Boolean))].sort() as string[],
+    years:  [...new Set(data.map((r) => r.visit_date?.slice(0, 4)).filter(Boolean))].sort((a, b) => b.localeCompare(a)) as string[],
   }
 }
 
@@ -223,7 +253,7 @@ export default function RecordsPage() {
         <aside className="hidden lg:block w-[260px] shrink-0">
           <FiltersPanel
             filters={filters} setFilter={setFilter} clearFilters={clearFilters}
-            states={filterOptions?.states ?? []} zones={filterOptions?.zones ?? []}
+            states={filterOptions?.states ?? []} zones={filterOptions?.zones ?? []} years={filterOptions?.years ?? []}
           />
         </aside>
 
@@ -301,7 +331,7 @@ export default function RecordsPage() {
               </div>
               <button type="button" onClick={() => setMobileFiltersOpen(false)} className="rounded-lg border border-gray-200 p-2 text-gray-500"><FiX size={16} /></button>
             </div>
-            <FiltersPanel compact filters={filters} setFilter={setFilter} clearFilters={clearFilters} states={filterOptions?.states ?? []} zones={filterOptions?.zones ?? []} />
+            <FiltersPanel compact filters={filters} setFilter={setFilter} clearFilters={clearFilters} states={filterOptions?.states ?? []} zones={filterOptions?.zones ?? []} years={filterOptions?.years ?? []} />
           </div>
         </div>
       )}
