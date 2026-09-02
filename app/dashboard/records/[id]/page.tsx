@@ -43,6 +43,8 @@ interface SurveyDetail {
   survey_type: string | null;
   surveyor_emp_id: string | null;
   surveyor_email: string | null;
+  surveyor_name?: string;
+  surveyor_mobile?: string;
   readings: Record<string, string> | null;
   equipment: string[] | null;
   checklist: Record<string, boolean> | null;
@@ -103,11 +105,11 @@ function formatDate(iso: string | null): string {
   if (/^\d{2}-\d{2}-\d{4}$/.test(iso)) return iso;
   const d = new Date(iso);
   if (isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
 }
 
 function formatDateTime(iso: string | null): string {
@@ -289,7 +291,22 @@ export default function RecordDetailPage() {
         .eq("survey_id", surveyId)
         .single();
       if (error) throw error;
-      return data as SurveyDetail;
+      
+      let surveyor_name = "";
+      let surveyor_mobile = "";
+      if (data.surveyor_email) {
+        const { data: eng } = await supabase
+          .from("engineers")
+          .select("name, mobile_number")
+          .eq("email", data.surveyor_email)
+          .single();
+        if (eng) {
+          surveyor_name = eng.name;
+          surveyor_mobile = eng.mobile_number;
+        }
+      }
+
+      return { ...data, surveyor_name, surveyor_mobile } as SurveyDetail;
     },
     staleTime: 2 * 60 * 1000,
   });
@@ -335,6 +352,17 @@ export default function RecordDetailPage() {
     setSaving(true);
     setSaveError("");
 
+    let finalVisitDate = editData.visit_date;
+    if (finalVisitDate) {
+      finalVisitDate = finalVisitDate.trim();
+      if (/^\d{2}-\d{2}-\d{4}$/.test(finalVisitDate)) {
+        const [dd, mm, yyyy] = finalVisitDate.split("-");
+        finalVisitDate = `${yyyy}-${mm}-${dd}`;
+      } else if (/^\d{4}$/.test(finalVisitDate)) {
+        finalVisitDate = `${finalVisitDate}-01-01`;
+      }
+    }
+
     const { error } = await supabase
       .from("surveys")
       .update({
@@ -347,7 +375,7 @@ export default function RecordDetailPage() {
         manager_name: editData.manager_name,
         phone_no: editData.phone_no,
         phone_no_alt: editData.phone_no_alt,
-        visit_date: editData.visit_date,
+        visit_date: finalVisitDate,
         survey_type: editData.survey_type,
         readings: editData.readings,
         checklist: editData.checklist,
@@ -652,10 +680,10 @@ export default function RecordDetailPage() {
                 />
                 <Field
                   label="Visit Date"
-                  value={r.visit_date ?? ""}
+                  value={formatDate(r.visit_date)}
                   editing={editing}
                   onChange={(v) => setField("visit_date", v)}
-                  type="date"
+                  type="text"
                 />
               </div>
 
@@ -690,35 +718,31 @@ export default function RecordDetailPage() {
                 <span className="w-1 h-4 bg-[#027D3F] rounded-full inline-block"></span>
                 Surveyor & Manager Info
               </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-6">
-                <Field label="Employee ID" value={r.surveyor_emp_id ?? "—"} />
-                <Field
-                  label="Surveyor Email"
-                  value={r.surveyor_email ?? "—"}
-                />
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-6">
+                <Field label="Surveyor Name" value={r.surveyor_name || r.surveyor_emp_id || "—"} />
+                <Field label="Surveyor Mobile" value={r.surveyor_mobile || "—"} />
                 <Field
                   label="Branch Manager"
                   value={r.manager_name ?? "—"}
                   editing={editing}
                   onChange={(v) => setField("manager_name", v)}
                 />
-              </div>
-              <div className="my-6 border-t border-gray-100"></div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-6">
-                <Field
-                  label="Phone No."
-                  value={r.phone_no ?? "—"}
-                  editing={editing}
-                  onChange={(v) => setField("phone_no", v)}
-                />
-                {(r.phone_no_alt || editing) && (
+                <div className="flex flex-col gap-4">
                   <Field
-                    label="Alternate Phone"
-                    value={r.phone_no_alt ?? "—"}
+                    label="Manager Mobile"
+                    value={r.phone_no ?? "—"}
                     editing={editing}
-                    onChange={(v) => setField("phone_no_alt", v)}
+                    onChange={(v) => setField("phone_no", v)}
                   />
-                )}
+                  {(r.phone_no_alt || editing) && (
+                    <Field
+                      label="Alternate Mobile"
+                      value={r.phone_no_alt ?? "—"}
+                      editing={editing}
+                      onChange={(v) => setField("phone_no_alt", v)}
+                    />
+                  )}
+                </div>
               </div>
             </section>
 
@@ -811,37 +835,42 @@ export default function RecordDetailPage() {
               </div>
             </section>
 
-            {/* 4. Visual Inspection Checklist Card */}
-            <section className="bg-white rounded-[14px] shadow-sm border border-gray-100 p-6 sm:p-8 print:shadow-none print:border-0 print:p-0 print:rounded-none">
-              <h2 className="text-base font-bold text-gray-900 mb-6 flex items-center gap-2 uppercase tracking-wide">
-                <span className="w-1 h-4 bg-[#027D3F] rounded-full inline-block"></span>
-                Visual Inspection Checklist
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6 mb-8">
-                {Object.entries(r.checklist ?? {}).map(([label, checked]) => (
-                  <div
-                    key={label}
-                    onClick={() => editing && toggleChecklist(label)}
-                    className={`flex items-start gap-3 ${editing ? "cursor-pointer select-none rounded-lg p-1.5 -ml-1.5 hover:bg-gray-50 transition-colors" : ""}`}
-                  >
-                    <div className="mt-0.5">
-                      {checked ? (
-                        <FiCheckCircle className="w-[15px] h-[15px] text-[#027D3F] shrink-0" />
-                      ) : (
-                        <FiCircle className="w-[15px] h-[15px] text-gray-300 shrink-0" />
-                      )}
-                    </div>
-                    <span
-                      className={`text-[13px] font-medium leading-snug ${checked ? "text-gray-800" : "text-gray-400"}`}
+            {/* 4. Visual Inspection Checklist Card (Conditional) */}
+            {Object.keys(r.checklist ?? {}).length > 0 && (
+              <section className="bg-white rounded-[14px] shadow-sm border border-gray-100 p-6 sm:p-8 print:shadow-none print:border-0 print:p-0 print:rounded-none mb-6">
+                <h2 className="text-base font-bold text-gray-900 mb-6 flex items-center gap-2 uppercase tracking-wide">
+                  <span className="w-1 h-4 bg-[#027D3F] rounded-full inline-block"></span>
+                  Visual Inspection Checklist
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6 mb-2">
+                  {Object.entries(r.checklist ?? {}).map(([label, checked]) => (
+                    <div
+                      key={label}
+                      onClick={() => editing && toggleChecklist(label)}
+                      className={`flex items-start gap-3 ${editing ? "cursor-pointer select-none rounded-lg p-1.5 -ml-1.5 hover:bg-gray-50 transition-colors" : ""}`}
                     >
-                      {label}
-                    </span>
-                  </div>
-                ))}
-              </div>
+                      <div className="mt-0.5">
+                        {checked ? (
+                          <FiCheckCircle className="w-[15px] h-[15px] text-[#027D3F] shrink-0" />
+                        ) : (
+                          <FiCircle className="w-[15px] h-[15px] text-gray-300 shrink-0" />
+                        )}
+                      </div>
+                      <span
+                        className={`text-[13px] font-medium leading-snug ${checked ? "text-gray-800" : "text-gray-400"}`}
+                      >
+                        {label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
-              <div className="border-t border-gray-100 pt-8">
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">
+            {/* 5. Overall Status & Observations Card */}
+            <section className="bg-white rounded-[14px] shadow-sm border border-gray-100 p-6 sm:p-8 print:shadow-none print:border-0 print:p-0 print:rounded-none">
+                <h3 className="text-base font-bold text-gray-900 mb-6 flex items-center gap-2 uppercase tracking-wide">
+                  <span className="w-1 h-4 bg-[#027D3F] rounded-full inline-block"></span>
                   Overall Status & Observations
                 </h3>
                 
@@ -935,7 +964,6 @@ export default function RecordDetailPage() {
                     </p>
                   )}
                 </div>
-              </div>
             </section>
 
             {/* 5. Photos Card */}
@@ -980,7 +1008,7 @@ export default function RecordDetailPage() {
             )}
 
             {/* 6. Signature Card (if has signature) */}
-            {hasSignature && (
+            {/*hasSignature && (
               <section className="bg-white rounded-[14px] shadow-sm border border-gray-100 p-6 sm:p-8 print:shadow-none print:border-0 print:p-0 print:rounded-none">
                 <h2 className="text-base font-bold text-gray-900 mb-6 flex items-center gap-2 uppercase tracking-wide">
                   <span className="w-1 h-4 bg-[#027D3F] rounded-full inline-block"></span>

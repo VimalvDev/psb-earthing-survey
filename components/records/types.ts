@@ -72,11 +72,11 @@ export function formatDate(iso: string | null): string {
   if (/^\d{2}-\d{2}-\d{4}$/.test(iso)) return iso
   const d = new Date(iso)
   if (isNaN(d.getTime())) return iso
-  return d.toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  })
+  
+  const dd = String(d.getDate()).padStart(2, "0")
+  const mm = String(d.getMonth() + 1).padStart(2, "0")
+  const yyyy = d.getFullYear()
+  return `${dd}-${mm}-${yyyy}`
 }
 
 export function getStatusFromRecord(record: SurveyRecord): SurveyStatus | null {

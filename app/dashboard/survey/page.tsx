@@ -213,9 +213,20 @@ export default function NewSurveyPage() {
     setSubmitting(true);
     setSubmitError("");
 
+    let finalVisitDate = branchValues.visit_date?.trim();
+    if (finalVisitDate) {
+      if (/^\d{2}-\d{2}-\d{4}$/.test(finalVisitDate)) {
+        const [dd, mm, yyyy] = finalVisitDate.split("-");
+        finalVisitDate = `${yyyy}-${mm}-${dd}`;
+      } else if (/^\d{4}$/.test(finalVisitDate)) {
+        finalVisitDate = `${finalVisitDate}-01-01`;
+      }
+    }
+
     const payload = {
       survey_id: surveyId,
       ...branchValues,
+      visit_date: finalVisitDate || null,
       readings: readingsData.readings,
       equipment: readingsData.equipment,
       checklist,
@@ -312,9 +323,9 @@ export default function NewSurveyPage() {
             />
           </motion.div>
 
-          <motion.div variants={itemVariants}>
+          {/* <motion.div variants={itemVariants}>
             <ChecklistSection checked={checklist} onChange={setChecklist} />
-          </motion.div>
+          </motion.div> */}
 
           <motion.div variants={itemVariants}>
             <OverallStatusSection
@@ -336,9 +347,9 @@ export default function NewSurveyPage() {
             />
           </motion.div>
 
-          <motion.div variants={itemVariants}>
+          {/* <motion.div variants={itemVariants}>
             <ManagerSignature signature={signature} onChange={setSignature} />
-          </motion.div>
+          </motion.div> */}
 
           {/* ── Submit ─────────────────────────────────────────────────── */}
           <div>
