@@ -130,8 +130,8 @@ function getReadingStatus(value: string, epId?: string): { label: string; badge:
   if (isNaN(v)) return { label: "—", badge: "bg-gray-100 text-gray-400" };
 
   if (epId === "EP-1" || epId === "EP-2") {
-    // 210 to 245 range
-    if (v >= 210 && v <= 245) return { label: "Pass", badge: "bg-[#E6F1FB] text-[#185FA5]" };
+    // 210 to 260 range
+    if (v >= 210 && v <= 260) return { label: "Pass", badge: "bg-[#E6F1FB] text-[#185FA5]" };
     return { label: "Fail", badge: "bg-[#E41E23]/10 text-[#E41E23]" };
   } else {
     // 0 to 5 range
