@@ -14,6 +14,7 @@ export interface SurveyRecord {
   zone: string | null
   visit_date: string | null
   surveyor_emp_id: string | null
+  surveyor_name: string | null
   surveyor_email: string | null
   overall_status: string | null
   readings: Record<string, string> | null

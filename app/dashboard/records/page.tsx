@@ -64,7 +64,7 @@ const supabase = createClient()
 async function fetchPage(filters: Filters, sortBy: SortBy, page: number) {
   let q = supabase
     .from("surveys")
-    .select("id, survey_id, bic, branch_name, state, district, zone, visit_date, surveyor_emp_id, surveyor_email, overall_status, readings, remarks, next_inspection_date, equipment, site_photo, created_at", { count: "exact" })
+    .select("id, survey_id, bic, branch_name, state, district, zone, visit_date, surveyor_emp_id, surveyor_name, surveyor_email, overall_status, readings, remarks, next_inspection_date, equipment, site_photo, created_at", { count: "exact" })
 
   const search = filters.search.trim()
   if (search) q = q.or(`branch_name.ilike.%${search}%,bic.ilike.%${search}%,district.ilike.%${search}%,state.ilike.%${search}%,surveyor_emp_id.ilike.%${search}%`)

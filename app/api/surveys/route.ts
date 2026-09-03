@@ -59,19 +59,12 @@ export async function POST(req: NextRequest) {
     ...restBody
   } = body;
 
-  // Update surveyor profile if they changed it on the form
-  if (surveyor_name || surveyor_mobile || surveyor_designation || formEmpId) {
-    await supabase.from("engineers").update({
-      name: surveyor_name,
-      designation: surveyor_designation,
-      mobile_number: surveyor_mobile,
-      emp_id: formEmpId || user.user_metadata?.emp_id,
-    }).eq("email", user.email);
-  }
-
   const surveyPayload = {
     ...restBody,
-    surveyor_emp_id: formEmpId || user.user_metadata?.emp_id,
+    surveyor_name: surveyor_name || null,
+    surveyor_designation: surveyor_designation || null,
+    surveyor_mobile: surveyor_mobile || null,
+    surveyor_emp_id: formEmpId || user.user_metadata?.emp_id || null,
     surveyor_email: user.email,
     created_at: new Date().toISOString(),
     status: "submitted",

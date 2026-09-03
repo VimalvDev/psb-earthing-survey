@@ -83,10 +83,10 @@ export function RecordCard({ record, index }: RecordCardProps) {
               {formatDate(record.visit_date)}
             </span>
           )}
-          {record.surveyor_emp_id && (
+          {(record.surveyor_name || record.surveyor_emp_id) && (
             <span className="flex items-center gap-1.5">
               <FiUser size={12} className="text-gray-400 shrink-0" />
-              {record.surveyor_emp_id}
+              {record.surveyor_name || record.surveyor_emp_id}
             </span>
           )}
         </div>

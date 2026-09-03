@@ -294,13 +294,14 @@ export default function RecordDetailPage() {
         .single();
       if (error) throw error;
       
-      let surveyor_name = "";
-      let surveyor_mobile = "";
-      if (data.surveyor_email) {
+      let surveyor_name = data.surveyor_name || "";
+      let surveyor_mobile = data.surveyor_mobile || "";
+      
+      if (!surveyor_name && data.surveyor_emp_id) {
         const { data: eng } = await supabase
           .from("engineers")
           .select("name, mobile_number")
-          .eq("email", data.surveyor_email)
+          .eq("emp_id", data.surveyor_emp_id)
           .single();
         if (eng) {
           surveyor_name = eng.name;
