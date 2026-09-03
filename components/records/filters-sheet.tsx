@@ -114,7 +114,7 @@ export function FiltersSheet({
             <div className="flex flex-col gap-2">
               <label className="text-fluid-sm font-semibold text-gray-700">Status</label>
               <div className="grid grid-cols-3 gap-2">
-                {(["All", "Pass", "Fail"] as StatusFilter[]).map((s) => (
+                {(["All", "Pass", "Flagged"] as StatusFilter[]).map((s) => (
                   <button
                     key={s}
                     type="button"
@@ -125,7 +125,7 @@ export function FiltersSheet({
                         : "border-gray-200 bg-white text-gray-600 hover:border-[#027D3F] hover:text-[#027D3F]"
                       }`}
                   >
-                    {s}
+                    {s === "Flagged" ? "Flag" : s}
                   </button>
                 ))}
               </div>

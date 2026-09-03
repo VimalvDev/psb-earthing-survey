@@ -68,7 +68,7 @@ export function useSurveyStats(filters: Filters) {
       let pass = 0, fail = 0
       for (const row of data ?? []) {
         if (row.overall_status === "Pass") pass++
-        else if (row.overall_status === "Fail") fail++
+        else if (row.overall_status === "Flagged" || row.overall_status === "Fail") fail++
       }
       return { pass, fail }
     },

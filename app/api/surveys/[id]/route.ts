@@ -42,13 +42,32 @@ export async function PATCH(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const isAdmin = ADMIN_EMAILS.includes(user.email ?? "")
-  if (!isAdmin) return NextResponse.json({ error: "Forbidden — admin only" }, { status: 403 })
+  const isAdminEmail = ADMIN_EMAILS.includes(user.email ?? "")
+  const admin = createAdminClient()
+  const { data: engineer } = await admin
+    .from("engineers")
+    .select("role")
+    .eq("email", user.email)
+    .single()
+
+  const canEdit = isAdminEmail || engineer?.role === "admin"
+  if (!canEdit) return NextResponse.json({ error: "Forbidden — admin only" }, { status: 403 })
 
   const body = await req.json()
-  const { data, error } = await supabase
+  const surveyUpdate = body.surveyUpdate ?? body
+  const engineersUpdate = body.engineersUpdate
+  const surveyorEmail = body.surveyorEmail
+
+  if (engineersUpdate && surveyorEmail) {
+    await admin
+      .from("engineers")
+      .update(engineersUpdate)
+      .eq("email", surveyorEmail)
+  }
+
+  const { data, error } = await admin
     .from("surveys")
-    .update({ ...body, updated_at: new Date().toISOString() })
+    .update({ ...surveyUpdate, updated_at: new Date().toISOString() })
     .eq("id", id)
     .select()
     .single()

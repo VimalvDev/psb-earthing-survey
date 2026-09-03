@@ -10,6 +10,7 @@ import {
   FiPlus,
   FiXCircle,
 } from "react-icons/fi";
+import { Flag } from "lucide-react";
 import { RecordCard } from "@/components/records/RecordCard";
 import { useSurveyRecords, useSurveyStats } from "@/components/records/hooks";
 import { DEFAULT_FILTERS } from "@/components/records/types";
@@ -115,10 +116,10 @@ export default function SummaryPage() {
         />
 
         <StatCard
-          label="Fail"
+          label="Flagged"
           value={failCount}
           icon={
-            <FiXCircle
+            <Flag
               size={20}
               className="text-[#D81F26]"
             />

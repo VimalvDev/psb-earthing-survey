@@ -24,7 +24,7 @@ export function getStatus(value: string, epId?: string): BadgeStatus {
 const styles: Record<BadgeStatus, string> = {
   "--": "bg-gray-100 text-gray-400 border border-transparent",
   "Pass": "bg-[#E8F5EE] text-[#027D3F] border border-[#B9DEC8]",
-  "Fail": "bg-[#E41E23]/10 text-[#E41E23]",
+  "Fail": "bg-[#E41E23]/10 text-[#E41E23] border border-[#E41E23]",
 }
 
 export function StatusBadge({ status = "--" }: { status?: BadgeStatus }) {
@@ -32,7 +32,7 @@ export function StatusBadge({ status = "--" }: { status?: BadgeStatus }) {
     <span
       className={`inline-flex justify-center items-center text-xs font-semibold px-2.5 py-1 rounded-full w-14 text-center ${styles[status]}`}
     >
-      {status}
+      {status === "Fail" ? "Flagged" : status}
     </span>
   )
 }

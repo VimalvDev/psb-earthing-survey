@@ -25,16 +25,7 @@ import {
   ManagerSignatureData,
 } from "@/components/survey/ManagerSignature";
 import { BadgeStatus } from "@/components/ui/StatusBadge";
-
-// ── Types ──────────────────────────────────────────────────────────────────
-
-interface LoggedInUser {
-  name: string;
-  emp_id: string;
-  designation: string;
-  mobile_number: string;
-  email: string;
-}
+import { useCurrentUser } from "@/lib/hooks/use-current-user";
 
 // ── Variants ─────────────────────────────────────────────────────────────
 
@@ -79,7 +70,7 @@ export default function NewSurveyPage() {
   const supabase = createClient();
 
   // ── Auth: load logged-in engineer ──────────────────────────────────────
-  const [currentUser, setCurrentUser] = useState<LoggedInUser | null>(null);
+  const { data: currentUser, isLoading: userLoading } = useCurrentUser();
   const [surveyorInfo, setSurveyorInfo] = useState({
     name: "",
     emp_id: "",
@@ -88,34 +79,17 @@ export default function NewSurveyPage() {
   });
 
   useEffect(() => {
-    async function loadUser() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        router.push("/login");
-        return;
-      }
-
-      // Load engineer profile from `engineers` table using emp_id stored in metadata
-      const { data } = await supabase
-        .from("engineers")
-        .select("name, emp_id, designation, mobile_number")
-        .eq("email", user.email)
-        .single();
-
-      if (data) {
-        setCurrentUser({ ...data, email: user.email ?? "" });
-        setSurveyorInfo({
-          name: data.name ?? "",
-          emp_id: data.emp_id ?? "",
-          designation: data.designation ?? "",
-          mobile_number: data.mobile_number ?? "",
-        });
-      }
+    if (!userLoading && currentUser === null) {
+      router.push("/login");
+    } else if (currentUser) {
+      setSurveyorInfo({
+        name: currentUser.name ?? "",
+        emp_id: currentUser.emp_id ?? "",
+        designation: currentUser.designation ?? "",
+        mobile_number: currentUser.mobile_number ?? "",
+      });
     }
-    loadUser();
-  }, []);
+  }, [currentUser, userLoading, router]);
 
   // ── Form state ─────────────────────────────────────────────────────────
 

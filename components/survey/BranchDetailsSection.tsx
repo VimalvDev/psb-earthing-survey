@@ -142,8 +142,8 @@ export function BranchDetailsSection({ onChange, values }: BranchDetailsSectionP
         <div className="flex flex-col gap-1">
           <Label className="text-xs font-medium text-gray-600">Phone No.</Label>
           <Input
-            placeholder="10-digit number"
-            maxLength={10}
+            placeholder="e.g. 10 or 11 digits"
+            maxLength={11}
             value={values.phone_no ?? ""}
             onChange={(e) => onChange("phone_no", e.target.value)}
             className="h-8 text-xs"
@@ -151,7 +151,7 @@ export function BranchDetailsSection({ onChange, values }: BranchDetailsSectionP
           {showSecondPhone && (
             <Input
               placeholder="Alternate number"
-              maxLength={10}
+              maxLength={11}
               value={values.phone_no_alt ?? ""}
               onChange={(e) => onChange("phone_no_alt", e.target.value)}
               className="h-8 text-xs mt-1"

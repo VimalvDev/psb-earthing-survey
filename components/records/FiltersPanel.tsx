@@ -45,8 +45,8 @@ export function FiltersPanel({
       {/* Status */}
       <div className="flex flex-col gap-2">
         <label className="text-xs font-semibold text-gray-500">Status</label>
-        <div className="grid grid-cols-4 gap-1.5 lg:grid-cols-2 xl:grid-cols-4">
-          {(["All", "Pass", "Fail"] as StatusFilter[]).map((s) => (
+        <div className="grid grid-cols-3 gap-1.5 lg:grid-cols-1 xl:grid-cols-3">
+          {(["All", "Pass", "Flagged"] as StatusFilter[]).map((s) => (
             <button
               key={s}
               type="button"
@@ -57,7 +57,7 @@ export function FiltersPanel({
                   : "border-gray-200 bg-white text-gray-600 hover:border-[#027D3F] hover:text-[#027D3F]"
                 }`}
             >
-              {s}
+              {s === "Flagged" ? "Flag" : s}
             </button>
           ))}
         </div>

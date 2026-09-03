@@ -72,7 +72,13 @@ async function fetchPage(filters: Filters, sortBy: SortBy, page: number) {
 
   const search = filters.search.trim()
   if (search) q = q.or(`branch_name.ilike.%${search}%,bic.ilike.%${search}%,district.ilike.%${search}%,state.ilike.%${search}%,surveyor_emp_id.ilike.%${search}%`)
-  if (filters.status !== "All") q = q.eq("overall_status", filters.status)
+  if (filters.status !== "All") {
+    if (filters.status === "Flagged") {
+      q = q.in("overall_status", ["Flagged", "Fail"])
+    } else {
+      q = q.eq("overall_status", filters.status)
+    }
+  }
   if (filters.state) q = q.eq("state", filters.state)
   if (filters.zone)  q = q.eq("zone", filters.zone)
   
@@ -113,7 +119,7 @@ async function fetchStats(filters: Filters) {
   }
   const [p, f] = await Promise.all([
     applyFilters(supabase.from("surveys").select("*", { count: "exact", head: true }).eq("overall_status", "Pass")),
-    applyFilters(supabase.from("surveys").select("*", { count: "exact", head: true }).eq("overall_status", "Fail")),
+    applyFilters(supabase.from("surveys").select("*", { count: "exact", head: true }).in("overall_status", ["Flagged", "Fail"])),
   ])
   return { pass: p.count ?? 0, fail: f.count ?? 0 }
 }
@@ -234,7 +240,8 @@ export default function RecordsPage() {
   }, [pageData?.records])
 
   // ── Reset page on filter/sort change ──────────────────────────────────
-  useEffect(() => { setCurrentPage(1) }, [filters, sortBy])
+  const filtersKey = JSON.stringify(filters)
+  useEffect(() => { setCurrentPage(1) }, [filtersKey, sortBy])
 
   // ── Derived ────────────────────────────────────────────────────────────
   const records    = pageData?.records ?? []
@@ -310,7 +317,7 @@ export default function RecordsPage() {
                   onChange={(e) => setFilter("search", e.target.value)}
                   type="search"
                   placeholder="Search branch, code, district…"
-                  className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-8 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#027D3F] focus:ring-2 focus:ring-[#027D3F]/15"
+                  className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-8 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#027D3F] focus:ring-2 focus:ring-[#027D3F]/15 [&::-webkit-search-cancel-button]:appearance-none"
                 />
                 {localSearch && (
                   <button

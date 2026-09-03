@@ -1,6 +1,6 @@
 // ── Types ──────────────────────────────────────────────────────────────────
 
-export type SurveyStatus = "Pass" | "Fail"
+export type SurveyStatus = "Pass" | "Flagged"
 export type StatusFilter = "All" | SurveyStatus
 export type SortBy = "newest" | "oldest" | "branch" | "status"
 
@@ -52,17 +52,19 @@ export const ITEMS_PER_PAGE = 10
 
 export const STATUS_CONFIG: Record<
   SurveyStatus,
-  { label: string; badge: string; rail: string }
+  { label: string; badge: string; rail: string; icon?: string; border?: string }
 > = {
   Pass: {
     label: "Pass",
     badge: "border-[#B9DEC8] bg-[#E8F5EE] text-[#027D3F]",
     rail: "bg-[#027D3F]",
   },
-  Fail: {
-    label: "Fail",
-    badge: "border-[#F5B9B9] bg-[#FDECEC] text-[#D81F26]",
-    rail: "bg-[#D81F26]",
+  Flagged: {
+    label: "Flagged",
+    badge: "border-red-200 bg-red-50 text-red-600",
+    rail: "bg-red-500",
+    icon: "bg-red-100 text-red-600",
+    border: "border-red-500",
   },
 }
 
@@ -82,7 +84,7 @@ export function formatDate(iso: string | null): string {
 
 export function getStatusFromRecord(record: SurveyRecord): SurveyStatus | null {
   const s = record.overall_status
-  if (s === "Pass" || s === "Fail") return s
+  if (s === "Pass" || s === "Flagged" || s === "Fail") return s === "Fail" ? "Flagged" : s as SurveyStatus
   return null
 }
 
@@ -143,10 +145,10 @@ export function sortRecords(
     if (sortBy === "branch")
       return (a.branch_name ?? "").localeCompare(b.branch_name ?? "")
     // status: Fail first
-    const order = { Fail: 0, Pass: 1 }
+    const order: Record<string, number> = { Flagged: 0, Fail: 0, Pass: 1 }
     return (
-      (order[a.overall_status as SurveyStatus] ?? 3) -
-      (order[b.overall_status as SurveyStatus] ?? 3)
+      (order[a.overall_status as string] ?? 3) -
+      (order[b.overall_status as string] ?? 3)
     )
   })
 }

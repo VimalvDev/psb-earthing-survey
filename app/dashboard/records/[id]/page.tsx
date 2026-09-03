@@ -21,9 +21,11 @@ import {
   FiTrash2,
   FiDownload,
 } from "react-icons/fi";
+import { Flag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { PhotoCapture } from "@/components/survey/PhotoCapture";
+import { useCurrentUser, LoggedInUser } from "@/lib/hooks/use-current-user";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -58,14 +60,7 @@ interface SurveyDetail {
   status: string | null;
   created_at: string;
   updated_at: string | null;
-}
-
-interface LoggedInUser {
-  name: string;
-  emp_id: string;
-  designation: string;
-  email: string;
-  role: "admin" | "manager" | "engineer";
+  is_flagged?: boolean;
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -242,7 +237,7 @@ export default function RecordDetailPage() {
   const queryClient = useQueryClient();
   const surveyId = params?.id as string;
 
-  const [currentUser, setCurrentUser] = useState<LoggedInUser | null>(null);
+  const { data: currentUser, isLoading: userLoading } = useCurrentUser();
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState<Partial<SurveyDetail>>({});
   const [saving, setSaving] = useState(false);
@@ -251,23 +246,10 @@ export default function RecordDetailPage() {
 
   // ── Fetch user ─────────────────────────────────────────────────────────
   useEffect(() => {
-    async function loadUser() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        router.push("/login");
-        return;
-      }
-      const { data } = await supabase
-        .from("engineers")
-        .select("name, emp_id, designation, email, role")
-        .eq("email", user.email)
-        .single();
-      if (data) setCurrentUser({ ...data, email: user.email ?? "" });
+    if (!userLoading && currentUser === null) {
+      router.push("/login");
     }
-    loadUser();
-  }, []);
+  }, [currentUser, userLoading, router]);
 
   useEffect(() => {
     if (!previewImage) return;
@@ -366,55 +348,61 @@ export default function RecordDetailPage() {
       }
     }
 
-    // 1. Update engineers table if surveyor info was changed
+    let engineersUpdate = undefined;
     if (
       editData.surveyor_name !== undefined ||
       editData.surveyor_mobile !== undefined ||
       editData.surveyor_emp_id !== undefined
     ) {
-      if (record.surveyor_email) {
-        await supabase
-          .from("engineers")
-          .update({
-            name: editData.surveyor_name ?? record.surveyor_name,
-            mobile_number: editData.surveyor_mobile ?? record.surveyor_mobile,
-            emp_id: editData.surveyor_emp_id ?? record.surveyor_emp_id,
-          })
-          .eq("email", record.surveyor_email);
-      }
+      engineersUpdate = {
+        name: editData.surveyor_name ?? record.surveyor_name,
+        mobile_number: editData.surveyor_mobile ?? record.surveyor_mobile,
+        emp_id: editData.surveyor_emp_id ?? record.surveyor_emp_id,
+      };
     }
 
-    // 2. Update surveys table
-    const { error } = await supabase
-      .from("surveys")
-      .update({
-        bic: editData.bic,
-        branch_name: editData.branch_name,
-        zone: editData.zone,
-        district: editData.district,
-        state: editData.state,
-        address: editData.address,
-        manager_name: editData.manager_name,
-        phone_no: editData.phone_no,
-        phone_no_alt: editData.phone_no_alt,
-        visit_date: finalVisitDate,
-        survey_type: editData.survey_type,
-        surveyor_emp_id: editData.surveyor_emp_id,
-        readings: editData.readings,
-        checklist: editData.checklist,
-        overall_status: editData.overall_status,
-        site_photo: editData.site_photo,
-        remarks: editData.remarks,
-        next_inspection_date: editData.next_inspection_date,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("survey_id", record.survey_id);
+    const surveyUpdate = {
+      bic: editData.bic,
+      branch_name: editData.branch_name,
+      zone: editData.zone,
+      district: editData.district,
+      state: editData.state,
+      address: editData.address,
+      manager_name: editData.manager_name,
+      phone_no: editData.phone_no,
+      phone_no_alt: editData.phone_no_alt,
+      visit_date: finalVisitDate,
+      survey_type: editData.survey_type,
+      surveyor_emp_id: editData.surveyor_emp_id,
+      readings: editData.readings,
+      checklist: editData.checklist,
+      overall_status: editData.overall_status,
+      site_photo: editData.site_photo,
+      remarks: editData.remarks,
+      next_inspection_date: editData.next_inspection_date,
+    };
 
-    setSaving(false);
-    if (error) {
+    try {
+      const res = await fetch(`/api/surveys/${record.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          surveyUpdate,
+          engineersUpdate,
+          surveyorEmail: record.surveyor_email,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Save failed");
+      }
+    } catch (err) {
+      setSaving(false);
       setSaveError("Save failed. Please try again.");
       return;
     }
+
+    setSaving(false);
 
     // Invalidate cache so fresh data loads
     await queryClient.invalidateQueries({
@@ -444,6 +432,43 @@ export default function RecordDetailPage() {
       router.push("/dashboard/records");
     } catch {
       alert("Something went wrong. Please try again.");
+    }
+  }
+
+  const [isFlagging, setIsFlagging] = useState(false);
+
+  async function toggleFlag() {
+    if (!record) return;
+    setIsFlagging(true);
+    const isCurrentlyFlagged = record.overall_status === "Flagged" || record.overall_status === "Fail";
+    const newStatus = isCurrentlyFlagged ? "Pass" : "Fail";
+    
+    // Snapshot previous value for rollback
+    const previousRecord = queryClient.getQueryData(["survey-detail", surveyId]);
+    
+    // Optimistically update cache
+    queryClient.setQueryData(["survey-detail", surveyId], (old: any) => old ? {
+      ...old,
+      overall_status: newStatus,
+    } : old);
+
+    try {
+      const res = await fetch(`/api/surveys/${record.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ surveyUpdate: { overall_status: newStatus } }),
+      });
+      if (!res.ok) {
+        throw new Error("Failed to flag report.");
+      }
+      // invalidate list queries in background
+      queryClient.invalidateQueries({ queryKey: ["records"] });
+    } catch (err) {
+      alert("An error occurred while flagging the report.");
+      // Rollback cache on error
+      queryClient.setQueryData(["survey-detail", surveyId], previousRecord);
+    } finally {
+      setIsFlagging(false);
     }
   }
 
@@ -569,6 +594,32 @@ export default function RecordDetailPage() {
                     </button>
                   </motion.div>
                 )}
+                {!editing && (() => {
+                  const isRecordFlagged = record?.overall_status === "Flagged" || record?.overall_status === "Fail";
+                  return (
+                    <motion.button
+                      key="btn-flag"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      onClick={toggleFlag}
+                      disabled={isFlagging}
+                      className={`inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 text-[13px] sm:text-sm font-semibold rounded-[10px] shadow-sm transition-all disabled:opacity-60
+                        ${isRecordFlagged 
+                          ? "bg-red-50 text-red-600 border border-red-200 hover:bg-red-100" 
+                          : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+                        }`}
+                    >
+                      {isFlagging ? (
+                        <FiLoader className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
+                      ) : (
+                        <Flag className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isRecordFlagged ? "fill-red-200" : ""}`} />
+                      )}
+                      {isRecordFlagged ? "Unflag" : "Flag"}
+                    </motion.button>
+                  );
+                })()}
                 {!editing && (
                   <motion.button
                     key="btn-print"

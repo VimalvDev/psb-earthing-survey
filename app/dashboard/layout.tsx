@@ -7,11 +7,7 @@ import Image from "next/image"
 import { FiPlus, FiList, FiBarChart2, FiLogOut, FiShield, FiSettings } from "react-icons/fi"
 import { createClient } from "@/lib/supabase/client"
 
-interface SidebarUser {
-  name: string
-  emp_id: string
-  role: "admin" | "manager" | "engineer"
-}
+import { useCurrentUser } from "@/lib/hooks/use-current-user"
 
 const MAIN_NAV_ITEMS = [
   { href: "/dashboard/survey", label: "Survey", icon: FiPlus },
@@ -54,23 +50,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter()
   const supabase = createClient()
 
-  const [user, setUser] = useState<SidebarUser | null>(null)
-
-  useEffect(() => {
-    async function loadUser() {
-      const { data: { user: authUser } } = await supabase.auth.getUser()
-      if (!authUser) return
-
-      const { data } = await supabase
-        .from("engineers")
-        .select("name, emp_id, role")
-        .eq("email", authUser.email)
-        .single()
-
-      if (data) setUser(data)
-    }
-    loadUser()
-  }, [])
+  const { data: user, isLoading: userLoading } = useCurrentUser()
 
   async function handleLogout() {
     await supabase.auth.signOut()

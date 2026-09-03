@@ -35,7 +35,7 @@ export function RecordsToolbar({
             onChange={(e) => setFilter("search", e.target.value)}
             type="search"
             placeholder="Branch, code, district…"
-            className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-9 pr-8 text-fluid-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#027D3F] focus:bg-white focus:ring-2 focus:ring-[#027D3F]/15"
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-9 pr-8 text-fluid-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#027D3F] focus:bg-white focus:ring-2 focus:ring-[#027D3F]/15 [&::-webkit-search-cancel-button]:appearance-none"
           />
           {localSearch && (
             <button

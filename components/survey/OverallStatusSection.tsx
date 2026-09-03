@@ -27,9 +27,10 @@ const STATUS_CONFIG = [
   },
   {
     value: "Fail" as OverallStatus,
-    icon: FiXCircle,
-    activeClass: "bg-[#E41E23]/10 border-[#E41E23] text-[#E41E23]",
-    hoverClass: "hover:bg-[#E41E23]/10 hover:border-[#E41E23] hover:text-[#E41E23]",
+    label: "Flagged",
+    icon: FiAlertTriangle,
+    activeClass: "bg-red-50 border-red-200 text-red-600",
+    hoverClass: "hover:bg-red-50 hover:border-red-300 hover:text-red-700",
   },
 ]
 
@@ -51,7 +52,7 @@ export function OverallStatusSection({
         <div className="mb-3 flex items-center gap-2 text-[10px] text-gray-500 bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-1.5">
           <FiAlertTriangle size={10} className="text-[#8A9C08] shrink-0" />
           Suggested:{" "}
-          <strong className="text-gray-700">{autoSuggestedStatus}</strong>
+          <strong className="text-gray-700">{autoSuggestedStatus === "Fail" ? "Flagged" : autoSuggestedStatus}</strong>
           <button
             type="button"
             onClick={() => onStatusChange(autoSuggestedStatus)}
@@ -64,7 +65,7 @@ export function OverallStatusSection({
 
       {/* Pass / Partial / Fail toggle */}
       <div className="flex gap-2 mb-4">
-        {STATUS_CONFIG.map(({ value, icon: Icon, activeClass, hoverClass }) => {
+        {STATUS_CONFIG.map(({ value, label, icon: Icon, activeClass, hoverClass }) => {
           const isActive = status === value
           return (
             <button
@@ -78,7 +79,7 @@ export function OverallStatusSection({
                 }`}
             >
               <Icon size={13} />
-              {value}
+              {label || value}
             </button>
           )
         })}
