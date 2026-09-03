@@ -378,12 +378,9 @@ export default function RecordsPage() {
       <FiltersSheet
         isOpen={mobileFiltersOpen}
         onClose={() => setMobileFiltersOpen(false)}
-        initialFilters={filters}
-        onApply={(newFilters) => {
-          Object.entries(newFilters).forEach(([k, v]) => {
-            setFilter(k as keyof Filters, v as string)
-          })
-        }}
+        filters={filters}
+        setFilter={setFilter}
+        clearFilters={clearFilters}
         states={filterOptions?.states ?? []}
         zones={filterOptions?.zones ?? []}
       />

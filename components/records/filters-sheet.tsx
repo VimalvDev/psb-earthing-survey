@@ -8,8 +8,9 @@ import { Filters, StatusFilter } from "./types"
 interface FiltersSheetProps {
   isOpen: boolean
   onClose: () => void
-  initialFilters: Filters
-  onApply: (filters: Partial<Filters>) => void
+  filters: Filters
+  setFilter: <K extends keyof Filters>(key: K, value: Filters[K]) => void
+  clearFilters: () => void
   states: string[]
   zones: string[]
 }
@@ -17,19 +18,16 @@ interface FiltersSheetProps {
 export function FiltersSheet({
   isOpen,
   onClose,
-  initialFilters,
-  onApply,
+  filters,
+  setFilter,
+  clearFilters,
   states,
   zones,
 }: FiltersSheetProps) {
-  // Local state for the sheet so it batches applies
-  const [localFilters, setLocalFilters] = useState(initialFilters)
   const sheetRef = useRef<HTMLDivElement>(null)
 
-  // Reset local state when opened
   useEffect(() => {
     if (isOpen) {
-      setLocalFilters(initialFilters)
       document.body.style.overflow = "hidden"
     } else {
       document.body.style.overflow = ""
@@ -37,7 +35,7 @@ export function FiltersSheet({
     return () => {
       document.body.style.overflow = ""
     }
-  }, [isOpen, initialFilters])
+  }, [isOpen])
 
   // Focus trapping and Escape key
   useEffect(() => {
@@ -52,22 +50,6 @@ export function FiltersSheet({
   }, [isOpen, onClose])
 
   if (!isOpen) return null
-
-  const handleClear = () => {
-    setLocalFilters((prev) => ({
-      ...prev,
-      status: "All",
-      state: "",
-      zone: "",
-      dateFrom: "",
-      dateTo: "",
-    }))
-  }
-
-  const handleApply = () => {
-    onApply(localFilters)
-    onClose()
-  }
 
   return (
     <AnimatePresence>
@@ -115,7 +97,7 @@ export function FiltersSheet({
           <div className="flex items-center justify-between px-5 pb-4 border-b border-gray-100 shrink-0">
             <div>
               <h2 className="text-fluid-base font-bold text-gray-900">More Filters</h2>
-              <p className="text-fluid-xs text-gray-400">Tap Apply to save changes</p>
+              <p className="text-fluid-xs text-gray-400">Applied instantly</p>
             </div>
             <button
               type="button"
@@ -136,9 +118,9 @@ export function FiltersSheet({
                   <button
                     key={s}
                     type="button"
-                    onClick={() => setLocalFilters({ ...localFilters, status: s })}
+                    onClick={() => setFilter("status", s)}
                     className={`rounded-xl border py-2.5 text-fluid-sm font-bold transition outline-none focus-visible:ring-2 focus-visible:ring-[#027D3F]
-                      ${localFilters.status === s
+                      ${filters.status === s
                         ? "border-gray-900 bg-gray-900 text-white"
                         : "border-gray-200 bg-white text-gray-600 hover:border-[#027D3F] hover:text-[#027D3F]"
                       }`}
@@ -153,8 +135,8 @@ export function FiltersSheet({
             <div className="flex flex-col gap-2">
               <label className="text-fluid-sm font-semibold text-gray-700">State</label>
               <select
-                value={localFilters.state}
-                onChange={(e) => setLocalFilters({ ...localFilters, state: e.target.value })}
+                value={filters.state}
+                onChange={(e) => setFilter("state", e.target.value)}
                 className="w-full appearance-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-fluid-sm text-gray-800 outline-none focus:border-[#027D3F] focus:bg-white focus:ring-2 focus:ring-[#027D3F]/15"
               >
                 <option value="">All states</option>
@@ -168,8 +150,8 @@ export function FiltersSheet({
             <div className="flex flex-col gap-2">
               <label className="text-fluid-sm font-semibold text-gray-700">Zone</label>
               <select
-                value={localFilters.zone}
-                onChange={(e) => setLocalFilters({ ...localFilters, zone: e.target.value })}
+                value={filters.zone}
+                onChange={(e) => setFilter("zone", e.target.value)}
                 className="w-full appearance-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-fluid-sm text-gray-800 outline-none focus:border-[#027D3F] focus:bg-white focus:ring-2 focus:ring-[#027D3F]/15"
               >
                 <option value="">All zones</option>
@@ -186,8 +168,8 @@ export function FiltersSheet({
                 <div className="flex flex-col gap-1.5">
                   <span className="text-fluid-xs text-gray-500">From</span>
                   <input
-                    value={localFilters.dateFrom}
-                    onChange={(e) => setLocalFilters({ ...localFilters, dateFrom: e.target.value })}
+                    value={filters.dateFrom}
+                    onChange={(e) => setFilter("dateFrom", e.target.value)}
                     type="date"
                     className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-fluid-sm text-gray-800 outline-none focus:border-[#027D3F] focus:bg-white focus:ring-2 focus:ring-[#027D3F]/15"
                   />
@@ -195,8 +177,8 @@ export function FiltersSheet({
                 <div className="flex flex-col gap-1.5">
                   <span className="text-fluid-xs text-gray-500">To</span>
                   <input
-                    value={localFilters.dateTo}
-                    onChange={(e) => setLocalFilters({ ...localFilters, dateTo: e.target.value })}
+                    value={filters.dateTo}
+                    onChange={(e) => setFilter("dateTo", e.target.value)}
                     type="date"
                     className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-fluid-sm text-gray-800 outline-none focus:border-[#027D3F] focus:bg-white focus:ring-2 focus:ring-[#027D3F]/15"
                   />
@@ -205,22 +187,15 @@ export function FiltersSheet({
             </div>
           </div>
 
-          {/* Footer (Sticky Apply/Clear) */}
+          {/* Footer (Sticky Clear) */}
           <div className="flex items-center gap-3 border-t border-gray-100 bg-white p-5 shrink-0">
             <button
               type="button"
-              onClick={handleClear}
-              className="inline-flex w-1/3 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-3.5 text-fluid-sm font-bold text-gray-700 transition hover:bg-gray-50 outline-none focus-visible:ring-2 focus-visible:ring-[#027D3F]"
+              onClick={clearFilters}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-3.5 text-fluid-sm font-bold text-gray-700 transition hover:bg-gray-50 outline-none focus-visible:ring-2 focus-visible:ring-[#027D3F]"
             >
               <FiRefreshCw size={14} />
-              Clear
-            </button>
-            <button
-              type="button"
-              onClick={handleApply}
-              className="w-2/3 rounded-xl bg-[#027D3F] py-3.5 text-fluid-sm font-bold text-white transition hover:bg-[#02612f] outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#027D3F]"
-            >
-              Apply Filters
+              Clear all filters
             </button>
           </div>
         </motion.div>
