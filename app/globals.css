@@ -46,6 +46,18 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  --text-fluid-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.8125rem);
+  --text-fluid-sm: clamp(0.8125rem, 0.75rem + 0.3vw, 0.875rem);
+  --text-fluid-base: clamp(0.9375rem, 0.85rem + 0.4vw, 1rem);
+  --text-fluid-lg: clamp(1.0625rem, 0.95rem + 0.55vw, 1.25rem);
+  --text-fluid-xl: clamp(1.25rem, 1.05rem + 0.9vw, 1.625rem);
+  --text-fluid-2xl: clamp(1.5rem, 1.2rem + 1.4vw, 2.125rem);
+
+  --spacing-fluid-xs: clamp(0.5rem, 0.4rem + 0.4vw, 0.75rem);
+  --spacing-fluid-sm: clamp(0.75rem, 0.6rem + 0.6vw, 1.125rem);
+  --spacing-fluid-md: clamp(1rem, 0.75rem + 1vw, 1.5rem);
+  --spacing-fluid-lg: clamp(1.5rem, 1rem + 1.8vw, 2.5rem);
 }
 
 :root {

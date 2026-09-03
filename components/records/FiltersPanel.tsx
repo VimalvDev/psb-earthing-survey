@@ -42,21 +42,6 @@ export function FiltersPanel({
         )}
       </div>
 
-      {/* Search */}
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-semibold text-gray-500">Search</label>
-        <div className="relative">
-          <FiSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            value={filters.search}
-            onChange={(e) => setFilter("search", e.target.value)}
-            type="search"
-            placeholder="Branch, code, district…"
-            className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2.5 pl-9 pr-3 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#027D3F] focus:bg-white focus:ring-2 focus:ring-[#027D3F]/15"
-          />
-        </div>
-      </div>
-
       {/* Status */}
       <div className="flex flex-col gap-2">
         <label className="text-xs font-semibold text-gray-500">Status</label>
@@ -78,13 +63,13 @@ export function FiltersPanel({
         </div>
       </div>
 
-      {/* Year */}
+      {/* Financial Year */}
       <SelectField
-        label="Year"
+        label="Financial Year"
         value={filters.year}
         onChange={(v) => setFilter("year", v)}
         options={years}
-        emptyLabel="All years"
+        emptyLabel="All financial years"
       />
 
       {/* State */}
@@ -206,7 +191,7 @@ export function FilterChips({ filters, setFilter, clearFilters }: FilterChipsPro
         <Chip label={`Status: ${filters.status}`} onRemove={() => setFilter("status", "All")} />
       )}
       {filters.year && (
-        <Chip label={`Year: ${filters.year}`} onRemove={() => setFilter("year", "")} />
+        <Chip label={`FY: ${filters.year}`} onRemove={() => setFilter("year", "")} />
       )}
       {filters.state && (
         <Chip label={`State: ${filters.state}`} onRemove={() => setFilter("state", "")} />

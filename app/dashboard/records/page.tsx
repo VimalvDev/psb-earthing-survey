@@ -6,13 +6,17 @@ import Link from "next/link"
 import {
   FiAlertTriangle, FiCheckCircle, FiChevronDown,
   FiClipboard, FiDownload, FiFileText, FiFilter,
-  FiPlus, FiX, FiXCircle,
+  FiPlus, FiX, FiXCircle, FiSearch,
 } from "react-icons/fi"
 import { createClient } from "@/lib/supabase/client"
 
 import { RecordCard } from "@/components/records/RecordCard"
 import { FiltersPanel, FilterChips } from "@/components/records/FiltersPanel"
 import { Pagination } from "@/components/records/Pagination"
+import { useRecordsFilters } from "@/lib/hooks/use-records-filters"
+import { RecordsToolbar } from "@/components/records/records-toolbar"
+import { ActiveFilterChips } from "@/components/records/active-filter-chips"
+import { FiltersSheet } from "@/components/records/filters-sheet"
 import {
   SurveyRecord, Filters, SortBy,
   DEFAULT_FILTERS, ITEMS_PER_PAGE,
@@ -73,8 +77,9 @@ async function fetchPage(filters: Filters, sortBy: SortBy, page: number) {
   if (filters.zone)  q = q.eq("zone", filters.zone)
   
   if (filters.year) {
-    q = q.gte("visit_date", `${filters.year}-01-01`)
-    q = q.lte("visit_date", `${filters.year}-12-31`)
+    const [startYear, endYear] = filters.year.split("-")
+    q = q.gte("visit_date", `${startYear}-04-01`)
+    q = q.lte("visit_date", `${endYear}-03-31`)
   }
 
   if (filters.dateFrom) q = q.gte("visit_date", filters.dateFrom)
@@ -98,8 +103,9 @@ async function fetchStats(filters: Filters) {
     if (filters.state) q = q.eq("state", filters.state)
     if (filters.zone)  q = q.eq("zone", filters.zone)
     if (filters.year) {
-      q = q.gte("visit_date", `${filters.year}-01-01`)
-      q = q.lte("visit_date", `${filters.year}-12-31`)
+      const [startYear, endYear] = filters.year.split("-")
+      q = q.gte("visit_date", `${startYear}-04-01`)
+      q = q.lte("visit_date", `${endYear}-03-31`)
     }
     if (filters.dateFrom) q = q.gte("visit_date", filters.dateFrom)
     if (filters.dateTo)   q = q.lte("visit_date", filters.dateTo)
@@ -121,10 +127,19 @@ async function fetchSurveyDetail(surveyId: string) {
 async function fetchFilterOptions() {
   const { data } = await supabase.from("surveys").select("state, zone, visit_date")
   if (!data) return { states: [], zones: [], years: [] }
+  
+  const getFY = (d: string | null) => {
+    if (!d) return null
+    const date = new Date(d)
+    if (isNaN(date.getTime())) return null
+    const y = date.getFullYear()
+    return date.getMonth() < 3 ? `${y - 1}-${y}` : `${y}-${y + 1}`
+  }
+
   return {
     states: [...new Set(data.map((r) => r.state).filter(Boolean))].sort() as string[],
     zones:  [...new Set(data.map((r) => r.zone).filter(Boolean))].sort() as string[],
-    years:  [...new Set(data.map((r) => r.visit_date?.slice(0, 4)).filter(Boolean))].sort((a, b) => b.localeCompare(a)) as string[],
+    years:  ([...new Set(data.map((r) => getFY(r.visit_date)).filter(Boolean) as string[])]).sort((a, b) => b.localeCompare(a)),
   }
 }
 
@@ -161,7 +176,16 @@ function StatSkeleton() {
 export default function RecordsPage() {
   const queryClient = useQueryClient()
 
-  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
+  const {
+    filters,
+    localSearch,
+    setFilter,
+    clearFilters,
+    activeSecondaryCount,
+    totalActiveCount,
+    isPending
+  } = useRecordsFilters()
+
   const [sortBy, setSortBy] = useState<SortBy>("newest")
   const [currentPage, setCurrentPage] = useState(1)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
@@ -220,15 +244,6 @@ export default function RecordsPage() {
   const pageEnd    = Math.min(currentPage * ITEMS_PER_PAGE, totalCount)
   const activeFilterCount = getActiveFilterCount(filters)
 
-  function setFilter<K extends keyof Filters>(key: K, value: Filters[K]) {
-    setFilters((prev) => ({ ...prev, [key]: value }))
-  }
-
-  function clearFilters() {
-    setFilters(DEFAULT_FILTERS)
-    setSortBy("newest")
-  }
-
   // ── Render ─────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-6">
@@ -259,15 +274,54 @@ export default function RecordsPage() {
         {/* List */}
         <div className="flex-1 min-w-0 flex flex-col gap-4">
 
-          {/* Toolbar */}
-          <div className="flex flex-wrap items-center gap-2 justify-between">
-            <div className="flex items-center gap-2">
-              <button type="button" onClick={() => setMobileFiltersOpen(true)} className="lg:hidden inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700">
-                <FiFilter size={14} />
-                Filters
-                {activeFilterCount > 0 && <span className="rounded bg-[#027D3F] px-1.5 py-0.5 text-[10px] text-white font-bold">{activeFilterCount}</span>}
-              </button>
-              <p className="text-sm text-gray-400"><span className="font-bold text-gray-700">{totalCount}</span> records</p>
+          <RecordsToolbar
+            localSearch={localSearch}
+            filters={filters}
+            setFilter={setFilter}
+            activeSecondaryCount={activeSecondaryCount}
+            totalCount={totalCount}
+            years={filterOptions?.years ?? []}
+            onOpenFilters={() => setMobileFiltersOpen(true)}
+            isPending={isPending}
+          />
+
+          <ActiveFilterChips
+            filters={filters}
+            setFilter={setFilter}
+            clearFilters={clearFilters}
+            totalActiveCount={totalActiveCount}
+          />
+
+          {/* Mobile Record Count */}
+          <div className="lg:hidden flex items-center justify-between text-sm text-gray-400">
+            <p aria-live="polite">
+              <span className="font-bold text-gray-700">{totalCount}</span> records {isPending && <span className="animate-pulse ml-1 text-[#027D3F]">(updating...)</span>}
+            </p>
+          </div>
+
+          {/* Desktop Toolbar */}
+          <div className="hidden lg:flex flex-wrap items-center gap-4 justify-between">
+            <div className="flex items-center gap-4 flex-1">
+              <p className="text-sm text-gray-400 shrink-0"><span className="font-bold text-gray-700">{totalCount}</span> records</p>
+              <div className="relative w-72">
+                <FiSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  value={localSearch}
+                  onChange={(e) => setFilter("search", e.target.value)}
+                  type="search"
+                  placeholder="Search branch, code, district…"
+                  className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-8 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#027D3F] focus:ring-2 focus:ring-[#027D3F]/15"
+                />
+                {localSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setFilter("search", "")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 rounded outline-none focus-visible:ring-2 focus-visible:ring-[#027D3F]"
+                  >
+                    <FiX size={14} />
+                  </button>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <button type="button" onClick={() => exportCsv(records)} className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-600 transition hover:border-[#027D3F] hover:text-[#027D3F]">
@@ -286,8 +340,10 @@ export default function RecordsPage() {
             </div>
           </div>
 
-          {/* Filter chips */}
-          <FilterChips filters={filters} setFilter={setFilter} clearFilters={clearFilters} />
+          {/* Desktop Filter chips */}
+          <div className="hidden lg:block">
+            <FilterChips filters={filters} setFilter={setFilter} clearFilters={clearFilters} />
+          </div>
 
           {/* Records */}
           {isError ? (
@@ -318,22 +374,19 @@ export default function RecordsPage() {
         </div>
       </div>
 
-      {/* Mobile filters drawer */}
-      {mobileFiltersOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <button type="button" className="absolute inset-0 bg-black/40" onClick={() => setMobileFiltersOpen(false)} />
-          <div className="absolute inset-x-0 bottom-0 max-h-[88dvh] overflow-y-auto rounded-t-2xl bg-white p-5">
-            <div className="mb-5 flex items-center justify-between">
-              <div>
-                <p className="text-base font-bold text-gray-900">Filters</p>
-                <p className="text-xs text-gray-400">Applied instantly</p>
-              </div>
-              <button type="button" onClick={() => setMobileFiltersOpen(false)} className="rounded-lg border border-gray-200 p-2 text-gray-500"><FiX size={16} /></button>
-            </div>
-            <FiltersPanel compact filters={filters} setFilter={setFilter} clearFilters={clearFilters} states={filterOptions?.states ?? []} zones={filterOptions?.zones ?? []} years={filterOptions?.years ?? []} />
-          </div>
-        </div>
-      )}
+      {/* Mobile filters bottom sheet */}
+      <FiltersSheet
+        isOpen={mobileFiltersOpen}
+        onClose={() => setMobileFiltersOpen(false)}
+        initialFilters={filters}
+        onApply={(newFilters) => {
+          Object.entries(newFilters).forEach(([k, v]) => {
+            setFilter(k as keyof Filters, v as string)
+          })
+        }}
+        states={filterOptions?.states ?? []}
+        zones={filterOptions?.zones ?? []}
+      />
     </div>
   )
 }
