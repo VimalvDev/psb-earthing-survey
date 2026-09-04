@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 // GET /api/surveys  — list all surveys (admin sees all, engineer sees own)
 export async function GET(req: NextRequest) {
@@ -33,6 +34,17 @@ export async function POST(req: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const adminClient = createAdminClient()
+  const { data: engineer } = await adminClient
+    .from("engineers")
+    .select("role")
+    .eq("email", user.email)
+    .single()
+
+  if (engineer?.role === "visitor") {
+    return NextResponse.json({ error: "Visitors cannot submit surveys" }, { status: 403 })
+  }
 
   const body = await req.json()
 

@@ -6,7 +6,7 @@ export interface LoggedInUser {
   emp_id: string
   designation: string
   email: string
-  role: "admin" | "manager" | "engineer"
+  role: "admin" | "manager" | "engineer" | "visitor"
   mobile_number?: string
 }
 

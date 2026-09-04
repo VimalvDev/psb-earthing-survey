@@ -82,6 +82,10 @@ export default function NewSurveyPage() {
     if (!userLoading && currentUser === null) {
       router.push("/login");
     } else if (currentUser) {
+      if (currentUser.role === "visitor") {
+        router.replace("/dashboard/records");
+        return;
+      }
       setSurveyorInfo({
         name: currentUser.name ?? "",
         emp_id: currentUser.emp_id ?? "",
@@ -251,6 +255,16 @@ export default function NewSurveyPage() {
   }
 
   // ── Render ─────────────────────────────────────────────────────────────
+
+  if (currentUser?.role === "visitor") {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <p className="text-base font-semibold text-gray-700">
+          Access restricted. Visitors cannot create new surveys.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit}>

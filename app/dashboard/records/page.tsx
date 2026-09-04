@@ -14,6 +14,7 @@ import { RecordCard } from "@/components/records/RecordCard"
 import { FiltersPanel, FilterChips } from "@/components/records/FiltersPanel"
 import { Pagination } from "@/components/records/Pagination"
 import { useRecordsFilters } from "@/lib/hooks/use-records-filters"
+import { useCurrentUser } from "@/lib/hooks/use-current-user"
 import { RecordsToolbar } from "@/components/records/records-toolbar"
 import { ActiveFilterChips } from "@/components/records/active-filter-chips"
 import { FiltersSheet } from "@/components/records/filters-sheet"
@@ -127,7 +128,23 @@ async function fetchStats(filters: Filters) {
 async function fetchSurveyDetail(surveyId: string) {
   const { data, error } = await supabase.from("surveys").select("*").eq("survey_id", surveyId).single()
   if (error) throw error
-  return data
+
+  let surveyor_name = data.surveyor_name || ""
+  let surveyor_mobile = data.surveyor_mobile || ""
+
+  if (!surveyor_name && data.surveyor_emp_id) {
+    const { data: eng } = await supabase
+      .from("engineers")
+      .select("name, mobile_number")
+      .eq("emp_id", data.surveyor_emp_id)
+      .single()
+    if (eng) {
+      surveyor_name = eng.name
+      surveyor_mobile = eng.mobile_number
+    }
+  }
+
+  return { ...data, surveyor_name, surveyor_mobile }
 }
 
 async function fetchFilterOptions() {
@@ -181,6 +198,8 @@ function StatSkeleton() {
 
 export default function RecordsPage() {
   const queryClient = useQueryClient()
+  const { data: user } = useCurrentUser()
+  const isVisitor = user?.role === "visitor"
 
   const {
     filters,
@@ -192,8 +211,8 @@ export default function RecordsPage() {
     isPending
   } = useRecordsFilters()
 
-  const [sortBy, setSortBy] = useState<SortBy>("newest")
-  const [currentPage, setCurrentPage] = useState(1)
+  const sortBy = filters.sortBy
+  const currentPage = filters.page
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
 
   // ── Queries ────────────────────────────────────────────────────────────
@@ -239,10 +258,6 @@ export default function RecordsPage() {
     })
   }, [pageData?.records])
 
-  // ── Reset page on filter/sort change ──────────────────────────────────
-  const filtersKey = JSON.stringify(filters)
-  useEffect(() => { setCurrentPage(1) }, [filtersKey, sortBy])
-
   // ── Derived ────────────────────────────────────────────────────────────
   const records    = pageData?.records ?? []
   const totalCount = pageData?.total ?? 0
@@ -261,10 +276,12 @@ export default function RecordsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Survey Records</h1>
           <p className="text-sm text-gray-500 mt-1">All submitted earthing inspections · PSB Pan-India</p>
         </div>
-        <Link href="/dashboard/survey" className="inline-flex items-center gap-2 rounded-xl bg-[#027D3F] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#02612f] self-start sm:self-auto">
-          <FiPlus size={16} />
-          New Survey
-        </Link>
+        {!isVisitor && (
+          <Link href="/dashboard/survey" className="inline-flex items-center gap-2 rounded-xl bg-[#027D3F] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#02612f] self-start sm:self-auto">
+            <FiPlus size={16} />
+            New Survey
+          </Link>
+        )}
       </div>
 
       {/* Main layout */}
@@ -336,7 +353,7 @@ export default function RecordsPage() {
                 Export CSV
               </button>
               <div className="relative">
-                <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortBy)} className="appearance-none rounded-xl border border-gray-200 bg-white py-2 pl-3 pr-8 text-xs font-semibold text-gray-700 outline-none transition focus:border-[#027D3F] focus:ring-2 focus:ring-[#027D3F]/15">
+                <select value={sortBy} onChange={(e) => setFilter("sortBy", e.target.value as SortBy)} className="appearance-none rounded-xl border border-gray-200 bg-white py-2 pl-3 pr-8 text-xs font-semibold text-gray-700 outline-none transition focus:border-[#027D3F] focus:ring-2 focus:ring-[#027D3F]/15">
                   <option value="newest">Newest first</option>
                   <option value="oldest">Oldest first</option>
                   <option value="branch">Branch A–Z</option>
@@ -374,8 +391,8 @@ export default function RecordsPage() {
             <Pagination
               currentPage={currentPage} totalPages={totalPages}
               pageStart={pageStart} pageEnd={pageEnd} totalRecords={totalCount}
-              onPrevious={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              onNext={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              onPrevious={() => setFilter("page", Math.max(1, currentPage - 1))}
+              onNext={() => setFilter("page", Math.min(totalPages, currentPage + 1))}
             />
           )}
         </div>

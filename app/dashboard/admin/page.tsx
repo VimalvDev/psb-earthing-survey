@@ -35,6 +35,7 @@ const ROLE_STYLES: Record<Role, string> = {
   admin: "bg-[#EAF3DE] text-[#3B6D11]",
   manager: "bg-[#FAEEDA] text-[#854F0B]",
   engineer: "bg-[#E6F1FB] text-[#185FA5]",
+  visitor: "bg-[#F3F4F6] text-[#4B5563]",
 };
 
 export default function AdminPage() {
@@ -304,6 +305,7 @@ function UserRow({
             <option value="admin">Admin</option>
             <option value="manager">Manager</option>
             <option value="engineer">Engineer</option>
+            <option value="visitor">Visitor</option>
           </select>
           <FiChevronDown
             size={12}

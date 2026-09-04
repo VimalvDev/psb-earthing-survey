@@ -89,6 +89,7 @@ export default function CreateUserModal({ onClose }: { onClose: () => void }) {
                 <option value="engineer">Engineer</option>
                 <option value="manager">Manager</option>
                 <option value="admin">Admin</option>
+                <option value="visitor">Visitor</option>
               </select>
             </div>
 

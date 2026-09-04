@@ -193,6 +193,30 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
+// ── Staggered section reveal ───────────────────────────────────────────────
+
+function StaggerSection({
+  children,
+  index,
+}: {
+  children: React.ReactNode;
+  index: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        duration: 0.45,
+        delay: index * 0.1,
+        ease: [0.25, 0.1, 0.25, 1],
+      }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 function Field({
   label,
   value,
@@ -493,6 +517,7 @@ export default function RecordDetailPage() {
 
   const r = editing ? { ...record, ...editData } : record;
   const isAdmin = currentUser?.role === "admin";
+  const isVisitor = currentUser?.role === "visitor";
   const canEditRecord =
     currentUser?.role === "admin" || currentUser?.role === "manager";
   const overallStatus = (r.overall_status ?? "") as OverallStatus;
@@ -519,16 +544,17 @@ export default function RecordDetailPage() {
 `}</style>
 
       <div>
-        <div className="max-w-6xl">
+        <div className="max-w-6xl" key={surveyId}>
           {/* Top bar — screen only */}
+          <StaggerSection index={0}>
           <div className="flex items-center justify-between mb-3 print:hidden">
-            <Link
-              href="/dashboard/records"
+            <button
+              onClick={() => router.back()}
               className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#027D3F] transition-colors group"
             >
               <FiArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
               Back
-            </Link>
+            </button>
             <div className="flex items-center gap-2">
               <AnimatePresence mode="popLayout">
                 {canEditRecord && !editing && (
@@ -594,7 +620,7 @@ export default function RecordDetailPage() {
                     </button>
                   </motion.div>
                 )}
-                {!editing && (() => {
+                {!editing && !isVisitor && (() => {
                   const isRecordFlagged = record?.overall_status === "Flagged" || record?.overall_status === "Fail";
                   return (
                     <motion.button
@@ -637,6 +663,7 @@ export default function RecordDetailPage() {
               </AnimatePresence>
             </div>
           </div>
+          </StaggerSection>
 
           {/* Banners */}
           {saveError && (
@@ -657,6 +684,7 @@ export default function RecordDetailPage() {
             className="flex flex-col gap-1 lg:gap-1 print:block print:bg-white print:gap-0"
           >
             {/* ── Main Report Header (Hero Banner) ── */}
+            <StaggerSection index={1}>
             <div
               className="relative overflow-hidden rounded-[14px] border border-gray-100 print:rounded-none print:border-0 print:shadow-none"
               style={{
@@ -714,8 +742,10 @@ export default function RecordDetailPage() {
 
               </div>
             </div>
+            </StaggerSection>
 
             {/* 1. Branch Details Card */}
+            <StaggerSection index={2}>
             <section className="bg-white rounded-[14px] shadow-sm border border-gray-100 p-6 sm:p-8 print:shadow-none print:border-0 print:p-0 print:rounded-none">
               <h2 className="text-base font-bold text-gray-900 mb-6 flex items-center gap-2 uppercase tracking-wide">
                 <span className="w-1 h-4 bg-[#027D3F] rounded-full inline-block"></span>
@@ -773,8 +803,10 @@ export default function RecordDetailPage() {
                 />
               </div>
             </section>
+            </StaggerSection>
 
             {/* 2. Surveyor & Manager Card */}
+            <StaggerSection index={3}>
             <section className="bg-white rounded-[14px] shadow-sm border border-gray-100 p-6 sm:p-8 print:shadow-none print:border-0 print:p-0 print:rounded-none">
               <h2 className="text-base font-bold text-gray-900 mb-6 flex items-center gap-2 uppercase tracking-wide">
                 <span className="w-1 h-4 bg-[#027D3F] rounded-full inline-block"></span>
@@ -817,8 +849,10 @@ export default function RecordDetailPage() {
                 </div>
               </div>
             </section>
+            </StaggerSection>
 
             {/* 3. Earthing Readings Card */}
+            <StaggerSection index={4}>
             <section className="bg-white rounded-[14px] shadow-sm border border-gray-100 p-6 sm:p-8 print:shadow-none print:border-0 print:p-0 print:rounded-none">
               <h2 className="text-base font-bold text-gray-900 mb-6 flex items-center gap-2 uppercase tracking-wide">
                 <span className="w-1 h-4 bg-[#027D3F] rounded-full inline-block"></span>
@@ -906,9 +940,11 @@ export default function RecordDetailPage() {
                 )}
               </div>
             </section>
+            </StaggerSection>
 
             {/* 4. Visual Inspection Checklist Card (Conditional) */}
             {Object.keys(r.checklist ?? {}).length > 0 && (
+              <StaggerSection index={5}>
               <section className="bg-white rounded-[14px] shadow-sm border border-gray-100 p-6 sm:p-8 print:shadow-none print:border-0 print:p-0 print:rounded-none mb-6">
                 <h2 className="text-base font-bold text-gray-900 mb-6 flex items-center gap-2 uppercase tracking-wide">
                   <span className="w-1 h-4 bg-[#027D3F] rounded-full inline-block"></span>
@@ -937,9 +973,11 @@ export default function RecordDetailPage() {
                   ))}
                 </div>
               </section>
+              </StaggerSection>
             )}
 
             {/* 5. Overall Status & Observations Card */}
+            <StaggerSection index={6}>
             <section className="bg-white rounded-[14px] shadow-sm border border-gray-100 p-6 sm:p-8 print:shadow-none print:border-0 print:p-0 print:rounded-none">
                 <h3 className="text-base font-bold text-gray-900 mb-6 flex items-center gap-2 uppercase tracking-wide">
                   <span className="w-1 h-4 bg-[#027D3F] rounded-full inline-block"></span>
@@ -1037,9 +1075,11 @@ export default function RecordDetailPage() {
                   )}
                 </div>
             </section>
+            </StaggerSection>
 
             {/* 5. Photos Card */}
             {(hasPhotos || editing) && (
+              <StaggerSection index={7}>
               <section className="bg-white rounded-[14px] shadow-sm border border-gray-100 p-6 sm:p-8 print:shadow-none print:border-0 print:p-0 print:rounded-none">
                 <h2 className="text-base font-bold text-gray-900 mb-6 flex items-center gap-2 uppercase tracking-wide">
                   <span className="w-1 h-4 bg-[#027D3F] rounded-full inline-block"></span>
@@ -1085,6 +1125,7 @@ export default function RecordDetailPage() {
                   </div>
                 )}
               </section>
+              </StaggerSection>
             )}
 
             {/* 6. Signature Card (if has signature) */}

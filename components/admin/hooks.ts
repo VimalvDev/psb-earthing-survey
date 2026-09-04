@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { createClient } from "@/lib/supabase/client"
 
-export type Role = "admin" | "manager" | "engineer"
+export type Role = "admin" | "manager" | "engineer" | "visitor"
 
 export type Engineer = {
   id: string

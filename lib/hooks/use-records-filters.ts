@@ -17,6 +17,8 @@ export function useRecordsFilters() {
     year: searchParams.get("year") || DEFAULT_FILTERS.year,
     dateFrom: searchParams.get("dateFrom") || DEFAULT_FILTERS.dateFrom,
     dateTo: searchParams.get("dateTo") || DEFAULT_FILTERS.dateTo,
+    page: parseInt(searchParams.get("page") || String(DEFAULT_FILTERS.page), 10),
+    sortBy: (searchParams.get("sortBy") as any) || DEFAULT_FILTERS.sortBy,
   }), [searchParams])
 
   // 2. Local state for debouncing the search input
@@ -30,21 +32,24 @@ export function useRecordsFilters() {
     setLocalSearch(urlFilters.search)
   }, [urlFilters.search])
 
-  // Save filters to sessionStorage whenever they change
-  useEffect(() => {
-    sessionStorage.setItem("psb_records_filters", JSON.stringify(urlFilters))
-  }, [urlFilters])
-
   // Core update function to push state to URL
   const updateUrl = useCallback(
     (updates: Partial<Filters>) => {
       const params = new URLSearchParams(searchParams.toString())
 
       Object.entries(updates).forEach(([key, value]) => {
-        if (!value || value === "All") {
+        // Remove default/empty values from URL to keep it clean
+        const isDefault =
+          value === undefined ||
+          value === null ||
+          value === "All" ||
+          value === "" ||
+          (key === "page" && (value === 1 || value === "1")) ||
+          (key === "sortBy" && value === "newest")
+        if (isDefault) {
           params.delete(key)
         } else {
-          params.set(key, value)
+          params.set(key, String(value))
         }
       })
 
@@ -56,34 +61,39 @@ export function useRecordsFilters() {
     [searchParams, pathname, router]
   )
 
-  // Restore filters from sessionStorage on mount if URL is empty
+  // Save and Restore filters from sessionStorage
   const isInitialMount = useRef(true)
   useEffect(() => {
-    if (isInitialMount.current && searchParams.toString() === "") {
+    if (isInitialMount.current) {
       isInitialMount.current = false
-      const stored = sessionStorage.getItem("psb_records_filters")
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored)
-          // Only restore if there's actually something to restore
-          const hasActiveFilters = Object.entries(parsed).some(
-            ([key, val]) => val && val !== "All" && val !== DEFAULT_FILTERS[key as keyof Filters]
-          )
-          if (hasActiveFilters) {
-            updateUrl(parsed)
+      if (searchParams.toString() === "") {
+        const stored = sessionStorage.getItem("psb_records_filters")
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored)
+            const hasActiveFilters = Object.entries(parsed).some(
+              ([key, val]) => val !== undefined && val !== null && val !== "All" && val !== "" && val !== DEFAULT_FILTERS[key as keyof Filters]
+            )
+            if (hasActiveFilters) {
+              updateUrl(parsed)
+              return // Skip saving this render, as we are navigating
+            }
+          } catch (e) {
+            // ignore
           }
-        } catch (e) {
-          // ignore
         }
       }
     }
-  }, [searchParams, updateUrl])
+
+    // Save current filters
+    sessionStorage.setItem("psb_records_filters", JSON.stringify(urlFilters))
+  }, [searchParams, updateUrl, urlFilters])
 
   // 3. Debounce local search changes
   useEffect(() => {
     const handler = setTimeout(() => {
       if (localSearch !== urlFilters.search) {
-        updateUrl({ search: localSearch })
+        updateUrl({ search: localSearch, page: 1 })
       }
     }, 300)
     return () => clearTimeout(handler)
@@ -94,6 +104,9 @@ export function useRecordsFilters() {
     <K extends keyof Filters>(key: K, value: Filters[K]) => {
       if (key === "search") {
         setLocalSearch(value as string) // Immediate UI update for the input
+        updateUrl({ [key]: value, page: 1 }) // reset to page 1 on search
+      } else if (key !== "page") {
+        updateUrl({ [key]: value, page: 1 }) // reset to page 1 on filter/sort change
       } else {
         updateUrl({ [key]: value })
       }

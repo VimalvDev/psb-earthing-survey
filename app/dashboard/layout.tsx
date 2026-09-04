@@ -61,9 +61,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const empId = user?.emp_id ?? ""
   const initials = user?.name ? getInitials(user.name) : "--"
   const isAdmin = user?.role === "admin"
+  const isVisitor = user?.role === "visitor"
+
+  const filteredMainNav = isVisitor 
+    ? MAIN_NAV_ITEMS.filter(item => item.label !== "Survey")
+    : MAIN_NAV_ITEMS
 
   const secondaryNavItems = isAdmin ? [ADMIN_NAV_ITEM, SETTINGS_NAV_ITEM] : [SETTINGS_NAV_ITEM]
-  const mobileNavItems = [...MAIN_NAV_ITEMS, ...secondaryNavItems]
+  const mobileNavItems = [...filteredMainNav, ...secondaryNavItems]
 
   return (
     <div className="min-h-screen bg-[#FAF6EE]">
@@ -96,13 +101,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             Main
           </span>
 
-          {MAIN_NAV_ITEMS.map(({ href, label, icon }) => (
+          {filteredMainNav.map(({ href, label, icon }) => (
             <NavLink
               key={href}
               href={href}
               label={label}
               icon={icon}
-              isActive={pathname === href || pathname.startsWith(href + "/")}
+              isActive={pathname.startsWith(href)}
             />
           ))}
         </nav>

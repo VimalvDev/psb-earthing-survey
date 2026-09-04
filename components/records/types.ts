@@ -34,6 +34,8 @@ export interface Filters {
   year: string
   dateFrom: string
   dateTo: string
+  page: number
+  sortBy: SortBy
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -46,6 +48,8 @@ export const DEFAULT_FILTERS: Filters = {
   year: "",
   dateFrom: "",
   dateTo: "",
+  page: 1,
+  sortBy: "newest",
 }
 
 export const ITEMS_PER_PAGE = 10
