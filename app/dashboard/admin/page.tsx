@@ -93,6 +93,7 @@ function AdminDashboard() {
       admin: 0,
       manager: 0,
       engineer: 0,
+      visitor: 0,
     };
     users?.forEach((u) => {
       base[u.role] += 1;
