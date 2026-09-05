@@ -32,6 +32,7 @@ interface BranchDetailsSectionProps {
 }
 
 export function BranchDetailsSection({ onChange, values }: BranchDetailsSectionProps) {
+  const [existingSurveys, setExistingSurveys] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [showSecondPhone, setShowSecondPhone] = useState(false);
@@ -40,15 +41,32 @@ export function BranchDetailsSection({ onChange, values }: BranchDetailsSectionP
   const supabase = createClient();
 
   async function fetchBranchByCode(code: string) {
-    if (!code || code.length < 3) return;
+    if (!code || code.length < 3) {
+      setExistingSurveys([]);
+      return;
+    }
     setLoading(true);
     setNotFound(false);
 
+    // Fetch branch info
     const { data, error } = await supabase
       .from("branches")
       .select("*")
       .ilike("bic", code)
       .single();
+
+    // Check for existing surveys
+    const { data: surveysData } = await supabase
+      .from("surveys")
+      .select("id, visit_date")
+      .ilike("bic", code)
+      .order("created_at", { ascending: false });
+
+    if (surveysData && surveysData.length > 0) {
+      setExistingSurveys(surveysData);
+    } else {
+      setExistingSurveys([]);
+    }
 
     setLoading(false);
 
@@ -105,6 +123,14 @@ export function BranchDetailsSection({ onChange, values }: BranchDetailsSectionP
           </div>
           {notFound && (
             <span className="text-[10px] text-[#E41E23]">Branch code not found in records</span>
+          )}
+          {existingSurveys.length > 0 && (
+            <div className="text-[10px] text-amber-600 mt-0.5 space-y-0.5">
+              <p>A report with this branch code already exists:</p>
+              {existingSurveys.map(s => (
+                <p key={s.id} className="font-semibold">• Date: {s.visit_date || 'N/A'}</p>
+              ))}
+            </div>
           )}
         </div>
         <LockedInput
