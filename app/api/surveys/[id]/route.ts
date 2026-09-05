@@ -55,15 +55,6 @@ export async function PATCH(
 
   const body = await req.json()
   const surveyUpdate = body.surveyUpdate ?? body
-  const engineersUpdate = body.engineersUpdate
-  const surveyorEmail = body.surveyorEmail
-
-  if (engineersUpdate && surveyorEmail) {
-    await admin
-      .from("engineers")
-      .update(engineersUpdate)
-      .eq("email", surveyorEmail)
-  }
 
   const { data, error } = await admin
     .from("surveys")

@@ -267,6 +267,15 @@ export default function RecordDetailPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [engineers, setEngineers] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function loadEngineers() {
+      const { data } = await supabase.from("engineers").select("*");
+      if (data) setEngineers(data);
+    }
+    loadEngineers();
+  }, []);
 
   // ── Fetch user ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -372,18 +381,7 @@ export default function RecordDetailPage() {
       }
     }
 
-    let engineersUpdate = undefined;
-    if (
-      editData.surveyor_name !== undefined ||
-      editData.surveyor_mobile !== undefined ||
-      editData.surveyor_emp_id !== undefined
-    ) {
-      engineersUpdate = {
-        name: editData.surveyor_name ?? record.surveyor_name,
-        mobile_number: editData.surveyor_mobile ?? record.surveyor_mobile,
-        emp_id: editData.surveyor_emp_id ?? record.surveyor_emp_id,
-      };
-    }
+
 
     const surveyUpdate = {
       bic: editData.bic,
@@ -411,9 +409,7 @@ export default function RecordDetailPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          surveyUpdate,
-          engineersUpdate,
-          surveyorEmail: record.surveyor_email,
+          surveyUpdate
         }),
       });
 
@@ -788,7 +784,7 @@ export default function RecordDetailPage() {
                   value={editing ? (editData.visit_date ?? r.visit_date ?? "") : formatDate(r.visit_date)}
                   editing={editing}
                   onChange={(v) => setField("visit_date", v)}
-                  type={editing ? "date" : "text"}
+                  type="text"
                 />
               </div>
 
@@ -813,12 +809,55 @@ export default function RecordDetailPage() {
                 Surveyor & Manager Info
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-6">
-                <Field
-                  label="Surveyor Name"
-                  value={editData.surveyor_name ?? r.surveyor_name ?? r.surveyor_emp_id ?? ""}
-                  editing={editing}
-                  onChange={(v) => setField("surveyor_name", v)}
-                />
+                <div className="flex flex-col gap-1">
+                  <span className="text-[11px] text-gray-400 uppercase tracking-wide">
+                    Surveyor Name
+                  </span>
+                  {editing ? (
+                    <div className="flex flex-col gap-2">
+                      <select
+                        value={engineers.some((e) => e.name === (editData.surveyor_name ?? r.surveyor_name)) ? (editData.surveyor_name ?? r.surveyor_name) : (editData.surveyor_name ?? r.surveyor_name ? "Other" : "")}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "Other") {
+                            // User types it in the input that appears below
+                          } else if (val === "") {
+                            setField("surveyor_name", "");
+                            setField("surveyor_emp_id", "");
+                            setField("surveyor_mobile", "");
+                          } else {
+                            const eng = engineers.find(eng => eng.name === val);
+                            if (eng) {
+                              setField("surveyor_name", eng.name);
+                              setField("surveyor_emp_id", eng.emp_id);
+                              setField("surveyor_mobile", eng.mobile_number);
+                            }
+                          }
+                        }}
+                        className="text-sm font-medium text-gray-800 border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-[#027D3F] focus:ring-1 focus:ring-[#027D3F]/20 transition-colors bg-[#FAF6EE]"
+                      >
+                        <option value="">Select Surveyor...</option>
+                        {engineers.map((eng, idx) => (
+                          <option key={eng.emp_id || idx} value={eng.name}>{eng.name}</option>
+                        ))}
+                        <option value="Other">Other (Manual Entry)</option>
+                      </select>
+                      {(!engineers.some((e) => e.name === (editData.surveyor_name ?? r.surveyor_name)) && (editData.surveyor_name ?? r.surveyor_name)) && (
+                        <input
+                          type="text"
+                          value={editData.surveyor_name ?? r.surveyor_name ?? ""}
+                          onChange={(e) => setField("surveyor_name", e.target.value)}
+                          className="text-sm font-medium text-gray-800 border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-[#027D3F] focus:ring-1 focus:ring-[#027D3F]/20 transition-colors bg-[#FAF6EE]"
+                          placeholder="Type name manually..."
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-sm font-medium text-gray-800">
+                      {r.surveyor_name || r.surveyor_emp_id || "—"}
+                    </span>
+                  )}
+                </div>
                 <Field
                   label="Surveyor Mobile"
                   value={editData.surveyor_mobile ?? r.surveyor_mobile ?? ""}
