@@ -13,7 +13,7 @@ export function getStatus(value: string, epId?: string): BadgeStatus {
   if (value === "" || isNaN(num)) return "--"
   
   if (epId === "EP-1" || epId === "EP-2") {
-    if (num >= 210 && num <= 260) return "Pass"
+    if (num >= 200 && num <= 270) return "Pass"
     return "Fail"
   } else {
     if (num <= 5) return "Pass"
