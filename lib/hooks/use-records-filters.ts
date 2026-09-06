@@ -116,6 +116,7 @@ export function useRecordsFilters() {
 
   const clearFilters = useCallback(() => {
     setLocalSearch("")
+    sessionStorage.removeItem("psb_records_filters")
     startTransition(() => {
       router.push(pathname, { scroll: false })
     })

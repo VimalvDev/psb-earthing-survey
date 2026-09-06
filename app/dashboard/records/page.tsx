@@ -221,11 +221,14 @@ export default function RecordsPage() {
   const { data: pageData, isLoading, isError } = useQuery({
     queryKey: pageKey,
     queryFn: () => fetchPage(filters, sortBy, currentPage),
+    staleTime: 60_000,
+    placeholderData: (prev: any) => prev,
   })
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["record-stats", filters],
     queryFn: () => fetchStats(filters),
+    staleTime: 60_000,
   })
 
   const { data: filterOptions } = useQuery({

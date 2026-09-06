@@ -2,6 +2,7 @@
 import Image from "next/image"
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { FiSave, FiZap, FiLoader } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
@@ -67,6 +68,7 @@ function calcOverallStatus(statuses: BadgeStatus[]): OverallStatus {
 
 export default function NewSurveyPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const supabase = createClient();
 
   // ── Auth: load logged-in engineer ──────────────────────────────────────
@@ -243,14 +245,19 @@ export default function NewSurveyPage() {
       body: JSON.stringify(payload),
     });
 
-    setSubmitting(false);
-
     if (!res.ok) {
+      setSubmitting(false);
       const { error } = await res.json();
       setSubmitError(error ?? "Submission failed. Please try again.");
       return;
     }
 
+    // Invalidate records cache so fresh data (with photos) loads
+    queryClient.invalidateQueries({ queryKey: ["records"] });
+    queryClient.invalidateQueries({ queryKey: ["record-stats"] });
+    queryClient.invalidateQueries({ queryKey: ["filter-options"] });
+
+    // Optimistic navigation — redirect immediately
     router.push("/dashboard/records");
   }
 
