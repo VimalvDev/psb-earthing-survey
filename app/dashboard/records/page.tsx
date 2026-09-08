@@ -66,10 +66,23 @@ function exportCsv(records: SurveyRecord[]) {
 
 const supabase = createClient()
 
-async function fetchPage(filters: Filters, sortBy: SortBy, page: number) {
+function applyAllowedYears(q: any, allowed_years?: string[]) {
+  if (allowed_years && allowed_years.length > 0) {
+    const orConditions = allowed_years.map(year => {
+      const [startYear, endYear] = year.split("-");
+      return `and(visit_date.gte.${startYear}-04-01,visit_date.lte.${endYear}-03-31)`;
+    });
+    return q.or(orConditions.join(","));
+  }
+  return q;
+}
+
+async function fetchPage(filters: Filters, sortBy: SortBy, page: number, allowed_years?: string[]) {
   let q = supabase
     .from("surveys")
     .select("id, survey_id, bic, branch_name, state, district, zone, visit_date, surveyor_emp_id, surveyor_name, surveyor_email, overall_status, readings, remarks, next_inspection_date, equipment, site_photo, created_at", { count: "exact" })
+
+  q = applyAllowedYears(q, allowed_years)
 
   const search = filters.search.trim()
   if (search) q = q.or(`branch_name.ilike.%${search}%,bic.ilike.%${search}%,district.ilike.%${search}%,state.ilike.%${search}%,surveyor_emp_id.ilike.%${search}%`)
@@ -103,8 +116,9 @@ async function fetchPage(filters: Filters, sortBy: SortBy, page: number) {
   return { records: (data as SurveyRecord[]) ?? [], total: count ?? 0 }
 }
 
-async function fetchStats(filters: Filters) {
+async function fetchStats(filters: Filters, allowed_years?: string[]) {
   const applyFilters = (q: any) => {
+    q = applyAllowedYears(q, allowed_years)
     const search = filters.search.trim()
     if (search) q = q.or(`branch_name.ilike.%${search}%,bic.ilike.%${search}%,district.ilike.%${search}%,state.ilike.%${search}%`)
     if (filters.state) q = q.eq("state", filters.state)
@@ -147,8 +161,10 @@ async function fetchSurveyDetail(surveyId: string) {
   return { ...data, surveyor_name, surveyor_mobile }
 }
 
-async function fetchFilterOptions() {
-  const { data } = await supabase.from("surveys").select("state, zone, visit_date")
+async function fetchFilterOptions(allowed_years?: string[]) {
+  let q = supabase.from("surveys").select("state, zone, visit_date")
+  q = applyAllowedYears(q, allowed_years)
+  const { data } = await q
   if (!data) return { states: [], zones: [], years: [] }
   
   const getFY = (d: string | null) => {
@@ -216,24 +232,24 @@ export default function RecordsPage() {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
 
   // ── Queries ────────────────────────────────────────────────────────────
-  const pageKey = ["records", filters, sortBy, currentPage]
+  const pageKey = ["records", filters, sortBy, currentPage, user?.allowed_years]
 
   const { data: pageData, isLoading, isError } = useQuery({
     queryKey: pageKey,
-    queryFn: () => fetchPage(filters, sortBy, currentPage),
+    queryFn: () => fetchPage(filters, sortBy, currentPage, user?.allowed_years),
     staleTime: 60_000,
     placeholderData: (prev: any) => prev,
   })
 
   const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ["record-stats", filters],
-    queryFn: () => fetchStats(filters),
+    queryKey: ["record-stats", filters, user?.allowed_years],
+    queryFn: () => fetchStats(filters, user?.allowed_years),
     staleTime: 60_000,
   })
 
   const { data: filterOptions } = useQuery({
-    queryKey: ["filter-options"],
-    queryFn: fetchFilterOptions,
+    queryKey: ["filter-options", user?.allowed_years],
+    queryFn: () => fetchFilterOptions(user?.allowed_years),
     staleTime: 5 * 60 * 1000,
   })
 
@@ -243,11 +259,11 @@ export default function RecordsPage() {
     const totalPages = Math.ceil(total / ITEMS_PER_PAGE)
     if (currentPage < totalPages) {
       queryClient.prefetchQuery({
-        queryKey: ["records", filters, sortBy, currentPage + 1],
-        queryFn: () => fetchPage(filters, sortBy, currentPage + 1),
+        queryKey: ["records", filters, sortBy, currentPage + 1, user?.allowed_years],
+        queryFn: () => fetchPage(filters, sortBy, currentPage + 1, user?.allowed_years),
       })
     }
-  }, [pageData, currentPage, filters, sortBy])
+  }, [pageData, currentPage, filters, sortBy, user?.allowed_years, queryClient])
 
   // ── Prefetch detail pages for visible records ──────────────────────────
   useEffect(() => {

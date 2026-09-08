@@ -8,6 +8,7 @@ export interface LoggedInUser {
   email: string
   role: "admin" | "manager" | "engineer" | "visitor"
   mobile_number?: string
+  allowed_years?: string[]
 }
 
 export function useCurrentUser() {
@@ -20,7 +21,7 @@ export function useCurrentUser() {
 
       const { data, error } = await supabase
         .from("engineers")
-        .select("name, emp_id, designation, email, role, mobile_number")
+        .select("name, emp_id, designation, email, role, mobile_number, allowed_years")
         .eq("email", user.email)
         .single()
       

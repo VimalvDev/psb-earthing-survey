@@ -10,6 +10,7 @@ import {
   useUpdateRole,
   useSetUserPassword,
   useDeleteUser,
+  useUpdateAllowedYears,
   type Role,
   type Engineer,
 } from "@/components/admin/hooks";
@@ -27,6 +28,7 @@ import {
   FiArrowRight,
   FiTrash2,
   FiChevronDown,
+  FiList,
 } from "react-icons/fi";
 
 import Link from "next/link";
@@ -72,6 +74,7 @@ function AdminDashboard() {
   const { data: users, isLoading } = useAllUsers();
   const [search, setSearch] = useState("");
   const [passwordTarget, setPasswordTarget] = useState<Engineer | null>(null);
+  const [yearsTarget, setYearsTarget] = useState<Engineer | null>(null);
   const [showCreateUser, setShowCreateUser] = useState(false);
 
   const filtered = useMemo(() => {
@@ -191,6 +194,7 @@ function AdminDashboard() {
                   <th className="px-5 py-3">Designation</th>
                   <th className="px-5 py-3">Contact</th>
                   <th className="px-5 py-3">Role</th>
+                  <th className="px-5 py-3">Allowed FYs</th>
                   <th className="px-5 py-3">Password</th>
                   <th className="px-5 py-3">Delete</th>
                 </tr>
@@ -201,6 +205,7 @@ function AdminDashboard() {
                     key={u.id}
                     user={u}
                     onSetPassword={() => setPasswordTarget(u)}
+                    onEditYears={() => setYearsTarget(u)}
                   />
                 ))}
               </tbody>
@@ -213,6 +218,12 @@ function AdminDashboard() {
         <SetPasswordModal
           user={passwordTarget}
           onClose={() => setPasswordTarget(null)}
+        />
+      )}
+      {yearsTarget && (
+        <SetAllowedYearsModal
+          user={yearsTarget}
+          onClose={() => setYearsTarget(null)}
         />
       )}
       {showCreateUser && (
@@ -259,9 +270,11 @@ function StatTile({
 function UserRow({
   user,
   onSetPassword,
+  onEditYears,
 }: {
   user: Engineer;
   onSetPassword: () => void;
+  onEditYears: () => void;
 }) {
   const updateRole = useUpdateRole();
   const deleteUser = useDeleteUser();
@@ -312,6 +325,20 @@ function UserRow({
             size={12}
             className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 opacity-60"
           />
+        </div>
+      </td>
+      <td className="px-5 py-3.5">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs text-gray-600 truncate max-w-[80px]" title={user.allowed_years?.length ? user.allowed_years.join(", ") : "All Years"}>
+            {user.allowed_years?.length ? user.allowed_years.join(", ") : "All"}
+          </span>
+          <button
+            onClick={onEditYears}
+            className="text-gray-400 hover:text-[#027D3F] transition-colors"
+            title="Edit Allowed Years"
+          >
+            <FiList size={14} />
+          </button>
         </div>
       </td>
       <td className="px-5 py-3.5">
@@ -501,6 +528,96 @@ function SetPasswordModal({
           }
         }
       `}</style>
+    </div>
+  );
+}
+
+function SetAllowedYearsModal({
+  user,
+  onClose,
+}: {
+  user: Engineer;
+  onClose: () => void;
+}) {
+  const updateYears = useUpdateAllowedYears();
+  const currentYear = new Date().getFullYear();
+  const fys = Array.from({ length: 6 }).map((_, i) => {
+    const y = currentYear + 1 - i;
+    return `${y - 1}-${y}`;
+  });
+
+  const [selected, setSelected] = useState<Set<string>>(
+    new Set(user.allowed_years || [])
+  );
+
+  function toggle(fy: string) {
+    const next = new Set(selected);
+    if (next.has(fy)) next.delete(fy);
+    else next.add(fy);
+    setSelected(next);
+  }
+
+  function handleSave() {
+    updateYears.mutate(
+      { id: user.id, allowed_years: Array.from(selected) },
+      { onSuccess: onClose }
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+      <div className="bg-white rounded-2xl p-6 max-w-sm w-full animate-[fadeInUp_0.2s_ease-out_both]">
+        <div className="flex items-start justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <FiList size={15} className="text-[#027D3F]" />
+            <h3 className="font-semibold text-gray-900">Allowed Financial Years</h3>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <FiX size={18} />
+          </button>
+        </div>
+        <p className="text-xs text-gray-400 mb-4">
+          For <span className="font-medium text-gray-600">{user.name}</span>. Leave empty to allow all years.
+        </p>
+
+        <div className="flex flex-col gap-2 max-h-60 overflow-y-auto mb-4">
+          {fys.map((fy) => (
+            <label
+              key={fy}
+              className="flex items-center gap-3 p-2 rounded-xl border border-gray-100 hover:bg-gray-50 cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                checked={selected.has(fy)}
+                onChange={() => toggle(fy)}
+                className="w-4 h-4 rounded text-[#027D3F] border-gray-300 focus:ring-[#027D3F]"
+              />
+              <span className="text-sm font-medium text-gray-700">{fy}</span>
+            </label>
+          ))}
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={onClose}
+            className="flex-1 h-11 rounded-xl border border-gray-200 text-gray-600 font-medium text-sm hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={updateYears.isPending}
+            className="flex-1 h-11 rounded-xl bg-[#027D3F] hover:bg-[#02612f] text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
+          >
+            {updateYears.isPending ? (
+              <FiLoader size={15} className="animate-spin" />
+            ) : (
+              <FiCheck size={15} />
+            )}
+            Save
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

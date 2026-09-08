@@ -3,6 +3,7 @@
 import { useQuery, keepPreviousData } from "@tanstack/react-query"
 import { createClient } from "@/lib/supabase/client"
 import { Filters, SortBy, SurveyRecord, ITEMS_PER_PAGE } from "./types"
+import { useCurrentUser } from "@/lib/hooks/use-current-user"
 
 function buildQuery(supabase: ReturnType<typeof createClient>, filters: Filters, sortBy: SortBy) {
   let q = supabase.from("surveys").select(
@@ -30,15 +31,29 @@ function buildQuery(supabase: ReturnType<typeof createClient>, filters: Filters,
   return q
 }
 
+function applyAllowedYears(q: any, allowed_years?: string[]) {
+  if (allowed_years && allowed_years.length > 0) {
+    const orConditions = allowed_years.map(year => {
+      const [startYear, endYear] = year.split("-");
+      return `and(visit_date.gte.${startYear}-04-01,visit_date.lte.${endYear}-03-31)`;
+    });
+    return q.or(orConditions.join(","));
+  }
+  return q;
+}
+
 export function useSurveyRecords(filters: Filters, sortBy: SortBy, page: number) {
   const supabase = createClient()
+  const { data: user } = useCurrentUser()
 
   return useQuery({
-    queryKey: ["survey-records", filters, sortBy, page],
+    queryKey: ["survey-records", filters, sortBy, page, user?.allowed_years],
     queryFn: async ({ signal }) => {
       const from = (page - 1) * ITEMS_PER_PAGE
       const to   = from + ITEMS_PER_PAGE - 1
-      const { data, error, count } = await buildQuery(supabase, filters, sortBy)
+      let q = buildQuery(supabase, filters, sortBy)
+      q = applyAllowedYears(q, user?.allowed_years)
+      const { data, error, count } = await q
         .range(from, to)
         .abortSignal(signal)
       if (error) throw error
@@ -50,11 +65,13 @@ export function useSurveyRecords(filters: Filters, sortBy: SortBy, page: number)
 
 export function useSurveyStats(filters: Filters) {
   const supabase = createClient()
+  const { data: user } = useCurrentUser()
 
   return useQuery({
-    queryKey: ["survey-stats", filters],
+    queryKey: ["survey-stats", filters, user?.allowed_years],
     queryFn: async ({ signal }) => {
       let q = supabase.from("surveys").select("overall_status")
+      q = applyAllowedYears(q, user?.allowed_years)
       const search = filters.search.trim()
       if (search) q = q.or(`branch_name.ilike.%${search}%,bic.ilike.%${search}%,district.ilike.%${search}%,state.ilike.%${search}%`)
       if (filters.state) q = q.eq("state", filters.state)

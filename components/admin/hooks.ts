@@ -13,6 +13,7 @@ export type Engineer = {
   email: string | null
   mobile_number: string | null
   role: Role
+  allowed_years?: string[]
   created_at: string
 }
 
@@ -46,7 +47,7 @@ export function useAllUsers() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("engineers")
-        .select("id, name, emp_id, designation, email, mobile_number, role, created_at")
+        .select("id, name, emp_id, designation, email, mobile_number, role, allowed_years, created_at")
         .order("name", { ascending: true })
 
       if (error) throw error
@@ -78,6 +79,32 @@ export function useUpdateRole() {
     },
     onError: (err) => {
       alert(err instanceof Error ? err.message : "Failed to update role")
+    },
+  })
+}
+
+// ── Update a user's allowed financial years ──────────────────────────────
+export function useUpdateAllowedYears() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ id, allowed_years }: { id: string; allowed_years: string[] }) => {
+      const { data, error } = await supabase
+        .from("engineers")
+        .update({ allowed_years })
+        .eq("id", id)
+        .select()
+
+      if (error) throw error
+      if (!data || data.length === 0) {
+        throw new Error("Update blocked — likely an RLS policy issue.")
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] })
+    },
+    onError: (err) => {
+      alert(err instanceof Error ? err.message : "Failed to update allowed years")
     },
   })
 }
