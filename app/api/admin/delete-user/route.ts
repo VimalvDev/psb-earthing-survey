@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     const { data: caller } = await supabase
       .from("engineers")
       .select("role")
-      .eq("email", user.email)
+      .or(`email.eq.${user.email},gmail.eq.${user.email}`)
       .single()
 
     if (caller?.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 })

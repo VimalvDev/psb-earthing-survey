@@ -38,12 +38,12 @@ export default function LoginPage() {
 
     const { data, error } = await supabase
       .from("engineers")
-      .select("email")
+      .select("email, gmail")
       .ilike("emp_id", input.trim())
       .single()
 
     if (error || !data) return null
-    return data.email
+    return data.gmail || data.email
   }
 
   // ── Login ─────────────────────────────────────────────────────────────────

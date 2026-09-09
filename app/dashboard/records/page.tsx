@@ -94,7 +94,7 @@ async function fetchPage(filters: Filters, sortBy: SortBy, page: number, allowed
       q = q.eq("overall_status", filters.status)
     }
   }
-  if (filters.state) q = q.eq("state", filters.state)
+  if (filters.state) q = q.ilike("state", filters.state)
   if (filters.zone)  q = q.eq("zone", filters.zone)
   
   if (filters.year) {
@@ -122,7 +122,7 @@ async function fetchStats(filters: Filters, allowed_years?: string[]) {
     q = applyAllowedYears(q, allowed_years)
     const search = filters.search.trim()
     if (search) q = q.or(`branch_name.ilike.%${search}%,bic.ilike.%${search}%,district.ilike.%${search}%,state.ilike.%${search}%`)
-    if (filters.state) q = q.eq("state", filters.state)
+    if (filters.state) q = q.ilike("state", filters.state)
     if (filters.zone)  q = q.eq("zone", filters.zone)
     if (filters.year) {
       const [startYear, endYear] = filters.year.split("-")
@@ -176,8 +176,7 @@ async function fetchFilterOptions(allowed_years?: string[]) {
     return date.getMonth() < 3 ? `${y - 1}-${y}` : `${y}-${y + 1}`
   }
 
-  const dbStates = data.map((r) => r.state).filter(Boolean) as string[];
-  const allStates = [...new Set([...ALL_STATES.map(s => s.label), ...dbStates])].sort();
+  const allStates = ALL_STATES.map(s => s.label).sort();
 
   return {
     states: allStates,

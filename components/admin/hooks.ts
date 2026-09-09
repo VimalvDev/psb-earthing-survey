@@ -30,7 +30,7 @@ export function useCurrentRole() {
       const { data, error } = await supabase
         .from("engineers")
         .select("id, role")
-        .eq("email", user.email)
+        .or(`email.eq.${user.email},gmail.eq.${user.email}`)
         .single()
 
       if (error || !data) return null

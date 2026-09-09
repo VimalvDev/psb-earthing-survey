@@ -5,9 +5,11 @@ import { createAdminClient } from "@/lib/supabase/admin"
 export async function POST(req: Request) {
   const { name, emp_id, designation, email, mobile_number, password, role } = await req.json()
 
-  if (!name || !emp_id || !email || !password || !role) {
+  if (!name || !emp_id || !password || !role) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
   }
+
+  const finalEmail = email?.trim() || `${emp_id.trim().replace(/\s+/g, '').toLowerCase()}@psb.co.in`
   if (password.length < 8) {
     return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 })
   }
@@ -22,7 +24,7 @@ export async function POST(req: Request) {
   const { data: caller } = await supabase
     .from("engineers")
     .select("role")
-    .eq("email", user.email)
+    .or(`email.eq.${user.email},gmail.eq.${user.email}`)
     .single()
 
   if (caller?.role !== "admin") {
@@ -31,9 +33,8 @@ export async function POST(req: Request) {
 
   const admin = createAdminClient()
 
-  // Create the auth account
   const { data: created, error: createError } = await admin.auth.admin.createUser({
-    email,
+    email: finalEmail,
     password,
     email_confirm: true,
   })
@@ -45,7 +46,7 @@ export async function POST(req: Request) {
   // Insert the engineers row
   const { error: insertError } = await admin
     .from("engineers")
-    .insert({ name, emp_id, designation: designation || "Engineer", email, mobile_number: mobile_number || null, role })
+    .insert({ name, emp_id, designation: designation || "Engineer", email: finalEmail, mobile_number: mobile_number || null, role })
 
   if (insertError) {
     // Roll back the auth account so we don't leave an orphaned login

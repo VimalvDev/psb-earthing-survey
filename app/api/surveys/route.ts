@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   const { data: engineer } = await adminClient
     .from("engineers")
     .select("role")
-    .eq("email", user.email)
+    .or(`email.eq.${user.email},gmail.eq.${user.email}`)
     .single()
 
   if (engineer?.role === "visitor") {

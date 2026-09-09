@@ -2,8 +2,8 @@
 
 import { useStateWiseCounts } from "@/components/summary/hooks"
 
-export function StateWiseSummary() {
-  const { data, isLoading } = useStateWiseCounts()
+export function StateWiseSummary({ year }: { year?: string }) {
+  const { data, isLoading } = useStateWiseCounts(year)
 
   return (
     <div className="rounded-3xl border border-gray-100 bg-white p-6">
@@ -39,9 +39,19 @@ export function StateWiseSummary() {
           </div>
 
           {data && data.otherCount > 0 && (
-            <p className="text-xs text-gray-400 mt-3">
-              {data.otherCount} record{data.otherCount === 1 ? "" : "s"} had an unrecognized state value.
-            </p>
+            <div className="text-xs text-gray-400 mt-3 flex flex-col gap-1">
+              <p>{data.otherCount} record{data.otherCount === 1 ? "" : "s"} had an unrecognized state value:</p>
+              <ul className="list-disc list-inside">
+                {data.unrecognizedStates.map((u, idx) => (
+                  <li key={idx}>
+                    <span className="font-medium text-gray-500">
+                      {u.bic} ({u.branchName})
+                    </span>{" "}
+                    - entered as "{u.state}"
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </>
       )}

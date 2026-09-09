@@ -18,8 +18,13 @@ function buildQuery(supabase: ReturnType<typeof createClient>, filters: Filters,
     )
   }
   if (filters.status !== "All") q = q.eq("overall_status", filters.status)
-  if (filters.state) q = q.eq("state", filters.state)
+  if (filters.state) q = q.ilike("state", filters.state)
   if (filters.zone)  q = q.eq("zone", filters.zone)
+  if (filters.year) {
+    const [startYear, endYear] = filters.year.split("-")
+    q = q.gte("visit_date", `${startYear}-04-01`)
+    q = q.lte("visit_date", `${endYear}-03-31`)
+  }
   if (filters.dateFrom) q = q.gte("visit_date", filters.dateFrom)
   if (filters.dateTo)   q = q.lte("visit_date", filters.dateTo)
 
@@ -74,8 +79,13 @@ export function useSurveyStats(filters: Filters) {
       q = applyAllowedYears(q, user?.allowed_years)
       const search = filters.search.trim()
       if (search) q = q.or(`branch_name.ilike.%${search}%,bic.ilike.%${search}%,district.ilike.%${search}%,state.ilike.%${search}%`)
-      if (filters.state) q = q.eq("state", filters.state)
+      if (filters.state) q = q.ilike("state", filters.state)
       if (filters.zone)  q = q.eq("zone", filters.zone)
+      if (filters.year) {
+        const [startYear, endYear] = filters.year.split("-")
+        q = q.gte("visit_date", `${startYear}-04-01`)
+        q = q.lte("visit_date", `${endYear}-03-31`)
+      }
       if (filters.dateFrom) q = q.gte("visit_date", filters.dateFrom)
       if (filters.dateTo)   q = q.lte("visit_date", filters.dateTo)
 
@@ -99,10 +109,21 @@ export function useFilterOptions() {
   return useQuery({
     queryKey: ["survey-filter-options"],
     queryFn: async () => {
-      const { data } = await supabase.from("surveys").select("state, zone")
+      const { data } = await supabase.from("surveys").select("state, zone, visit_date")
+      const { ALL_STATES } = await import("@/components/summary/states")
+      
+      const getFY = (d: string | null) => {
+        if (!d) return null
+        const date = new Date(d)
+        if (isNaN(date.getTime())) return null
+        const y = date.getFullYear()
+        return date.getMonth() < 3 ? `${y - 1}-${y}` : `${y}-${y + 1}`
+      }
+
       return {
-        states: [...new Set((data ?? []).map((r) => r.state).filter(Boolean))].sort() as string[],
+        states: ALL_STATES.map(s => s.label).sort(),
         zones:  [...new Set((data ?? []).map((r) => r.zone).filter(Boolean))].sort() as string[],
+        years:  ([...new Set((data ?? []).map((r) => getFY(r.visit_date)).filter(Boolean) as string[])]).sort((a, b) => b.localeCompare(a)),
       }
     },
     staleTime: 5 * 60 * 1000,

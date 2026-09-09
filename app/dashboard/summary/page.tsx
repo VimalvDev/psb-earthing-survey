@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { StateWiseSummary } from "@/components/summary/StateWiseSummary";
 import {
@@ -12,7 +13,7 @@ import {
 } from "react-icons/fi";
 import { Flag } from "lucide-react";
 import { RecordCard } from "@/components/records/RecordCard";
-import { useSurveyRecords, useSurveyStats } from "@/components/records/hooks";
+import { useSurveyRecords, useSurveyStats, useFilterOptions } from "@/components/records/hooks";
 import { DEFAULT_FILTERS } from "@/components/records/types";
 
 function StatCard({
@@ -56,16 +57,21 @@ function SummarySkeleton() {
 }
 
 export default function SummaryPage() {
+  const [selectedYear, setSelectedYear] = useState<string>("");
+  const filters = { ...DEFAULT_FILTERS, year: selectedYear };
+
+  const { data: filterOptions } = useFilterOptions();
+
   const {
     data: statsData,
     isLoading: statsLoading,
     isError: statsError,
-  } = useSurveyStats(DEFAULT_FILTERS);
+  } = useSurveyStats(filters);
   const {
     data: pageData,
     isLoading: recordsLoading,
     isError: recordsError,
-  } = useSurveyRecords(DEFAULT_FILTERS, "newest", 1);
+  } = useSurveyRecords(filters, "newest", 1);
 
   const totalCount = pageData?.totalCount ?? 0;
   const passCount = statsData?.pass ?? 0;
@@ -81,14 +87,19 @@ export default function SummaryPage() {
             A quick overview of submitted surveys and recent activity.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href="/dashboard/survey"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#027D3F] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#02612f]"
+        <div className="flex flex-wrap gap-2 items-center">
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(e.target.value)}
+            className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 outline-none transition focus:border-[#027D3F] focus:ring-1 focus:ring-[#027D3F]"
           >
-            <FiPlus size={16} />
-            New Survey
-          </Link>
+            <option value="">All Financial Years</option>
+            {filterOptions?.years?.map((year) => (
+              <option key={year} value={year}>
+                FY {year}
+              </option>
+            ))}
+          </select>
           <Link
             href="/dashboard/records"
             className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-[#027D3F] hover:text-[#027D3F]"
@@ -128,7 +139,7 @@ export default function SummaryPage() {
           valueClass="text-[#D81F26]"
         />
       </div>
-      <StateWiseSummary />
+      <StateWiseSummary year={selectedYear} />
 
       <div className="rounded-3xl border border-gray-100 bg-white p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

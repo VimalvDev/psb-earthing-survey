@@ -25,9 +25,9 @@ export default function CreateUserModal({ onClose }: { onClose: () => void }) {
 
   function handleSubmit() {
     setStatus("idle")
-    if (!form.name.trim() || !form.emp_id.trim() || !form.email.trim() || !form.password) {
+    if (!form.name.trim() || !form.emp_id.trim() || !form.password) {
       setStatus("error")
-      setErrorMsg("Name, Employee ID, Email and Password are required.")
+      setErrorMsg("Name, Employee ID, and Password are required.")
       return
     }
     if (form.password.length < 8) {
@@ -64,7 +64,7 @@ export default function CreateUserModal({ onClose }: { onClose: () => void }) {
             <div className="w-12 h-12 rounded-full bg-[#E8F5EE] flex items-center justify-center">
               <FiCheck size={22} className="text-[#027D3F]" />
             </div>
-            <p className="text-sm text-gray-600">{form.name} can now log in with the email and password you set.</p>
+            <p className="text-sm text-gray-600">{form.name} can now log in with the employee ID and password you set.</p>
             <button onClick={onClose} className="mt-1 text-sm font-semibold text-[#027D3F] hover:underline">
               Done
             </button>
@@ -76,7 +76,7 @@ export default function CreateUserModal({ onClose }: { onClose: () => void }) {
               <Field label="Employee ID" value={form.emp_id} onChange={(v) => update("emp_id", v)} placeholder="e.g. SI 0030" />
               <Field label="Designation" value={form.designation} onChange={(v) => update("designation", v)} placeholder="e.g. Site Engineer" />
             </div>
-            <Field label="Email" value={form.email} onChange={(v) => update("email", v)} placeholder="name@email.com" type="email" />
+            <Field label="Email (optional)" value={form.email} onChange={(v) => update("email", v)} placeholder="name@email.com" type="email" />
             <Field label="Mobile (optional)" value={form.mobile_number} onChange={(v) => update("mobile_number", v)} placeholder="10-digit number" />
 
             <div className="flex flex-col gap-1.5">

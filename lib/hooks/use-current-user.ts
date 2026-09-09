@@ -22,7 +22,7 @@ export function useCurrentUser() {
       const { data, error } = await supabase
         .from("engineers")
         .select("name, emp_id, designation, email, role, mobile_number, allowed_years")
-        .eq("email", user.email)
+        .or(`email.eq.${user.email},gmail.eq.${user.email}`)
         .single()
       
       if (error || !data) return null

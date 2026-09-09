@@ -47,7 +47,7 @@ export async function PATCH(
   const { data: engineer } = await admin
     .from("engineers")
     .select("role")
-    .eq("email", user.email)
+    .or(`email.eq.${user.email},gmail.eq.${user.email}`)
     .single()
 
   const canEdit = isAdminEmail || engineer?.role === "admin"
@@ -86,7 +86,7 @@ export async function DELETE(
   const { data: engineer } = await admin
     .from("engineers")
     .select("role")
-    .eq("email", user.email)
+    .or(`email.eq.${user.email},gmail.eq.${user.email}`)
     .single()
 
   const canDelete = isAdminEmail || engineer?.role === "admin"
