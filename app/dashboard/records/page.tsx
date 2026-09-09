@@ -10,6 +10,7 @@ import {
 } from "react-icons/fi"
 import { createClient } from "@/lib/supabase/client"
 import { ALL_STATES } from "@/components/summary/states"
+import * as XLSX from "xlsx-js-style"
 
 import { RecordCard } from "@/components/records/RecordCard"
 import { FiltersPanel, FilterChips } from "@/components/records/FiltersPanel"
@@ -27,40 +28,41 @@ import {
 
 // ── CSV export ─────────────────────────────────────────────────────────────
 
-function toCsvCell(value: string) {
-  return `"${String(value).replaceAll('"', '""')}"`
-}
+function exportExcel(records: any[]) {
+  const rows = records.map((r) => ({
+    "Branch Code": r.bic ?? "",
+    "Branch Address": r.address ?? "",
+    "State": r.state ?? "",
+    "District": r.district ?? "",
+    "Zone": r.zone ?? ""
+  }))
+  
+  const worksheet = XLSX.utils.json_to_sheet(rows)
 
-function exportCsv(records: SurveyRecord[]) {
-  const header = [
-    "Branch Code", "Branch Name", "State", "District", "Zone", "Visit Date", "Surveyor Emp ID",
-    "EP-1 (V)", "EP-2 (V)", "EP-3 (V)", "EP-4 (V)",
-    "Equipment Make", "Equipment Model",
-    "Remarks", "Next Inspection Date"
+  // Auto-size columns
+  worksheet["!cols"] = [
+    { wch: 15 }, // Branch Code
+    { wch: 60 }, // Branch Address
+    { wch: 25 }, // State
+    { wch: 25 }, // District
+    { wch: 25 }  // Zone
   ]
-  const rows = records.map((r) => {
-    const ep1 = r.readings?.["EP-1"] ?? ""
-    const ep2 = r.readings?.["EP-2"] ?? ""
-    const ep3 = r.readings?.["EP-3"] ?? ""
-    const ep4 = r.readings?.["EP-4"] ?? ""
-    const eqMake = r.equipment?.[0]?.make ?? ""
-    const eqModel = r.equipment?.[0]?.model ?? ""
 
-    return [
-      r.bic ?? "", r.branch_name ?? "", r.state ?? "", r.district ?? "", r.zone ?? "", r.visit_date ?? "", r.surveyor_emp_id ?? "",
-      ep1, ep2, ep3, ep4,
-      eqMake, eqModel,
-      r.remarks ?? "", r.next_inspection_date ?? ""
-    ]
-  })
-  const csv = [header, ...rows].map((row) => row.map(toCsvCell).join(",")).join("\n")
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement("a")
-  link.href = url
-  link.download = `psb-earthing-records-${new Date().toISOString().slice(0, 10)}.csv`
-  link.click()
-  URL.revokeObjectURL(url)
+  // Make header bold
+  if (worksheet['!ref']) {
+    const range = XLSX.utils.decode_range(worksheet['!ref'])
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const address = XLSX.utils.encode_cell({ c: C, r: 0 })
+      if (!worksheet[address]) continue
+      worksheet[address].s = {
+        font: { bold: true }
+      }
+    }
+  }
+
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Records")
+  XLSX.writeFile(workbook, `psb-earthing-records-${new Date().toISOString().slice(0, 10)}.xlsx`)
 }
 
 // ── Supabase fetchers ──────────────────────────────────────────────────────
@@ -233,6 +235,54 @@ export default function RecordsPage() {
   const sortBy = filters.sortBy
   const currentPage = filters.page
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+
+  async function handleExport() {
+    setIsExporting(true)
+    try {
+      let q = supabase
+        .from("surveys")
+        .select("bic, address, state, district, zone, branch_name, visit_date")
+
+      q = applyAllowedYears(q, user?.allowed_years)
+
+      const search = filters.search.trim()
+      if (search) q = q.or(`branch_name.ilike.%${search}%,bic.ilike.%${search}%,district.ilike.%${search}%,state.ilike.%${search}%,surveyor_emp_id.ilike.%${search}%`)
+      if (filters.status !== "All") {
+        if (filters.status === "Flagged") {
+          q = q.in("overall_status", ["Flagged", "Fail"])
+        } else {
+          q = q.eq("overall_status", filters.status)
+        }
+      }
+      if (filters.state) q = q.ilike("state", filters.state)
+      if (filters.zone)  q = q.eq("zone", filters.zone)
+      
+      if (filters.year) {
+        const [startYear, endYear] = filters.year.split("-")
+        q = q.gte("visit_date", `${startYear}-04-01`)
+        q = q.lte("visit_date", `${endYear}-03-31`)
+      }
+
+      if (filters.dateFrom) q = q.gte("visit_date", filters.dateFrom)
+      if (filters.dateTo)   q = q.lte("visit_date", filters.dateTo)
+
+      if (sortBy === "newest") q = q.order("created_at", { ascending: false })
+      if (sortBy === "oldest") q = q.order("created_at", { ascending: true })
+      if (sortBy === "branch") q = q.order("branch_name", { ascending: true })
+      if (sortBy === "status") q = q.order("overall_status", { ascending: true })
+
+      const { data, error } = await q.limit(10000)
+      if (error) throw error
+
+      exportExcel(data)
+    } catch (err) {
+      console.error(err)
+      alert("Failed to export data")
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   // ── Queries ────────────────────────────────────────────────────────────
   const pageKey = ["records", filters, sortBy, currentPage, user?.allowed_years]
@@ -370,9 +420,9 @@ export default function RecordsPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button type="button" onClick={() => exportCsv(records)} className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-600 transition hover:border-[#027D3F] hover:text-[#027D3F]">
-                <FiDownload size={14} />
-                Export CSV
+              <button type="button" onClick={handleExport} disabled={isExporting} className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-600 transition hover:border-[#027D3F] hover:text-[#027D3F] disabled:opacity-50">
+                {isExporting ? <span className="animate-spin w-3 h-3 border-2 border-gray-600 border-t-transparent rounded-full" /> : <FiDownload size={14} />}
+                Export Excel
               </button>
               <div className="relative">
                 <select value={sortBy} onChange={(e) => setFilter("sortBy", e.target.value as SortBy)} className="appearance-none rounded-xl border border-gray-200 bg-white py-2 pl-3 pr-8 text-xs font-semibold text-gray-700 outline-none transition focus:border-[#027D3F] focus:ring-2 focus:ring-[#027D3F]/15">

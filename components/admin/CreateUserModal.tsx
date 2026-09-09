@@ -64,7 +64,7 @@ export default function CreateUserModal({ onClose }: { onClose: () => void }) {
             <div className="w-12 h-12 rounded-full bg-[#E8F5EE] flex items-center justify-center">
               <FiCheck size={22} className="text-[#027D3F]" />
             </div>
-            <p className="text-sm text-gray-600">{form.name} can now log in with the employee ID and password you set.</p>
+            <p className="text-sm text-gray-600">{form.name} can now log in with the User ID and password you set.</p>
             <button onClick={onClose} className="mt-1 text-sm font-semibold text-[#027D3F] hover:underline">
               Done
             </button>

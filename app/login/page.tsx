@@ -51,7 +51,7 @@ export default function LoginPage() {
   async function handleLogin() {
     setError("")
     if (!identifier.trim() || !password) {
-      setError("Please enter your Employee ID and password.")
+      setError("Please enter your User ID and password.")
       return
     }
 
@@ -59,7 +59,7 @@ export default function LoginPage() {
 
     const email = await lookupEmail(identifier.trim())
     if (!email) {
-      setError("Employee ID not found. Check your ID or contact admin.")
+      setError("User ID not found. Check your ID or contact admin.")
       setLoading(false)
       return
     }
@@ -89,7 +89,7 @@ export default function LoginPage() {
 
     const email = await lookupEmail(resetIdentifier.trim())
     if (!email) {
-      setResetError("Employee ID not found. Contact your admin.")
+      setResetError("User ID not found. Contact your admin.")
       setResetLoading(false)
       return
     }

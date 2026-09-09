@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Filters, SortBy, SurveyRecord, ITEMS_PER_PAGE } from "./types"
 import { useCurrentUser } from "@/lib/hooks/use-current-user"
 
-function buildQuery(supabase: ReturnType<typeof createClient>, filters: Filters, sortBy: SortBy) {
+export function buildQuery(supabase: ReturnType<typeof createClient>, filters: Filters, sortBy: SortBy) {
   let q = supabase.from("surveys").select(
     "id, survey_id, bic, branch_name, state, district, zone, visit_date, surveyor_emp_id, surveyor_email, overall_status, readings, site_photo, created_at",
     { count: "exact" }
@@ -36,7 +36,7 @@ function buildQuery(supabase: ReturnType<typeof createClient>, filters: Filters,
   return q
 }
 
-function applyAllowedYears(q: any, allowed_years?: string[]) {
+export function applyAllowedYears(q: any, allowed_years?: string[]) {
   if (allowed_years && allowed_years.length > 0) {
     const orConditions = allowed_years.map(year => {
       const [startYear, endYear] = year.split("-");
