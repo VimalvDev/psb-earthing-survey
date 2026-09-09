@@ -81,7 +81,7 @@ export default function LoginPage() {
   async function handleForgotPassword() {
     setResetError("")
     if (!resetIdentifier.trim()) {
-      setResetError("Please enter your Employee ID or email.")
+      setResetError("Please enter your User ID or email.")
       return
     }
 
@@ -225,7 +225,7 @@ export default function LoginPage() {
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-col gap-1.5 animate-[fadeInUp_0.5s_ease-out_0.1s_both]">
                     <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Employee ID or Email
+                      User ID or Email
                     </label>
                     <div className="relative group">
                       <FiUser size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-[#027D3F]" />
@@ -319,14 +319,14 @@ export default function LoginPage() {
                       </div>
                       <h2 className="text-2xl font-bold text-gray-900">Reset password</h2>
                       <p className="text-sm text-gray-500 mt-1">
-                        Enter your Employee ID or email. We'll send a reset link to your registered email address.
+                        Enter your User ID or email. We'll send a reset link to your registered email address.
                       </p>
                     </div>
 
                     <div className="flex flex-col gap-4">
                       <div className="flex flex-col gap-1.5 animate-[fadeInUp_0.4s_ease-out_0.05s_both]">
                         <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                          Employee ID or Email
+                          User ID or Email
                         </label>
                         <div className="relative group">
                           <FiUser size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-[#027D3F]" />
