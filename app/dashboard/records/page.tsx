@@ -9,6 +9,7 @@ import {
   FiPlus, FiX, FiXCircle, FiSearch,
 } from "react-icons/fi"
 import { createClient } from "@/lib/supabase/client"
+import { ALL_STATES } from "@/components/summary/states"
 
 import { RecordCard } from "@/components/records/RecordCard"
 import { FiltersPanel, FilterChips } from "@/components/records/FiltersPanel"
@@ -175,8 +176,11 @@ async function fetchFilterOptions(allowed_years?: string[]) {
     return date.getMonth() < 3 ? `${y - 1}-${y}` : `${y}-${y + 1}`
   }
 
+  const dbStates = data.map((r) => r.state).filter(Boolean) as string[];
+  const allStates = [...new Set([...ALL_STATES.map(s => s.label), ...dbStates])].sort();
+
   return {
-    states: [...new Set(data.map((r) => r.state).filter(Boolean))].sort() as string[],
+    states: allStates,
     zones:  [...new Set(data.map((r) => r.zone).filter(Boolean))].sort() as string[],
     years:  ([...new Set(data.map((r) => getFY(r.visit_date)).filter(Boolean) as string[])]).sort((a, b) => b.localeCompare(a)),
   }
