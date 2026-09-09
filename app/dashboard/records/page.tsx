@@ -11,6 +11,8 @@ import {
 import { createClient } from "@/lib/supabase/client"
 import { ALL_STATES } from "@/components/summary/states"
 import * as XLSX from "xlsx-js-style"
+import JSZip from "jszip"
+import { saveAs } from "file-saver"
 
 import { RecordCard } from "@/components/records/RecordCard"
 import { FiltersPanel, FilterChips } from "@/components/records/FiltersPanel"
@@ -284,6 +286,100 @@ export default function RecordsPage() {
     }
   }
 
+  const [isExportingImages, setIsExportingImages] = useState(false)
+  const [imageProgress, setImageProgress] = useState("")
+
+  async function handleExportImages() {
+    setIsExportingImages(true)
+    setImageProgress("Fetching records...")
+    try {
+      let q = supabase
+        .from("surveys")
+        .select("id, bic, site_photo, branch_name, state, district, zone, visit_date, overall_status, surveyor_emp_id")
+
+      q = applyAllowedYears(q, user?.allowed_years)
+
+      const search = filters.search.trim()
+      if (search) q = q.or(`branch_name.ilike.%${search}%,bic.ilike.%${search}%,district.ilike.%${search}%,state.ilike.%${search}%,surveyor_emp_id.ilike.%${search}%`)
+      if (filters.status !== "All") {
+        if (filters.status === "Flagged") {
+          q = q.in("overall_status", ["Flagged", "Fail"])
+        } else {
+          q = q.eq("overall_status", filters.status)
+        }
+      }
+      if (filters.state) q = q.ilike("state", filters.state)
+      if (filters.zone)  q = q.eq("zone", filters.zone)
+      
+      if (filters.year) {
+        const [startYear, endYear] = filters.year.split("-")
+        q = q.gte("visit_date", `${startYear}-04-01`)
+        q = q.lte("visit_date", `${endYear}-03-31`)
+      }
+
+      if (filters.dateFrom) q = q.gte("visit_date", filters.dateFrom)
+      if (filters.dateTo)   q = q.lte("visit_date", filters.dateTo)
+
+      const { data, error } = await q.limit(10000)
+      if (error) throw error
+
+      const recordsWithPhotos = data.filter(r => r.site_photo && (typeof r.site_photo === "string" || r.site_photo.form || r.site_photo.site))
+      if (recordsWithPhotos.length === 0) {
+        alert("No images found for the selected filters.")
+        return
+      }
+
+      setImageProgress(`Downloading 0 of ${recordsWithPhotos.length} images...`)
+      
+      const zip = new JSZip()
+      let downloadedCount = 0
+      const usedNames: Record<string, number> = {}
+
+      // Download images in batches of 5 to avoid connection pooling issues
+      const batchSize = 5;
+      for (let i = 0; i < recordsWithPhotos.length; i += batchSize) {
+        const batch = recordsWithPhotos.slice(i, i + batchSize);
+        await Promise.all(batch.map(async (record) => {
+          const photosToDownload: { type: string; url: string }[] = []
+          if (typeof record.site_photo === "string") {
+            photosToDownload.push({ type: 'photo', url: record.site_photo })
+          } else {
+            if (record.site_photo?.form) photosToDownload.push({ type: 'form', url: record.site_photo.form })
+            if (record.site_photo?.site) photosToDownload.push({ type: 'site', url: record.site_photo.site })
+          }
+
+          for (const photo of photosToDownload) {
+            try {
+              const response = await fetch(photo.url)
+              if (!response.ok) throw new Error(`HTTP ${response.status}`)
+              const blob = await response.blob()
+
+              const code = record.bic || 'Unknown'
+              const nameKey = code
+              usedNames[nameKey] = (usedNames[nameKey] || 0) + 1
+              const filename = usedNames[nameKey] === 1 ? `${code}.jpg` : `${code}_${usedNames[nameKey]}.jpg`
+              zip.file(filename, blob)
+            } catch (err) {
+              console.error("Failed to download image for", record.bic, err)
+            }
+          }
+          downloadedCount++
+        }));
+        setImageProgress(`Downloading ${downloadedCount} of ${recordsWithPhotos.length} records...`)
+      }
+
+      setImageProgress("Zipping files...")
+      const zipBlob = await zip.generateAsync({ type: "blob" })
+      saveAs(zipBlob, `psb-earthing-images-${new Date().toISOString().slice(0, 10)}.zip`)
+    } catch (err) {
+      console.error(err)
+      alert("Failed to export images")
+    } finally {
+      setIsExportingImages(false)
+      setImageProgress("")
+    }
+  }
+
   // ── Queries ────────────────────────────────────────────────────────────
   const pageKey = ["records", filters, sortBy, currentPage, user?.allowed_years]
 
@@ -377,8 +473,14 @@ export default function RecordsPage() {
             activeSecondaryCount={activeSecondaryCount}
             totalCount={totalCount}
             years={filterOptions?.years ?? []}
+            states={filterOptions?.states ?? []}
             onOpenFilters={() => setMobileFiltersOpen(true)}
             isPending={isPending}
+            onExport={handleExport}
+            onExportImages={handleExportImages}
+            isExporting={isExporting}
+            isExportingImages={isExportingImages}
+            imageProgress={imageProgress}
           />
 
           <ActiveFilterChips
@@ -420,7 +522,11 @@ export default function RecordsPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button type="button" onClick={handleExport} disabled={isExporting} className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-600 transition hover:border-[#027D3F] hover:text-[#027D3F] disabled:opacity-50">
+              <button type="button" onClick={handleExportImages} disabled={isExportingImages || isExporting} className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-600 transition hover:border-[#027D3F] hover:text-[#027D3F] disabled:opacity-50">
+                {isExportingImages ? <span className="animate-spin w-3 h-3 border-2 border-gray-600 border-t-transparent rounded-full" /> : <FiDownload size={14} />}
+                {isExportingImages ? imageProgress : "Images ZIP"}
+              </button>
+              <button type="button" onClick={handleExport} disabled={isExporting || isExportingImages} className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-600 transition hover:border-[#027D3F] hover:text-[#027D3F] disabled:opacity-50">
                 {isExporting ? <span className="animate-spin w-3 h-3 border-2 border-gray-600 border-t-transparent rounded-full" /> : <FiDownload size={14} />}
                 Export Excel
               </button>
