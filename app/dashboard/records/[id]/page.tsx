@@ -396,6 +396,9 @@ export default function RecordDetailPage() {
       visit_date: finalVisitDate,
       survey_type: editData.survey_type,
       surveyor_emp_id: editData.surveyor_emp_id,
+      surveyor_name: editData.surveyor_name,
+      surveyor_mobile: editData.surveyor_mobile,
+      surveyor_email: editData.surveyor_email,
       readings: editData.readings,
       checklist: editData.checklist,
       overall_status: editData.overall_status,
@@ -825,12 +828,14 @@ export default function RecordDetailPage() {
                             setField("surveyor_name", "");
                             setField("surveyor_emp_id", "");
                             setField("surveyor_mobile", "");
+                            setField("surveyor_email", "");
                           } else {
                             const eng = engineers.find(eng => eng.name === val);
                             if (eng) {
                               setField("surveyor_name", eng.name);
                               setField("surveyor_emp_id", eng.emp_id);
                               setField("surveyor_mobile", eng.mobile_number);
+                              setField("surveyor_email", eng.gmail || eng.email || "");
                             }
                           }
                         }}

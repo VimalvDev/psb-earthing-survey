@@ -36,7 +36,8 @@ function exportExcel(records: any[]) {
     "Branch Address": r.address ?? "",
     "State": r.state ?? "",
     "District": r.district ?? "",
-    "Zone": r.zone ?? ""
+    "Zone": r.zone ?? "",
+    "Visit Date": r.visit_date ? new Date(r.visit_date).toLocaleDateString("en-IN") : ""
   }))
   
   const worksheet = XLSX.utils.json_to_sheet(rows)
@@ -47,7 +48,8 @@ function exportExcel(records: any[]) {
     { wch: 60 }, // Branch Address
     { wch: 25 }, // State
     { wch: 25 }, // District
-    { wch: 25 }  // Zone
+    { wch: 25 }, // Zone
+    { wch: 15 }  // Visit Date
   ]
 
   // Make header bold
@@ -271,7 +273,7 @@ export default function RecordsPage() {
 
       if (sortBy === "newest") q = q.order("created_at", { ascending: false })
       if (sortBy === "oldest") q = q.order("created_at", { ascending: true })
-      if (sortBy === "branch") q = q.order("branch_name", { ascending: true })
+      if (sortBy === "branch") q = q.order("bic", { ascending: true })
       if (sortBy === "status") q = q.order("overall_status", { ascending: true })
 
       const { data, error } = await q.limit(10000)

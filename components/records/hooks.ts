@@ -30,7 +30,7 @@ export function buildQuery(supabase: ReturnType<typeof createClient>, filters: F
 
   if (sortBy === "newest") q = q.order("created_at", { ascending: false })
   if (sortBy === "oldest") q = q.order("created_at", { ascending: true })
-  if (sortBy === "branch") q = q.order("branch_name", { ascending: true })
+  if (sortBy === "branch") q = q.order("bic", { ascending: true })
   if (sortBy === "status") q = q.order("overall_status", { ascending: true })
 
   return q
