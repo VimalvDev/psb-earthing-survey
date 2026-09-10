@@ -13,6 +13,7 @@ export function useRecordsFilters() {
     search: searchParams.get("search") || DEFAULT_FILTERS.search,
     status: (searchParams.get("status") as StatusFilter) || DEFAULT_FILTERS.status,
     state: searchParams.get("state") || DEFAULT_FILTERS.state,
+    district: searchParams.get("district") || DEFAULT_FILTERS.district,
     zone: searchParams.get("zone") || DEFAULT_FILTERS.zone,
     year: searchParams.get("year") || DEFAULT_FILTERS.year,
     dateFrom: searchParams.get("dateFrom") || DEFAULT_FILTERS.dateFrom,
@@ -126,6 +127,7 @@ export function useRecordsFilters() {
   const activeSecondaryCount = [
     urlFilters.status !== "All",
     !!urlFilters.state,
+    !!urlFilters.district,
     !!urlFilters.zone,
     !!urlFilters.dateFrom,
     !!urlFilters.dateTo,
@@ -137,6 +139,7 @@ export function useRecordsFilters() {
     ...[
       urlFilters.status !== "All",
       !!urlFilters.state,
+      !!urlFilters.district,
       !!urlFilters.zone,
       !!urlFilters.dateFrom,
       !!urlFilters.dateTo,

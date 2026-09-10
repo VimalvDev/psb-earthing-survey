@@ -11,6 +11,7 @@ interface RecordsToolbarProps {
   totalCount: number
   years: string[]
   states: string[]
+  districts: string[]
   onOpenFilters: () => void
   isPending: boolean
   onExport: () => void
@@ -28,6 +29,7 @@ export function RecordsToolbar({
   totalCount,
   years,
   states,
+  districts,
   onOpenFilters,
   isPending,
   onExport,
@@ -106,15 +108,8 @@ export function RecordsToolbar({
         </div>
 
         {/* Export Row */}
-        <div className="flex items-center gap-2 mt-1">
-          <button type="button" onClick={onExportImages} disabled={isExportingImages || isExporting} className="flex-1 inline-flex justify-center items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-600 transition hover:border-[#027D3F] hover:text-[#027D3F] disabled:opacity-50">
-            {isExportingImages ? <span className="animate-spin w-3 h-3 border-2 border-gray-600 border-t-transparent rounded-full" /> : <FiDownload size={14} />}
-            {isExportingImages ? imageProgress : "Images ZIP"}
-          </button>
-          <button type="button" onClick={onExport} disabled={isExporting || isExportingImages} className="flex-1 inline-flex justify-center items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-600 transition hover:border-[#027D3F] hover:text-[#027D3F] disabled:opacity-50">
-            {isExporting ? <span className="animate-spin w-3 h-3 border-2 border-gray-600 border-t-transparent rounded-full" /> : <FiDownload size={14} />}
-            Export Excel
-          </button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          {/* Export buttons moved to Summary page */}
         </div>
       </div>
     </div>

@@ -15,6 +15,8 @@ import { Flag } from "lucide-react";
 import { RecordCard } from "@/components/records/RecordCard";
 import { useSurveyRecords, useSurveyStats, useFilterOptions } from "@/components/records/hooks";
 import { DEFAULT_FILTERS } from "@/components/records/types";
+import { useCurrentUser } from "@/lib/hooks/use-current-user";
+import { ExportControls } from "@/components/summary/ExportControls";
 
 function StatCard({
   label,
@@ -57,6 +59,7 @@ function SummarySkeleton() {
 }
 
 export default function SummaryPage() {
+  const { data: user } = useCurrentUser();
   const [selectedYear, setSelectedYear] = useState<string>("");
   const filters = { ...DEFAULT_FILTERS, year: selectedYear };
 
@@ -109,6 +112,13 @@ export default function SummaryPage() {
           </Link>
         </div>
       </div>
+
+      {user?.role === "admin" && selectedYear && (
+        <div className="flex justify-end">
+          <ExportControls year={selectedYear} />
+        </div>
+      )}
+
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 ">
         <StatCard
           label="Total"

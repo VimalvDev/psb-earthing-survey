@@ -30,6 +30,7 @@ export interface Filters {
   search: string
   status: StatusFilter
   state: string
+  district: string
   zone: string
   year: string
   dateFrom: string
@@ -44,6 +45,7 @@ export const DEFAULT_FILTERS: Filters = {
   search: "",
   status: "All",
   state: "",
+  district: "",
   zone: "",
   year: "",
   dateFrom: "",
@@ -97,6 +99,7 @@ export function getActiveFilterCount(filters: Filters): number {
     filters.search.trim(),
     filters.status !== "All",
     filters.state,
+    filters.district,
     filters.zone,
     filters.year,
     filters.dateFrom,
@@ -126,6 +129,7 @@ export function matchesFilters(record: SurveyRecord, filters: Filters): boolean 
   if (filters.status !== "All" && record.overall_status !== filters.status)
     return false
   if (filters.state && record.state !== filters.state) return false
+  if (filters.district && record.district !== filters.district) return false
   if (filters.zone && record.zone !== filters.zone) return false
 
   const dateKey = record.visit_date ?? record.created_at.slice(0, 10)

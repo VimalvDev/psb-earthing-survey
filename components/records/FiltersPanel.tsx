@@ -8,6 +8,7 @@ interface FiltersPanelProps {
   setFilter: <K extends keyof Filters>(key: K, value: Filters[K]) => void
   clearFilters: () => void
   states: string[]
+  districts: string[]
   zones: string[]
   years: string[]
   compact?: boolean
@@ -18,6 +19,7 @@ export function FiltersPanel({
   setFilter,
   clearFilters,
   states,
+  districts,
   zones,
   years,
   compact = false,
@@ -79,6 +81,15 @@ export function FiltersPanel({
         onChange={(v) => setFilter("state", v)}
         options={states}
         emptyLabel="All states"
+      />
+
+      {/* District */}
+      <SelectField
+        label="District"
+        value={filters.district}
+        onChange={(v) => setFilter("district", v)}
+        options={districts}
+        emptyLabel="All districts"
       />
 
       {/* Zone */}
@@ -195,6 +206,9 @@ export function FilterChips({ filters, setFilter, clearFilters }: FilterChipsPro
       )}
       {filters.state && (
         <Chip label={`State: ${filters.state}`} onRemove={() => setFilter("state", "")} />
+      )}
+      {filters.district && (
+        <Chip label={`District: ${filters.district}`} onRemove={() => setFilter("district", "")} />
       )}
       {filters.zone && (
         <Chip label={`Zone: ${filters.zone}`} onRemove={() => setFilter("zone", "")} />

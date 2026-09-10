@@ -28,46 +28,7 @@ import {
   getActiveFilterCount,
 } from "@/components/records/types"
 
-// ── CSV export ─────────────────────────────────────────────────────────────
 
-function exportExcel(records: any[]) {
-  const rows = records.map((r) => ({
-    "Branch Code": r.bic ?? "",
-    "Branch Address": r.address ?? "",
-    "State": r.state ?? "",
-    "District": r.district ?? "",
-    "Zone": r.zone ?? "",
-    "Visit Date": r.visit_date ? new Date(r.visit_date).toLocaleDateString("en-IN") : ""
-  }))
-  
-  const worksheet = XLSX.utils.json_to_sheet(rows)
-
-  // Auto-size columns
-  worksheet["!cols"] = [
-    { wch: 15 }, // Branch Code
-    { wch: 60 }, // Branch Address
-    { wch: 25 }, // State
-    { wch: 25 }, // District
-    { wch: 25 }, // Zone
-    { wch: 15 }  // Visit Date
-  ]
-
-  // Make header bold
-  if (worksheet['!ref']) {
-    const range = XLSX.utils.decode_range(worksheet['!ref'])
-    for (let C = range.s.c; C <= range.e.c; ++C) {
-      const address = XLSX.utils.encode_cell({ c: C, r: 0 })
-      if (!worksheet[address]) continue
-      worksheet[address].s = {
-        font: { bold: true }
-      }
-    }
-  }
-
-  const workbook = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Records")
-  XLSX.writeFile(workbook, `psb-earthing-records-${new Date().toISOString().slice(0, 10)}.xlsx`)
-}
 
 // ── Supabase fetchers ──────────────────────────────────────────────────────
 
@@ -101,6 +62,7 @@ async function fetchPage(filters: Filters, sortBy: SortBy, page: number, allowed
     }
   }
   if (filters.state) q = q.ilike("state", filters.state)
+  if (filters.district) q = q.ilike("district", filters.district)
   if (filters.zone)  q = q.eq("zone", filters.zone)
   
   if (filters.year) {
@@ -129,6 +91,7 @@ async function fetchStats(filters: Filters, allowed_years?: string[]) {
     const search = filters.search.trim()
     if (search) q = q.or(`branch_name.ilike.%${search}%,bic.ilike.%${search}%,district.ilike.%${search}%,state.ilike.%${search}%`)
     if (filters.state) q = q.ilike("state", filters.state)
+    if (filters.district) q = q.ilike("district", filters.district)
     if (filters.zone)  q = q.eq("zone", filters.zone)
     if (filters.year) {
       const [startYear, endYear] = filters.year.split("-")
@@ -169,10 +132,10 @@ async function fetchSurveyDetail(surveyId: string) {
 }
 
 async function fetchFilterOptions(allowed_years?: string[]) {
-  let q = supabase.from("surveys").select("state, zone, visit_date")
+  let q = supabase.from("surveys").select("state, district, zone, visit_date")
   q = applyAllowedYears(q, allowed_years)
   const { data } = await q
-  if (!data) return { states: [], zones: [], years: [] }
+  if (!data) return { states: [], districts: [], zones: [], years: [] }
   
   const getFY = (d: string | null) => {
     if (!d) return null
@@ -186,6 +149,7 @@ async function fetchFilterOptions(allowed_years?: string[]) {
 
   return {
     states: allStates,
+    districts: [...new Set(data.map((r) => r.district).filter(Boolean))].sort() as string[],
     zones:  [...new Set(data.map((r) => r.zone).filter(Boolean))].sort() as string[],
     years:  ([...new Set(data.map((r) => getFY(r.visit_date)).filter(Boolean) as string[])]).sort((a, b) => b.localeCompare(a)),
   }
@@ -239,148 +203,7 @@ export default function RecordsPage() {
   const sortBy = filters.sortBy
   const currentPage = filters.page
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
-  const [isExporting, setIsExporting] = useState(false)
 
-  async function handleExport() {
-    setIsExporting(true)
-    try {
-      let q = supabase
-        .from("surveys")
-        .select("bic, address, state, district, zone, branch_name, visit_date")
-
-      q = applyAllowedYears(q, user?.allowed_years)
-
-      const search = filters.search.trim()
-      if (search) q = q.or(`branch_name.ilike.%${search}%,bic.ilike.%${search}%,district.ilike.%${search}%,state.ilike.%${search}%,surveyor_emp_id.ilike.%${search}%`)
-      if (filters.status !== "All") {
-        if (filters.status === "Flagged") {
-          q = q.in("overall_status", ["Flagged", "Fail"])
-        } else {
-          q = q.eq("overall_status", filters.status)
-        }
-      }
-      if (filters.state) q = q.ilike("state", filters.state)
-      if (filters.zone)  q = q.eq("zone", filters.zone)
-      
-      if (filters.year) {
-        const [startYear, endYear] = filters.year.split("-")
-        q = q.gte("visit_date", `${startYear}-04-01`)
-        q = q.lte("visit_date", `${endYear}-03-31`)
-      }
-
-      if (filters.dateFrom) q = q.gte("visit_date", filters.dateFrom)
-      if (filters.dateTo)   q = q.lte("visit_date", filters.dateTo)
-
-      if (sortBy === "newest") q = q.order("created_at", { ascending: false })
-      if (sortBy === "oldest") q = q.order("created_at", { ascending: true })
-      if (sortBy === "branch") q = q.order("bic", { ascending: true })
-      if (sortBy === "status") q = q.order("overall_status", { ascending: true })
-
-      const { data, error } = await q.limit(10000)
-      if (error) throw error
-
-      exportExcel(data)
-    } catch (err) {
-      console.error(err)
-      alert("Failed to export data")
-    } finally {
-      setIsExporting(false)
-    }
-  }
-
-  const [isExportingImages, setIsExportingImages] = useState(false)
-  const [imageProgress, setImageProgress] = useState("")
-
-  async function handleExportImages() {
-    setIsExportingImages(true)
-    setImageProgress("Fetching records...")
-    try {
-      let q = supabase
-        .from("surveys")
-        .select("id, bic, site_photo, branch_name, state, district, zone, visit_date, overall_status, surveyor_emp_id")
-
-      q = applyAllowedYears(q, user?.allowed_years)
-
-      const search = filters.search.trim()
-      if (search) q = q.or(`branch_name.ilike.%${search}%,bic.ilike.%${search}%,district.ilike.%${search}%,state.ilike.%${search}%,surveyor_emp_id.ilike.%${search}%`)
-      if (filters.status !== "All") {
-        if (filters.status === "Flagged") {
-          q = q.in("overall_status", ["Flagged", "Fail"])
-        } else {
-          q = q.eq("overall_status", filters.status)
-        }
-      }
-      if (filters.state) q = q.ilike("state", filters.state)
-      if (filters.zone)  q = q.eq("zone", filters.zone)
-      
-      if (filters.year) {
-        const [startYear, endYear] = filters.year.split("-")
-        q = q.gte("visit_date", `${startYear}-04-01`)
-        q = q.lte("visit_date", `${endYear}-03-31`)
-      }
-
-      if (filters.dateFrom) q = q.gte("visit_date", filters.dateFrom)
-      if (filters.dateTo)   q = q.lte("visit_date", filters.dateTo)
-
-      const { data, error } = await q.limit(10000)
-      if (error) throw error
-
-      const recordsWithPhotos = data.filter(r => r.site_photo && (typeof r.site_photo === "string" || r.site_photo.form || r.site_photo.site))
-      if (recordsWithPhotos.length === 0) {
-        alert("No images found for the selected filters.")
-        return
-      }
-
-      setImageProgress(`Downloading 0 of ${recordsWithPhotos.length} images...`)
-      
-      const zip = new JSZip()
-      let downloadedCount = 0
-      const usedNames: Record<string, number> = {}
-
-      // Download images in batches of 5 to avoid connection pooling issues
-      const batchSize = 5;
-      for (let i = 0; i < recordsWithPhotos.length; i += batchSize) {
-        const batch = recordsWithPhotos.slice(i, i + batchSize);
-        await Promise.all(batch.map(async (record) => {
-          const photosToDownload: { type: string; url: string }[] = []
-          if (typeof record.site_photo === "string") {
-            photosToDownload.push({ type: 'photo', url: record.site_photo })
-          } else {
-            if (record.site_photo?.form) photosToDownload.push({ type: 'form', url: record.site_photo.form })
-            if (record.site_photo?.site) photosToDownload.push({ type: 'site', url: record.site_photo.site })
-          }
-
-          for (const photo of photosToDownload) {
-            try {
-              const response = await fetch(photo.url)
-              if (!response.ok) throw new Error(`HTTP ${response.status}`)
-              const blob = await response.blob()
-
-              const code = record.bic || 'Unknown'
-              const nameKey = code
-              usedNames[nameKey] = (usedNames[nameKey] || 0) + 1
-              const filename = usedNames[nameKey] === 1 ? `${code}.jpg` : `${code}_${usedNames[nameKey]}.jpg`
-              zip.file(filename, blob)
-            } catch (err) {
-              console.error("Failed to download image for", record.bic, err)
-            }
-          }
-          downloadedCount++
-        }));
-        setImageProgress(`Downloading ${downloadedCount} of ${recordsWithPhotos.length} records...`)
-      }
-
-      setImageProgress("Zipping files...")
-      const zipBlob = await zip.generateAsync({ type: "blob" })
-      saveAs(zipBlob, `psb-earthing-images-${new Date().toISOString().slice(0, 10)}.zip`)
-    } catch (err) {
-      console.error(err)
-      alert("Failed to export images")
-    } finally {
-      setIsExportingImages(false)
-      setImageProgress("")
-    }
-  }
 
   // ── Queries ────────────────────────────────────────────────────────────
   const pageKey = ["records", filters, sortBy, currentPage, user?.allowed_years]
@@ -461,7 +284,7 @@ export default function RecordsPage() {
         <aside className="hidden lg:block w-[260px] shrink-0">
           <FiltersPanel
             filters={filters} setFilter={setFilter} clearFilters={clearFilters}
-            states={filterOptions?.states ?? []} zones={filterOptions?.zones ?? []} years={filterOptions?.years ?? []}
+            states={filterOptions?.states ?? []} districts={filterOptions?.districts ?? []} zones={filterOptions?.zones ?? []} years={filterOptions?.years ?? []}
           />
         </aside>
 
@@ -476,13 +299,9 @@ export default function RecordsPage() {
             totalCount={totalCount}
             years={filterOptions?.years ?? []}
             states={filterOptions?.states ?? []}
+            districts={filterOptions?.districts ?? []}
             onOpenFilters={() => setMobileFiltersOpen(true)}
             isPending={isPending}
-            onExport={handleExport}
-            onExportImages={handleExportImages}
-            isExporting={isExporting}
-            isExportingImages={isExportingImages}
-            imageProgress={imageProgress}
           />
 
           <ActiveFilterChips
@@ -524,14 +343,6 @@ export default function RecordsPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button type="button" onClick={handleExportImages} disabled={isExportingImages || isExporting} className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-600 transition hover:border-[#027D3F] hover:text-[#027D3F] disabled:opacity-50">
-                {isExportingImages ? <span className="animate-spin w-3 h-3 border-2 border-gray-600 border-t-transparent rounded-full" /> : <FiDownload size={14} />}
-                {isExportingImages ? imageProgress : "Images ZIP"}
-              </button>
-              <button type="button" onClick={handleExport} disabled={isExporting || isExportingImages} className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-600 transition hover:border-[#027D3F] hover:text-[#027D3F] disabled:opacity-50">
-                {isExporting ? <span className="animate-spin w-3 h-3 border-2 border-gray-600 border-t-transparent rounded-full" /> : <FiDownload size={14} />}
-                Export Excel
-              </button>
               <div className="relative">
                 <select value={sortBy} onChange={(e) => setFilter("sortBy", e.target.value as SortBy)} className="appearance-none rounded-xl border border-gray-200 bg-white py-2 pl-3 pr-8 text-xs font-semibold text-gray-700 outline-none transition focus:border-[#027D3F] focus:ring-2 focus:ring-[#027D3F]/15">
                   <option value="newest">Newest first</option>
@@ -586,6 +397,7 @@ export default function RecordsPage() {
         setFilter={setFilter}
         clearFilters={clearFilters}
         states={filterOptions?.states ?? []}
+        districts={filterOptions?.districts ?? []}
         zones={filterOptions?.zones ?? []}
       />
     </div>

@@ -12,6 +12,7 @@ interface FiltersSheetProps {
   setFilter: <K extends keyof Filters>(key: K, value: Filters[K]) => void
   clearFilters: () => void
   states: string[]
+  districts: string[]
   zones: string[]
 }
 
@@ -22,6 +23,7 @@ export function FiltersSheet({
   setFilter,
   clearFilters,
   states,
+  districts,
   zones,
 }: FiltersSheetProps) {
   const sheetRef = useRef<HTMLDivElement>(null)
@@ -142,6 +144,21 @@ export function FiltersSheet({
                 <option value="">All states</option>
                 {states.map((s) => (
                   <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* District */}
+            <div className="flex flex-col gap-2">
+              <label className="text-fluid-sm font-semibold text-gray-700">District</label>
+              <select
+                value={filters.district}
+                onChange={(e) => setFilter("district", e.target.value)}
+                className="w-full appearance-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-fluid-sm text-gray-800 outline-none focus:border-[#027D3F] focus:bg-white focus:ring-2 focus:ring-[#027D3F]/15"
+              >
+                <option value="">All districts</option>
+                {districts.map((d) => (
+                  <option key={d} value={d}>{d}</option>
                 ))}
               </select>
             </div>
