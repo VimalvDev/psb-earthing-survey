@@ -14,11 +14,6 @@ interface RecordsToolbarProps {
   districts: string[]
   onOpenFilters: () => void
   isPending: boolean
-  onExport: () => void
-  onExportImages: () => void
-  isExporting: boolean
-  isExportingImages: boolean
-  imageProgress: string
 }
 
 export function RecordsToolbar({
@@ -32,11 +27,6 @@ export function RecordsToolbar({
   districts,
   onOpenFilters,
   isPending,
-  onExport,
-  onExportImages,
-  isExporting,
-  isExportingImages,
-  imageProgress,
 }: RecordsToolbarProps) {
   return (
     <div className="sticky top-0 z-40 -mx-4 mb-4 bg-white/95 px-4 pb-3 pt-2 backdrop-blur-xl border-b border-gray-100 lg:hidden">
