@@ -56,18 +56,23 @@ export async function POST(req: NextRequest) {
     ...restBody
   } = body;
 
+  const ADMIN_EMAILS = ["psbsisify@gmail.com", "vimalverma8287@gmail.com"]
+  const isAdmin = ADMIN_EMAILS.includes(user.email ?? "")
+
   const surveyPayload = {
     ...restBody,
     surveyor_name: surveyor_name || null,
     surveyor_designation: surveyor_designation || null,
     surveyor_mobile: surveyor_mobile || null,
     surveyor_emp_id: formEmpId || user.user_metadata?.emp_id || null,
-    surveyor_email: user.email,
+    surveyor_email: isAdmin ? (restBody.surveyor_email || user.email) : user.email,
     created_at: new Date().toISOString(),
     status: "submitted",
   }
 
-  const { data, error } = await supabase
+  const client = isAdmin ? adminClient : supabase;
+
+  const { data, error } = await client
     .from("surveys")
     .insert(surveyPayload)
     .select()

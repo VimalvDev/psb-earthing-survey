@@ -102,6 +102,7 @@ export function PhotoCapture({ surveyId, photos, onChange }: PhotoCaptureProps) 
   const [uploading, setUploading] = useState<Record<string, boolean>>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [previews, setPreviews] = useState<Record<string, string>>({})
+  const [draggedSlot, setDraggedSlot] = useState<string | null>(null)
 
   async function handleFileChange(
     slot: PhotoSlot,
@@ -216,14 +217,26 @@ export function PhotoCapture({ surveyId, photos, onChange }: PhotoCaptureProps) 
                   type="button"
                   disabled={isUploading}
                   onClick={() => inputRefs.current[slot.key]?.click()}
+                  onDragOver={(e) => { e.preventDefault(); if (!isUploading) setDraggedSlot(slot.key); }}
+                  onDragLeave={(e) => { e.preventDefault(); setDraggedSlot(null); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDraggedSlot(null);
+                    if (isUploading) return;
+                    if (e.dataTransfer.files?.[0]) {
+                      handleFileChange(slot, { target: { files: e.dataTransfer.files } } as any);
+                    }
+                  }}
                   className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-lg border-2 border-dashed transition-colors
                     ${isUploading
                       ? "border-gray-200 bg-gray-50 cursor-not-allowed"
-                      : "border-gray-200 hover:border-[#027D3F]/40 hover:bg-[#027D3F]/5 cursor-pointer"
+                      : draggedSlot === slot.key
+                        ? "border-[#027D3F] bg-[#027D3F]/5 cursor-pointer"
+                        : "border-gray-200 hover:border-[#027D3F]/40 hover:bg-[#027D3F]/5 cursor-pointer"
                     }`}
                 >
                   <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0
-                    ${slot.required ? "bg-[#027D3F]/10" : "bg-gray-100"}`}
+                    ${slot.required ? "bg-[#027D3F]/10" : "bg-gray-100"} ${draggedSlot === slot.key ? 'animate-bounce' : ''}`}
                   >
                     {isUploading ? (
                       <FiLoader size={16} className="text-[#027D3F] animate-spin" />
@@ -236,7 +249,7 @@ export function PhotoCapture({ surveyId, photos, onChange }: PhotoCaptureProps) 
                   </div>
                   <div className="text-left">
                     <p className={`text-sm font-semibold ${slot.required ? "text-gray-800" : "text-gray-500"}`}>
-                      {isUploading ? "Compressing & uploading..." : slot.label}
+                      {isUploading ? "Compressing & uploading..." : (draggedSlot === slot.key ? "Drop Photo Here" : slot.label)}
                       {slot.required && !isUploading && (
                         <span className="ml-1 text-[#E41E23] text-xs">*</span>
                       )}

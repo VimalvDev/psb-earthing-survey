@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { FiDownload, FiEdit3, FiLoader } from "react-icons/fi";
 import * as XLSX from "xlsx";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
 import { createClient } from "@/lib/supabase/client";
 import { EditScheduleModal } from "./EditScheduleModal";
 
@@ -105,7 +107,7 @@ export function ExportControls({ year }: ExportControlsProps) {
         fromS += 1000
       }
 
-      const fallbackDatesMap = new Map<string, string>();
+      const fallbackDatesMap = new Map<string, any>();
       try {
         const scheduleUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/schedules/schedule.xlsx?t=${Date.now()}`;
         const res = await fetch(scheduleUrl);
@@ -116,8 +118,13 @@ export function ExportControls({ year }: ExportControlsProps) {
           const json = XLSX.utils.sheet_to_json(worksheet, { raw: false }) as any[];
           for (const row of json) {
             const bic = row["Branch Code"];
-            const date = row["Date"];
-            if (bic && date) fallbackDatesMap.set(String(bic).trim().toUpperCase(), String(date));
+            if (bic) {
+              fallbackDatesMap.set(String(bic).trim().toUpperCase(), {
+                date: row["Date"] || "",
+                spd: row["Spd"] || "yes",
+                earthing: row["Earthing"] || "yes"
+              });
+            }
           }
         }
       } catch (err) {
@@ -137,19 +144,29 @@ export function ExportControls({ year }: ExportControlsProps) {
         const nbic = String(b.bic || "").trim().toUpperCase()
         const survey = completedSurveysByBic.get(nbic)
         if (survey) completedSurveysByBic.delete(nbic)
+        
         let finalDate = survey ? survey.visit_date : null
-        if (!finalDate && fallbackDatesMap.has(nbic)) finalDate = fallbackDatesMap.get(nbic)
+        let spd = "yes"
+        let earthing = "yes"
+
+        if (fallbackDatesMap.has(nbic)) {
+           const fallbackData = fallbackDatesMap.get(nbic);
+           if (!finalDate) finalDate = fallbackData.date;
+           
+           spd = fallbackData.spd || "yes";
+           earthing = fallbackData.earthing || "yes";
+        }
 
         return {
           bic: b.bic, address: b.address, state: b.state, district: b.district, zone: b.zone,
-          branch_name: b.branch_name, visit_date: finalDate, spd: survey ? "done" : "", earthing: survey ? "done" : ""
+          branch_name: b.branch_name, visit_date: finalDate, spd, earthing
         }
       })
 
       for (const [nbic, survey] of completedSurveysByBic.entries()) {
         exportRows.push({
           bic: survey.bic, address: "Unknown Address", state: "", district: "", zone: "", branch_name: "Unknown Branch",
-          visit_date: survey.visit_date, spd: "done", earthing: "done"
+          visit_date: survey.visit_date, spd: "yes", earthing: "yes"
         })
       }
 
@@ -168,9 +185,84 @@ export function ExportControls({ year }: ExportControlsProps) {
     }
   }
 
+  const [isExportingImages, setIsExportingImages] = useState(false)
+  const [imageProgress, setImageProgress] = useState("")
+
+  async function handleExportImages() {
+    if (!year) return alert("Please select a specific year to export.")
+    setIsExportingImages(true)
+    setImageProgress("Fetching records...")
+    try {
+      const [startYear, endYear] = year.split("-")
+      
+      const { data, error } = await supabase
+        .from("surveys")
+        .select("id, bic, site_photo, branch_name, state, district, zone, visit_date, overall_status, surveyor_emp_id")
+        .gte("visit_date", `${startYear}-04-01`)
+        .lte("visit_date", `${endYear}-03-31`)
+        .limit(10000)
+
+      if (error) throw error
+
+      const recordsWithPhotos = data.filter(r => r.site_photo && (typeof r.site_photo === "string" || r.site_photo.form || r.site_photo.site))
+      if (recordsWithPhotos.length === 0) {
+        alert("No images found for the selected year.")
+        return
+      }
+
+      setImageProgress(`Downloading 0 of ${recordsWithPhotos.length} images...`)
+      
+      const zip = new JSZip()
+      let downloadedCount = 0
+      const usedNames: Record<string, number> = {}
+
+      const batchSize = 5;
+      for (let i = 0; i < recordsWithPhotos.length; i += batchSize) {
+        const batch = recordsWithPhotos.slice(i, i + batchSize);
+        await Promise.all(batch.map(async (record) => {
+          const photosToDownload: { type: string; url: string }[] = []
+          if (typeof record.site_photo === "string") {
+            photosToDownload.push({ type: 'photo', url: record.site_photo })
+          } else {
+            if (record.site_photo?.form) photosToDownload.push({ type: 'form', url: record.site_photo.form })
+            if (record.site_photo?.site) photosToDownload.push({ type: 'site', url: record.site_photo.site })
+          }
+
+          for (const photo of photosToDownload) {
+            try {
+              const response = await fetch(photo.url)
+              if (!response.ok) throw new Error(`HTTP ${response.status}`)
+              const blob = await response.blob()
+
+              const code = record.bic || 'Unknown'
+              const nameKey = code
+              usedNames[nameKey] = (usedNames[nameKey] || 0) + 1
+              const filename = usedNames[nameKey] === 1 ? `${code}.jpg` : `${code}_${usedNames[nameKey]}.jpg`
+              zip.file(filename, blob)
+            } catch (err) {
+              console.error("Failed to download image for", record.bic, err)
+            }
+          }
+          downloadedCount++
+        }));
+        setImageProgress(`Downloading ${downloadedCount} of ${recordsWithPhotos.length} records...`)
+      }
+
+      setImageProgress("Zipping files...")
+      const zipBlob = await zip.generateAsync({ type: "blob" })
+      saveAs(zipBlob, `psb-earthing-images-${year}.zip`)
+    } catch (err) {
+      console.error(err)
+      alert("Failed to export images")
+    } finally {
+      setIsExportingImages(false)
+      setImageProgress("")
+    }
+  }
+
   return (
     <>
-      <div className="flex gap-2 items-center">
+      <div className="flex gap-2 items-center flex-wrap">
         <button
           onClick={() => setIsEditing(true)}
           className="h-10 px-4 rounded-xl border border-gray-200 bg-white text-gray-700 font-semibold text-sm hover:border-[#027D3F] hover:text-[#027D3F] transition-colors flex items-center justify-center gap-2"
@@ -180,8 +272,17 @@ export function ExportControls({ year }: ExportControlsProps) {
         </button>
 
         <button
+          onClick={handleExportImages}
+          disabled={isExportingImages || isExporting}
+          className="h-10 px-4 rounded-xl border border-[#F0D9A8] text-[#854F0B] font-semibold text-sm hover:bg-[#FAEEDA] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+        >
+          {isExportingImages ? <FiLoader size={16} className="animate-spin" /> : <FiDownload size={16} />}
+          {isExportingImages ? imageProgress : "Images ZIP"}
+        </button>
+
+        <button
           onClick={handleExport}
-          disabled={isExporting}
+          disabled={isExporting || isExportingImages}
           className="h-10 px-4 rounded-xl bg-[#027D3F] hover:bg-[#02612f] text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
         >
           {isExporting ? <FiLoader size={16} className="animate-spin" /> : <FiDownload size={16} />}
