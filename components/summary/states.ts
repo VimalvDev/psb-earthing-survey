@@ -32,3 +32,44 @@ export const ALL_STATES = [
   { key: "Uttarakhand", label: "Uttarakhand" },
   { key: "West Bengal", label: "West Bengal" }
 ];
+
+export const STATE_ALIASES: Record<string, string> = {
+  "jammu kashmir": "Jammu and Kashmir",
+  "jammu & kashmir": "Jammu and Kashmir",
+  "vishakhapatnam (andhera pradesh)": "Andhra Pradesh",
+  "agartala (tripura)": "Tripura",
+  "shillong (meghalaya)": "Meghalaya",
+  "ranchi (jharkhand)": "Jharkhand",
+  "raipur (chattsgarsh)": "Chhattisgarh",
+  "pondey cherry": "Puducherry",
+  "patna (bihar)": "Bihar",
+  "panji (goa)": "Goa",
+  "mumbai": "Maharashtra",
+  "ludhiyana (punjab)": "Punjab",
+  "kolkata": "West Bengal",
+  "kohima ( nagaland)": "Nagaland",
+  "kochi (kerala)": "Kerala",
+  "jaipur (rajasthan)": "Rajasthan",
+  "itanagar": "Arunachal Pradesh",
+  "hyderabad": "Telangana",
+  "parwanoo (himachal pradesh)": "Himachal Pradesh",
+  "guwahti (assam)": "Assam",
+  "gurugram/gurgao (haryana)": "Haryana",
+  "gangtok (sikkim)": "Sikkim",
+  "dehradun (uk)": "Uttarakhand",
+  "chennai": "Tamil Nadu",
+  "bhubneshwar (odisha)": "Odisha",
+  "bhopal": "Madhya Pradesh",
+  "banglore": "Karnataka",
+  "ahemdabad": "Gujarat",
+};
+
+export function getStateAliases(normalizedState: string): string[] {
+  const aliases = [normalizedState];
+  for (const [alias, target] of Object.entries(STATE_ALIASES)) {
+    if (target.toLowerCase() === normalizedState.toLowerCase()) {
+      aliases.push(alias);
+    }
+  }
+  return aliases;
+}

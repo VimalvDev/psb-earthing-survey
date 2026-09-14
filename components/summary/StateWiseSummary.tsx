@@ -1,9 +1,11 @@
 "use client"
 
 import { useStateWiseCounts } from "@/components/summary/hooks"
+import { useCurrentUser } from "@/lib/hooks/use-current-user"
 
 export function StateWiseSummary({ year }: { year?: string }) {
-  const { data, isLoading } = useStateWiseCounts(year)
+  const { data: user } = useCurrentUser()
+  const { data, isLoading } = useStateWiseCounts(year, user?.allowed_years)
 
   return (
     <div className="rounded-3xl border border-gray-100 bg-white p-6">

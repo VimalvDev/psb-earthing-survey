@@ -61,9 +61,10 @@ function SummarySkeleton() {
 export default function SummaryPage() {
   const { data: user } = useCurrentUser();
   const [selectedYear, setSelectedYear] = useState<string>("");
-  const filters = { ...DEFAULT_FILTERS, year: selectedYear };
-
   const { data: filterOptions } = useFilterOptions();
+
+  const effectiveYear = selectedYear || (filterOptions?.years?.length === 1 ? filterOptions.years[0] : "");
+  const filters = { ...DEFAULT_FILTERS, year: effectiveYear };
 
   const {
     data: statsData,
@@ -91,18 +92,24 @@ export default function SummaryPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2 items-center">
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(e.target.value)}
-            className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 outline-none transition focus:border-[#027D3F] focus:ring-1 focus:ring-[#027D3F]"
-          >
-            <option value="">All Financial Years</option>
-            {filterOptions?.years?.map((year) => (
-              <option key={year} value={year}>
-                FY {year}
-              </option>
-            ))}
-          </select>
+          {filterOptions?.years && filterOptions.years.length > 1 ? (
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 outline-none transition focus:border-[#027D3F] focus:ring-1 focus:ring-[#027D3F]"
+            >
+              <option value="">All Financial Years</option>
+              {filterOptions.years.map((year) => (
+                <option key={year} value={year}>
+                  FY {year}
+                </option>
+              ))}
+            </select>
+          ) : filterOptions?.years?.length === 1 ? (
+            <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700">
+              FY {filterOptions.years[0]}
+            </div>
+          ) : null}
           <Link
             href="/dashboard/records"
             className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-[#027D3F] hover:text-[#027D3F]"
@@ -113,9 +120,9 @@ export default function SummaryPage() {
         </div>
       </div>
 
-      {user?.role === "admin" && selectedYear && (
+      {(user?.role === "admin" || user?.role === "visitor") && effectiveYear && (
         <div className="flex justify-end">
-          <ExportControls year={selectedYear} />
+          <ExportControls year={effectiveYear} />
         </div>
       )}
 
@@ -149,7 +156,7 @@ export default function SummaryPage() {
           valueClass="text-[#D81F26]"
         />
       </div>
-      <StateWiseSummary year={selectedYear} />
+      <StateWiseSummary year={effectiveYear} />
 
       <div className="rounded-3xl border border-gray-100 bg-white p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

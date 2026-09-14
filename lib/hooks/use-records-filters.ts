@@ -104,8 +104,7 @@ export function useRecordsFilters() {
   const setFilter = useCallback(
     <K extends keyof Filters>(key: K, value: Filters[K]) => {
       if (key === "search") {
-        setLocalSearch(value as string) // Immediate UI update for the input
-        updateUrl({ [key]: value, page: 1 }) // reset to page 1 on search
+        setLocalSearch(value as string) // Immediate UI update for the input; debounce will sync to URL
       } else if (key !== "page") {
         updateUrl({ [key]: value, page: 1 }) // reset to page 1 on filter/sort change
       } else {

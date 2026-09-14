@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { FiX, FiSave, FiLoader, FiSearch, FiTrash2, FiUploadCloud, FiCamera } from "react-icons/fi";
 import * as XLSX from "xlsx";
 import { createClient } from "@/lib/supabase/client";
+import { EMPTY_BRANCHES } from "./empty-branches";
 
 interface EditScheduleModalProps {
   year: string;
@@ -94,6 +95,8 @@ export function EditScheduleModal({ year, onClose }: EditScheduleModalProps) {
           const bic = String(b.bic || "").trim().toUpperCase();
           const existing = fallbackDatesMap.get(bic) || {};
           const survey = completedSurveysByBic.get(bic);
+          
+          const isEmpty = EMPTY_BRANCHES.has(bic);
 
           return {
             bic: b.bic,
@@ -104,9 +107,9 @@ export function EditScheduleModal({ year, onClose }: EditScheduleModalProps) {
             zone: b.zone,
             manager_name: b.manager_name,
             phone_no: b.phone_no,
-            date: survey ? survey.visit_date : (existing["Date"] || ""),
-            spd: existing["Spd"] || "yes",
-            earthing: existing["Earthing"] || "yes",
+            date: isEmpty ? "" : (survey ? survey.visit_date : (existing["Date"] || "")),
+            spd: isEmpty ? "" : (existing["Spd"] || "yes"),
+            earthing: isEmpty ? "" : (existing["Earthing"] || "yes"),
             surveyor_emp_id: survey ? survey.surveyor_emp_id : (existing["surveyor_emp_id"] || ""),
             original_surveyor_emp_id: survey ? survey.surveyor_emp_id : (existing["surveyor_emp_id"] || ""),
             surveyor_name: survey ? survey.surveyor_name : "",

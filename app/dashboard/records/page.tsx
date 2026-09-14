@@ -9,7 +9,7 @@ import {
   FiPlus, FiX, FiXCircle, FiSearch,
 } from "react-icons/fi"
 import { createClient } from "@/lib/supabase/client"
-import { ALL_STATES } from "@/components/summary/states"
+import { ALL_STATES, getStateAliases } from "@/components/summary/states"
 import * as XLSX from "xlsx-js-style"
 import JSZip from "jszip"
 import { saveAs } from "file-saver"
@@ -61,7 +61,13 @@ async function fetchPage(filters: Filters, sortBy: SortBy, page: number, allowed
       q = q.eq("overall_status", filters.status)
     }
   }
-  if (filters.state) q = q.ilike("state", filters.state)
+  
+  if (filters.state) {
+    const aliases = getStateAliases(filters.state)
+    const orCond = aliases.map(a => `state.ilike.%${a}%`).join(',')
+    q = q.or(orCond)
+  }
+  
   if (filters.district) q = q.ilike("district", filters.district)
   if (filters.zone)  q = q.eq("zone", filters.zone)
   
@@ -90,7 +96,13 @@ async function fetchStats(filters: Filters, allowed_years?: string[]) {
     q = applyAllowedYears(q, allowed_years)
     const search = filters.search.trim()
     if (search) q = q.or(`branch_name.ilike.%${search}%,bic.ilike.%${search}%,district.ilike.%${search}%,state.ilike.%${search}%`)
-    if (filters.state) q = q.ilike("state", filters.state)
+    
+    if (filters.state) {
+      const aliases = getStateAliases(filters.state)
+      const orCond = aliases.map(a => `state.ilike.%${a}%`).join(',')
+      q = q.or(orCond)
+    }
+    
     if (filters.district) q = q.ilike("district", filters.district)
     if (filters.zone)  q = q.eq("zone", filters.zone)
     if (filters.year) {

@@ -7,6 +7,8 @@ import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import { createClient } from "@/lib/supabase/client";
 import { EditScheduleModal } from "./EditScheduleModal";
+import { useCurrentUser } from "@/lib/hooks/use-current-user";
+import { EMPTY_BRANCHES } from "./empty-branches";
 
 interface ExportControlsProps {
   year: string;
@@ -76,6 +78,7 @@ export function ExportControls({ year }: ExportControlsProps) {
   const [isExporting, setIsExporting] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const supabase = createClient()
+  const { data: user } = useCurrentUser()
 
   async function handleExport() {
     if (!year) return alert("Please select a specific year to export.")
@@ -157,6 +160,12 @@ export function ExportControls({ year }: ExportControlsProps) {
            earthing = fallbackData.earthing || "yes";
         }
 
+        if (EMPTY_BRANCHES.has(nbic)) {
+          finalDate = "";
+          spd = "";
+          earthing = "";
+        }
+
         return {
           bic: b.bic, address: b.address, state: b.state, district: b.district, zone: b.zone,
           branch_name: b.branch_name, visit_date: finalDate, spd, earthing
@@ -164,9 +173,10 @@ export function ExportControls({ year }: ExportControlsProps) {
       })
 
       for (const [nbic, survey] of completedSurveysByBic.entries()) {
+        const isEmpty = EMPTY_BRANCHES.has(nbic);
         exportRows.push({
           bic: survey.bic, address: "Unknown Address", state: "", district: "", zone: "", branch_name: "Unknown Branch",
-          visit_date: survey.visit_date, spd: "yes", earthing: "yes"
+          visit_date: isEmpty ? "" : survey.visit_date, spd: isEmpty ? "" : "yes", earthing: isEmpty ? "" : "yes"
         })
       }
 
@@ -263,13 +273,15 @@ export function ExportControls({ year }: ExportControlsProps) {
   return (
     <>
       <div className="flex gap-2 items-center flex-wrap">
-        <button
-          onClick={() => setIsEditing(true)}
-          className="h-10 px-4 rounded-xl border border-gray-200 bg-white text-gray-700 font-semibold text-sm hover:border-[#027D3F] hover:text-[#027D3F] transition-colors flex items-center justify-center gap-2"
-        >
-          <FiEdit3 size={16} />
-          Edit excel sheet
-        </button>
+        {user?.role !== "visitor" && (
+          <button
+            onClick={() => setIsEditing(true)}
+            className="h-10 px-4 rounded-xl border border-gray-200 bg-white text-gray-700 font-semibold text-sm hover:border-[#027D3F] hover:text-[#027D3F] transition-colors flex items-center justify-center gap-2"
+          >
+            <FiEdit3 size={16} />
+            Edit excel sheet
+          </button>
+        )}
 
         <button
           onClick={handleExportImages}

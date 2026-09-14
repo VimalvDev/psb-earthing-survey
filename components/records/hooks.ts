@@ -18,7 +18,13 @@ export function buildQuery(supabase: ReturnType<typeof createClient>, filters: F
     )
   }
   if (filters.status !== "All") q = q.eq("overall_status", filters.status)
-  if (filters.state) q = q.ilike("state", filters.state)
+  
+  if (filters.state) {
+    const { getStateAliases } = require("@/components/summary/states")
+    const aliases = getStateAliases(filters.state)
+    const orCond = aliases.map((a: string) => `state.ilike.%${a}%`).join(',')
+    q = q.or(orCond)
+  }
   if (filters.zone)  q = q.eq("zone", filters.zone)
   if (filters.year) {
     const [startYear, endYear] = filters.year.split("-")
@@ -79,7 +85,14 @@ export function useSurveyStats(filters: Filters) {
       q = applyAllowedYears(q, user?.allowed_years)
       const search = filters.search.trim()
       if (search) q = q.or(`branch_name.ilike.%${search}%,bic.ilike.%${search}%,district.ilike.%${search}%,state.ilike.%${search}%`)
-      if (filters.state) q = q.ilike("state", filters.state)
+      
+      if (filters.state) {
+        const { getStateAliases } = require("@/components/summary/states")
+        const aliases = getStateAliases(filters.state)
+        const orCond = aliases.map((a: string) => `state.ilike.%${a}%`).join(',')
+        q = q.or(orCond)
+      }
+      
       if (filters.zone)  q = q.eq("zone", filters.zone)
       if (filters.year) {
         const [startYear, endYear] = filters.year.split("-")
@@ -105,11 +118,15 @@ export function useSurveyStats(filters: Filters) {
 
 export function useFilterOptions() {
   const supabase = createClient()
+  const { data: user } = useCurrentUser()
 
   return useQuery({
-    queryKey: ["survey-filter-options"],
+    queryKey: ["survey-filter-options", user?.allowed_years],
     queryFn: async () => {
-      const { data } = await supabase.from("surveys").select("state, zone, visit_date")
+      let q = supabase.from("surveys").select("state, zone, visit_date")
+      q = applyAllowedYears(q, user?.allowed_years)
+      
+      const { data } = await q
       const { ALL_STATES } = await import("@/components/summary/states")
       
       const getFY = (d: string | null) => {

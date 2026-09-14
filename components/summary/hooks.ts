@@ -2,41 +2,10 @@
 
 import { useQuery, keepPreviousData } from "@tanstack/react-query"
 import { createClient } from "@/lib/supabase/client"
-import { ALL_STATES } from "./states"
+import { ALL_STATES, STATE_ALIASES } from "./states"
 
 function normalize(value: string) {
   return value.trim().toUpperCase().replace(/\s+/g, " ")
-}
-
-const STATE_ALIASES: Record<string, string> = {
-  "jammu kashmir": "Jammu and Kashmir",
-  "jammu & kashmir": "Jammu and Kashmir",
-  "vishakhapatnam (andhera pradesh)": "Andhra Pradesh",
-  "agartala (tripura)": "Tripura",
-  "shillong (meghalaya)": "Meghalaya",
-  "ranchi (jharkhand)": "Jharkhand",
-  "raipur (chattsgarsh)": "Chhattisgarh",
-  "pondey cherry": "Puducherry",
-  "patna (bihar)": "Bihar",
-  "panji (goa)": "Goa",
-  "mumbai": "Maharashtra",
-  "ludhiyana (punjab)": "Punjab",
-  "kolkata": "West Bengal",
-  "kohima ( nagaland)": "Nagaland",
-  "kochi (kerala)": "Kerala",
-  "jaipur (rajasthan)": "Rajasthan",
-  "itanagar": "Arunachal Pradesh",
-  "hyderabad": "Telangana",
-  "parwanoo (himachal pradesh)": "Himachal Pradesh",
-  "guwahti (assam)": "Assam",
-  "gurugram/gurgao (haryana)": "Haryana",
-  "gangtok (sikkim)": "Sikkim",
-  "dehradun (uk)": "Uttarakhand",
-  "chennai": "Tamil Nadu",
-  "bhubneshwar (odisha)": "Odisha",
-  "bhopal": "Madhya Pradesh",
-  "banglore": "Karnataka",
-  "ahemdabad": "Gujarat",
 }
 
 const NORMALIZED_STATES = new Map<string, {key: string, label: string}>()
@@ -48,13 +17,17 @@ Object.entries(STATE_ALIASES).forEach(([alias, target]) => {
   }
 })
 
-export function useStateWiseCounts(year?: string) {
+import { applyAllowedYears } from "@/components/records/hooks"
+
+export function useStateWiseCounts(year?: string, allowed_years?: string[]) {
   const supabase = createClient()
 
   return useQuery({
-    queryKey: ["survey-state-counts", year],
+    queryKey: ["survey-state-counts", year, allowed_years],
     queryFn: async ({ signal }) => {
       let q = supabase.from("surveys").select("state, visit_date, branch_name, bic")
+      
+      q = applyAllowedYears(q, allowed_years)
       
       if (year) {
         const [startYear, endYear] = year.split("-")
