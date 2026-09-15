@@ -147,6 +147,7 @@ export type SessionRow = {
   not_after: string | null
   user_agent: string | null
   ip: string | null
+  last_seen_at?: string | null
 }
 
 export function useActiveSessions() {
@@ -155,10 +156,27 @@ export function useActiveSessions() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_active_sessions")
       if (error) throw error
-      return data as SessionRow[]
+      
+      const sessions = data as SessionRow[]
+      
+      const userIds = [...new Set(sessions.map((s) => s.user_id))]
+      if (userIds.length > 0) {
+        const { data: engineers } = await supabase
+          .from("engineers")
+          .select("id, last_seen_at")
+          .in("id", userIds)
+          
+        if (engineers) {
+          const lastSeenMap = new Map(engineers.map((e) => [e.id, e.last_seen_at]))
+          sessions.forEach((s) => {
+            s.last_seen_at = lastSeenMap.get(s.user_id) || null
+          })
+        }
+      }
+      return sessions
     },
-    staleTime: 30_000,
-    refetchInterval: 60_000,
+    staleTime: 5_000,
+    refetchInterval: 5_000,
   })
 }
 
