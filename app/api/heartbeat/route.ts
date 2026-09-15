@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 export async function POST() {
   const supabase = await createClient()
@@ -9,8 +10,11 @@ export async function POST() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
+  // Use admin client to bypass RLS for updating the engineers table
+  const adminClient = createAdminClient()
+
   // Update the last_seen_at column for the user
-  const { error } = await supabase
+  const { error } = await adminClient
     .from("engineers")
     .update({ last_seen_at: new Date().toISOString() })
     .or(`email.eq.${user.email},gmail.eq.${user.email}`)
