@@ -150,30 +150,93 @@ export type SessionRow = {
   last_seen_at?: string | null
 }
 
+export type UserActivity = {
+  id: string
+  name: string | null
+  email: string | null
+  role: Role | null
+  last_seen_at: string | null
+  has_active_session: boolean
+  session_ids: string[]
+  logged_in_at: string | null
+}
+
+export function useUserActivity() {
+  return useQuery({
+    queryKey: ["admin", "user-activity"],
+    queryFn: async () => {
+      // Fetch both in parallel
+      const [sessionsRes, engineersRes] = await Promise.all([
+        supabase.rpc("get_active_sessions"),
+        supabase.from("engineers").select("id, name, email, role, last_seen_at"),
+      ])
+
+      const sessions = (sessionsRes.data ?? []) as SessionRow[]
+      const engineers = (engineersRes.data ?? []) as Array<{
+        id: string
+        name: string | null
+        email: string | null
+        role: Role | null
+        last_seen_at: string | null
+      }>
+
+      // Group sessions by user_id
+      const sessionsByUser = new Map<string, SessionRow[]>()
+      for (const s of sessions) {
+        const arr = sessionsByUser.get(s.user_id) ?? []
+        arr.push(s)
+        sessionsByUser.set(s.user_id, arr)
+      }
+
+      // Build a unified user activity list from all engineers
+      const activityList: UserActivity[] = engineers
+        .filter((e) => e.last_seen_at) // Only show users who have used the app at least once
+        .map((eng) => {
+          const userSessions = sessionsByUser.get(eng.id) ?? []
+          const hasSession = userSessions.length > 0
+
+          // Best "logged in" time is the most recent session created_at
+          let loggedInAt: string | null = null
+          if (hasSession) {
+            loggedInAt = userSessions.reduce((best, s) => {
+              if (!best) return s.created_at
+              return new Date(s.created_at).getTime() > new Date(best).getTime() ? s.created_at : best
+            }, null as string | null)
+          }
+
+          return {
+            id: eng.id,
+            name: eng.name,
+            email: eng.email,
+            role: eng.role,
+            last_seen_at: eng.last_seen_at,
+            has_active_session: hasSession,
+            session_ids: userSessions.map((s) => s.session_id),
+            logged_in_at: loggedInAt,
+          }
+        })
+
+      // Sort: online first, then by most recent last_seen_at
+      activityList.sort((a, b) => {
+        const aTime = a.last_seen_at ? new Date(a.last_seen_at).getTime() : 0
+        const bTime = b.last_seen_at ? new Date(b.last_seen_at).getTime() : 0
+        return bTime - aTime
+      })
+
+      return activityList
+    },
+    staleTime: 5_000,
+    refetchInterval: 5_000,
+  })
+}
+
 export function useActiveSessions() {
   return useQuery({
     queryKey: ["admin", "sessions"],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_active_sessions")
       if (error) throw error
-      
-      const sessions = data as SessionRow[]
-      
-      const userIds = [...new Set(sessions.map((s) => s.user_id))]
-      if (userIds.length > 0) {
-        const { data: engineers } = await supabase
-          .from("engineers")
-          .select("id, last_seen_at")
-          .in("id", userIds)
-          
-        if (engineers) {
-          const lastSeenMap = new Map(engineers.map((e) => [e.id, e.last_seen_at]))
-          sessions.forEach((s) => {
-            s.last_seen_at = lastSeenMap.get(s.user_id) || null
-          })
-        }
-      }
-      return sessions
+      return data as SessionRow[]
     },
     staleTime: 5_000,
     refetchInterval: 5_000,
