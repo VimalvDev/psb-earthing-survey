@@ -1,44 +1,21 @@
 "use client";
-import ActiveSessionsCard from "@/components/admin/ActiveSessionsCard";
-import { useMemo, useState } from "react";
-import CreateUserModal from "@/components/admin/CreateUserModal";
-import { FiUserPlus } from "react-icons/fi";
 
+import { useMemo, useState } from "react";
+import ActiveSessionsCard from "@/components/admin/ActiveSessionsCard";
 import {
   useCurrentRole,
   useAllUsers,
-  useUpdateRole,
-  useSetUserPassword,
-  useDeleteUser,
-  useUpdateAllowedYears,
-  type Role,
   type Engineer,
+  useSetUserPassword,
 } from "@/components/admin/hooks";
 import {
-  FiUsers,
-  FiShield,
-  FiUserCheck,
-  FiUser,
-  FiKey,
-  FiSearch,
-  FiCheck,
-  FiLoader,
-  FiAlertTriangle,
-  FiX,
-  FiArrowRight,
-  FiTrash2,
-  FiChevronDown,
-  FiList,
-} from "react-icons/fi";
-
-import Link from "next/link";
-
-const ROLE_STYLES: Record<Role, string> = {
-  admin: "bg-[#EAF3DE] text-[#3B6D11]",
-  manager: "bg-[#FAEEDA] text-[#854F0B]",
-  engineer: "bg-[#E6F1FB] text-[#185FA5]",
-  visitor: "bg-[#F3F4F6] text-[#4B5563]",
-};
+  UserManagementHeader,
+  UserFilters,
+  UserTable,
+  CreateUserModal,
+  YearAccessEditor,
+} from "@/components/admin/UserManagement";
+import { FiLoader, FiAlertTriangle, FiKey, FiCheck, FiX } from "react-icons/fi";
 
 export default function AdminPage() {
   const { data: currentRole, isLoading: roleLoading } = useCurrentRole();
@@ -60,8 +37,7 @@ export default function AdminPage() {
         </div>
         <h2 className="text-lg font-bold text-gray-900">Access restricted</h2>
         <p className="text-sm text-gray-500 max-w-sm">
-          This page is only available to admins. Contact your system
-          administrator if you need access.
+          This page is only available to admins. Contact your system administrator if you need access.
         </p>
       </div>
     );
@@ -72,147 +48,81 @@ export default function AdminPage() {
 
 function AdminDashboard() {
   const { data: users, isLoading } = useAllUsers();
+  
   const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  
   const [passwordTarget, setPasswordTarget] = useState<Engineer | null>(null);
   const [yearsTarget, setYearsTarget] = useState<Engineer | null>(null);
   const [showCreateUser, setShowCreateUser] = useState(false);
 
   const filtered = useMemo(() => {
     if (!users) return [];
+    
+    let result = users;
+    
+    if (roleFilter !== "all") {
+      result = result.filter(u => u.role === roleFilter);
+    }
+    
     const q = search.trim().toLowerCase();
-    if (!q) return users;
-    return users.filter(
-      (u) =>
-        u.name.toLowerCase().includes(q) ||
-        u.emp_id.toLowerCase().includes(q) ||
-        u.designation.toLowerCase().includes(q) ||
-        (u.email ?? "").toLowerCase().includes(q),
-    );
-  }, [users, search]);
-
-  const counts = useMemo(() => {
-    const base = {
-      total: users?.length ?? 0,
-      admin: 0,
-      manager: 0,
-      engineer: 0,
-      visitor: 0,
-    };
-    users?.forEach((u) => {
-      base[u.role] += 1;
-    });
-    return base;
-  }, [users]);
+    if (q) {
+      result = result.filter(
+        (u) =>
+          u.name.toLowerCase().includes(q) ||
+          u.emp_id.toLowerCase().includes(q) ||
+          u.designation.toLowerCase().includes(q) ||
+          (u.email ?? "").toLowerCase().includes(q) ||
+          (u.mobile_number ?? "").includes(q)
+      );
+    }
+    
+    return result;
+  }, [users, search, roleFilter]);
 
   return (
     <div className="max-w-6xl mx-auto flex flex-col gap-6">
-      <div className="flex items-start justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Manage access roles and account recovery for all engineers.
-          </p>
-        </div>
-        <div className="flex items-center gap-4">6i
-          <button
-            onClick={() => setShowCreateUser(true)}
-            className="h-9 px-4 rounded-xl bg-[#027D3F] hover:bg-[#02612f] text-white text-sm font-semibold flex items-center gap-2 transition-colors"
-          >
-            <FiUserPlus size={14} /> Add User
-          </button>
-        </div>
-      </div>
+      
+      {users && (
+        <UserManagementHeader users={users} onAddUser={() => setShowCreateUser(true)} />
+      )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatTile
-          label="Total Users"
-          value={counts.total}
-          icon={<FiUsers size={16} />}
-          bg="bg-[#FEF3EA]"
-          border="border-[#F8DDC0]"
-          iconBg="bg-[#EF9447]/15"
-          iconColor="text-[#EF9447]"
+      <div>
+        <UserFilters 
+          search={search} 
+          setSearch={setSearch} 
+          roleFilter={roleFilter} 
+          setRoleFilter={setRoleFilter} 
         />
-        <StatTile
-          label="Admins"
-          value={counts.admin}
-          icon={<FiShield size={16} />}
-          bg="bg-[#EAF3DE]"
-          border="border-[#CFE3B4]"
-          iconBg="bg-[#3B6D11]/15"
-          iconColor="text-[#3B6D11]"
-        />
-        <StatTile
-          label="Managers"
-          value={counts.manager}
-          icon={<FiUserCheck size={16} />}
-          bg="bg-[#FAEEDA]"
-          border="border-[#F0D9A8]"
-          iconBg="bg-[#854F0B]/15"
-          iconColor="text-[#854F0B]"
-        />
-        <StatTile
-          label="Engineers"
-          value={counts.engineer}
-          icon={<FiUser size={16} />}
-          bg="bg-[#E6F1FB]"
-          border="border-[#BEDCF5]"
-          iconBg="bg-[#185FA5]/15"
-          iconColor="text-[#185FA5]"
-        />
-      </div>
 
-      <div className="relative max-w-sm">
-        <FiSearch
-          size={15}
-          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
-        />
-        <input
-          placeholder="Search name, emp ID, email…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full h-10 pl-10 pr-4 text-sm border border-gray-200 rounded-xl bg-white outline-none transition focus:border-[#027D3F] focus:ring-2 focus:ring-[#027D3F]/15"
-        />
-      </div>
-
-      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
         {isLoading ? (
-          <div className="flex items-center justify-center py-16 text-gray-400">
+          <div className="flex items-center justify-center py-16 text-gray-400 bg-white border border-gray-200 rounded-xl">
             <FiLoader size={18} className="animate-spin mr-2" /> Loading users…
           </div>
-        ) : filtered.length === 0 ? (
-          <div className="py-16 text-center text-sm text-gray-400">
-            No users match your search.
-          </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 text-left text-xs font-semibold text-gray-400 uppercase tracking-widest">
-                  <th className="px-5 py-3">User</th>
-                  <th className="px-5 py-3">Emp ID</th>
-                  <th className="px-5 py-3">Designation</th>
-                  <th className="px-5 py-3">Contact</th>
-                  <th className="px-5 py-3">Role</th>
-                  <th className="px-5 py-3">Allowed FYs</th>
-                  <th className="px-5 py-3">Password</th>
-                  <th className="px-5 py-3">Delete</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((u) => (
-                  <UserRow
-                    key={u.id}
-                    user={u}
-                    onSetPassword={() => setPasswordTarget(u)}
-                    onEditYears={() => setYearsTarget(u)}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <UserTable 
+            users={filtered} 
+            onSetPassword={setPasswordTarget} 
+            onEditYears={setYearsTarget} 
+          />
         )}
       </div>
+
+      <div className="mt-8">
+        <ActiveSessionsCard />
+      </div>
+
+      {/* Modals */}
+      {showCreateUser && (
+        <CreateUserModal onClose={() => setShowCreateUser(false)} />
+      )}
+      
+      {yearsTarget && (
+        <YearAccessEditor
+          user={yearsTarget}
+          onClose={() => setYearsTarget(null)}
+        />
+      )}
 
       {passwordTarget && (
         <SetPasswordModal
@@ -220,178 +130,13 @@ function AdminDashboard() {
           onClose={() => setPasswordTarget(null)}
         />
       )}
-      {yearsTarget && (
-        <SetAllowedYearsModal
-          user={yearsTarget}
-          onClose={() => setYearsTarget(null)}
-        />
-      )}
-      {showCreateUser && (
-        <CreateUserModal onClose={() => setShowCreateUser(false)} />
-      )}
-
-      <ActiveSessionsCard />
       
     </div>
   );
 }
 
-function StatTile({
-  label,
-  value,
-  icon,
-  bg,
-  border,
-  iconBg,
-  iconColor,
-}: {
-  label: string;
-  value: number;
-  icon: React.ReactNode;
-  bg: string;
-  border: string;
-  iconBg: string;
-  iconColor: string;
-}) {
-  return (
-    <div className={`${bg} border ${border} rounded-2xl p-4 flex items-center justify-between`}>
-      <div>
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-          {label}
-        </p>
-        <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
-      </div>
-      <div className={`w-9 h-9 rounded-xl ${iconBg} flex items-center justify-center ${iconColor}`}>
-        {icon}
-      </div>
-    </div>
-  );
-}
-
-function UserRow({
-  user,
-  onSetPassword,
-  onEditYears,
-}: {
-  user: Engineer;
-  onSetPassword: () => void;
-  onEditYears: () => void;
-}) {
-  const updateRole = useUpdateRole();
-  const deleteUser = useDeleteUser();
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const initials = user.name
-    .split(" ")
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
-  function handleRoleChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    updateRole.mutate({ id: user.id, role: e.target.value as Role });
-  }
-
-  return (
-    <tr className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60 transition-colors">
-      <td className="px-5 py-3.5">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#E8F5EE] text-[#027D3F] text-xs font-bold flex items-center justify-center shrink-0">
-            {initials}
-          </div>
-          <div>
-            <p className="font-medium text-gray-900">{user.name}</p>
-            <p className="text-xs text-gray-400">
-              {user.email ?? "No email on file"}
-            </p>
-          </div>
-        </div>
-      </td>
-      <td className="px-5 py-3.5 text-gray-600">{user.emp_id}</td>
-      <td className="px-5 py-3.5 text-gray-600">{user.designation}</td>
-      <td className="px-5 py-3.5 text-gray-600">{user.mobile_number ?? "—"}</td>
-      <td className="px-5 py-3.5">
-        <div className="relative inline-block">
-          <select
-            value={user.role}
-            onChange={handleRoleChange}
-            disabled={updateRole.isPending}
-            className={`appearance-none text-xs font-semibold rounded-full pl-3 pr-7 py-1.5 outline-none cursor-pointer transition disabled:opacity-50 ${ROLE_STYLES[user.role]}`}
-          >
-            <option value="admin">Admin</option>
-            <option value="manager">Manager</option>
-            <option value="engineer">Engineer</option>
-            <option value="visitor">Visitor</option>
-          </select>
-          <FiChevronDown
-            size={12}
-            className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 opacity-60"
-          />
-        </div>
-      </td>
-      <td className="px-5 py-3.5">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs text-gray-600 truncate max-w-[80px]" title={user.allowed_years?.length ? user.allowed_years.join(", ") : "All Years"}>
-            {user.allowed_years?.length ? user.allowed_years.join(", ") : "All"}
-          </span>
-          <button
-            onClick={onEditYears}
-            className="text-gray-400 hover:text-[#027D3F] transition-colors"
-            title="Edit Allowed Years"
-          >
-            <FiList size={14} />
-          </button>
-        </div>
-      </td>
-      <td className="px-5 py-3.5">
-        <button
-          onClick={onSetPassword}
-          className="text-xs font-medium text-[#027D3F] hover:underline flex items-center gap-1.5"
-        >
-          <FiKey size={13} /> Set password
-        </button>
-      </td>
-      <td className="px-5 py-3.5">
-        {confirmDelete ? (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">Sure?</span>
-            <button
-              onClick={() =>
-                deleteUser.mutate(user.id, {
-                  onSuccess: () => setConfirmDelete(false),
-                })
-              }
-              disabled={deleteUser.isPending}
-              aria-label={`Confirm delete ${user.name}`}
-              className="text-xs font-semibold text-white bg-[#E41E23] hover:bg-[#c01a1f] px-2 py-1 rounded-lg disabled:opacity-50 flex items-center gap-1"
-            >
-              {deleteUser.isPending ? (
-                <FiLoader size={11} className="animate-spin" />
-              ) : (
-                "Yes"
-              )}
-            </button>
-            <button
-              onClick={() => setConfirmDelete(false)}
-              aria-label="Cancel delete"
-              className="text-xs text-gray-400 hover:text-gray-600"
-            >
-              No
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setConfirmDelete(true)}
-            aria-label={`Delete ${user.name}`}
-            className="text-[#E41E23] flex items-center justify-center w-full transition-colors hover:text-[#c01a1f]"
-          >
-            <FiTrash2 size={13} />
-          </button>
-        )}
-      </td>
-    </tr>
-  );
-}
-
+// Keep the password modal simple and isolated here for now, 
+// as it was already pretty good, just updated to match the new style slightly.
 function SetPasswordModal({
   user,
   onClose,
@@ -425,90 +170,98 @@ function SetPasswordModal({
         onError: (err) => {
           setStatus("error");
           setErrorMsg(
-            err instanceof Error ? err.message : "Failed to update password.",
+            err instanceof Error ? err.message : "Failed to update password."
           );
         },
-      },
+      }
     );
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
-      <div className="bg-white rounded-2xl p-6 max-w-sm w-full animate-[fadeInUp_0.2s_ease-out_both]">
-        <div className="flex items-start justify-between mb-1">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl p-6 max-w-sm w-full animate-[fadeInUp_0.2s_ease-out_both] shadow-xl">
+        <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-2">
-            <FiKey size={15} className="text-[#027D3F]" />
-            <h3 className="font-semibold text-gray-900">Set password</h3>
+            <FiKey size={18} className="text-[#027D3F]" />
+            <h3 className="font-semibold text-gray-900 text-lg">Set password</h3>
           </div>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 p-1 rounded-full transition-colors"
           >
             <FiX size={18} />
           </button>
         </div>
-        <p className="text-xs text-gray-400 mb-4">
-          For <span className="font-medium text-gray-600">{user.name}</span> (
-          {user.email})
-        </p>
+        
+        <div className="mb-5 bg-gray-50 rounded-lg p-3 border border-gray-100 flex items-center gap-3">
+           <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 font-bold text-sm shrink-0">
+            {user.name.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <p className="font-medium text-gray-900 text-sm">{user.name}</p>
+            <p className="text-xs text-gray-500 capitalize">{user.email || user.emp_id}</p>
+          </div>
+        </div>
 
         {status === "success" ? (
-          <div className="flex flex-col items-center text-center gap-3 py-4">
-            <div className="w-12 h-12 rounded-full bg-[#E8F5EE] flex items-center justify-center">
-              <FiCheck size={22} className="text-[#027D3F]" />
+          <div className="flex flex-col items-center text-center gap-3 py-6">
+            <div className="w-14 h-14 rounded-full bg-[#E8F5EE] flex items-center justify-center mb-1">
+              <FiCheck size={26} className="text-[#027D3F]" />
             </div>
-            <p className="text-sm text-gray-600">
-              Password updated for {user.name}.
+            <p className="text-[15px] font-medium text-gray-900">
+              Password updated
             </p>
             <button
               onClick={onClose}
-              className="mt-1 text-sm font-semibold text-[#027D3F] hover:underline"
+              className="mt-2 w-full h-10 rounded-lg bg-[#027D3F] hover:bg-[#02612f] text-white font-medium transition-colors"
             >
               Done
             </button>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
-            <input
-              type="password"
-              placeholder="New password (min 8 characters)"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              autoFocus
-              className="w-full h-11 px-4 text-sm border border-gray-200 rounded-xl bg-gray-50 outline-none transition focus:border-[#027D3F] focus:bg-white focus:ring-2 focus:ring-[#027D3F]/15"
-            />
-            <input
-              type="password"
-              placeholder="Confirm new password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              className="w-full h-11 px-4 text-sm border border-gray-200 rounded-xl bg-gray-50 outline-none transition focus:border-[#027D3F] focus:bg-white focus:ring-2 focus:ring-[#027D3F]/15"
-            />
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3">
+              <input
+                type="password"
+                placeholder="New password (min 8 characters)"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                autoFocus
+                className="w-full h-10 px-4 text-sm border border-gray-200 rounded-lg bg-gray-50 outline-none transition focus:border-[#027D3F] focus:bg-white focus:ring-1 focus:ring-[#027D3F]"
+              />
+              <input
+                type="password"
+                placeholder="Confirm new password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                className="w-full h-10 px-4 text-sm border border-gray-200 rounded-lg bg-gray-50 outline-none transition focus:border-[#027D3F] focus:bg-white focus:ring-1 focus:ring-[#027D3F]"
+              />
+            </div>
 
             {status === "mismatch" && (
-              <p className="text-xs text-[#A32D2D]">Passwords don't match.</p>
+              <p className="text-xs text-[#A32D2D] font-medium">Passwords don't match.</p>
             )}
             {status === "error" && (
-              <p className="text-xs text-[#A32D2D]">{errorMsg}</p>
+              <p className="text-xs text-[#A32D2D] font-medium">{errorMsg}</p>
             )}
 
-            <div className="flex gap-2 mt-1">
+            <div className="flex gap-3 pt-2">
               <button
                 onClick={onClose}
-                className="flex-1 h-11 rounded-xl border border-gray-200 text-gray-600 font-medium text-sm hover:bg-gray-50 transition-colors"
+                className="flex-1 h-10 rounded-lg border border-gray-200 text-gray-700 font-medium text-sm hover:bg-gray-50 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={setPassword.isPending}
-                className="flex-1 h-11 rounded-xl bg-[#027D3F] hover:bg-[#02612f] text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
+                className="flex-[1.5] h-10 rounded-lg bg-[#027D3F] hover:bg-[#02612f] text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-60 shadow-sm"
               >
                 {setPassword.isPending ? (
-                  <FiLoader size={15} className="animate-spin" />
+                  <FiLoader size={16} className="animate-spin" />
                 ) : (
-                  <FiCheck size={15} />
+                  <FiCheck size={16} />
                 )}
                 Set Password
               </button>
@@ -519,107 +272,10 @@ function SetPasswordModal({
 
       <style jsx global>{`
         @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(8px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
     </div>
   );
 }
-
-function SetAllowedYearsModal({
-  user,
-  onClose,
-}: {
-  user: Engineer;
-  onClose: () => void;
-}) {
-  const updateYears = useUpdateAllowedYears();
-  const currentYear = new Date().getFullYear();
-  const fys = Array.from({ length: 6 }).map((_, i) => {
-    const y = currentYear + 1 - i;
-    return `${y - 1}-${y}`;
-  });
-
-  const [selected, setSelected] = useState<Set<string>>(
-    new Set(user.allowed_years || [])
-  );
-
-  function toggle(fy: string) {
-    const next = new Set(selected);
-    if (next.has(fy)) next.delete(fy);
-    else next.add(fy);
-    setSelected(next);
-  }
-
-  function handleSave() {
-    updateYears.mutate(
-      { id: user.id, allowed_years: Array.from(selected) },
-      { onSuccess: onClose }
-    );
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
-      <div className="bg-white rounded-2xl p-6 max-w-sm w-full animate-[fadeInUp_0.2s_ease-out_both]">
-        <div className="flex items-start justify-between mb-1">
-          <div className="flex items-center gap-2">
-            <FiList size={15} className="text-[#027D3F]" />
-            <h3 className="font-semibold text-gray-900">Allowed Financial Years</h3>
-          </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <FiX size={18} />
-          </button>
-        </div>
-        <p className="text-xs text-gray-400 mb-4">
-          For <span className="font-medium text-gray-600">{user.name}</span>. Leave empty to allow all years.
-        </p>
-
-        <div className="flex flex-col gap-2 max-h-60 overflow-y-auto mb-4">
-          {fys.map((fy) => (
-            <label
-              key={fy}
-              className="flex items-center gap-3 p-2 rounded-xl border border-gray-100 hover:bg-gray-50 cursor-pointer"
-            >
-              <input
-                type="checkbox"
-                checked={selected.has(fy)}
-                onChange={() => toggle(fy)}
-                className="w-4 h-4 rounded text-[#027D3F] border-gray-300 focus:ring-[#027D3F]"
-              />
-              <span className="text-sm font-medium text-gray-700">{fy}</span>
-            </label>
-          ))}
-        </div>
-
-        <div className="flex gap-2">
-          <button
-            onClick={onClose}
-            className="flex-1 h-11 rounded-xl border border-gray-200 text-gray-600 font-medium text-sm hover:bg-gray-50 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={updateYears.isPending}
-            className="flex-1 h-11 rounded-xl bg-[#027D3F] hover:bg-[#02612f] text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
-          >
-            {updateYears.isPending ? (
-              <FiLoader size={15} className="animate-spin" />
-            ) : (
-              <FiCheck size={15} />
-            )}
-            Save
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-

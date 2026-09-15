@@ -81,36 +81,41 @@ export function useSurveyStats(filters: Filters) {
   return useQuery({
     queryKey: ["survey-stats", filters, user?.allowed_years],
     queryFn: async ({ signal }) => {
-      let q = supabase.from("surveys").select("overall_status")
-      q = applyAllowedYears(q, user?.allowed_years)
-      const search = filters.search.trim()
-      if (search) q = q.or(`branch_name.ilike.%${search}%,bic.ilike.%${search}%,district.ilike.%${search}%,state.ilike.%${search}%`)
-      
-      if (filters.state) {
-        const { getStateAliases } = require("@/components/summary/states")
-        const aliases = getStateAliases(filters.state)
-        const orCond = aliases.map((a: string) => `state.ilike.%${a}%`).join(',')
-        q = q.or(orCond)
+      // Helper to build the base query with all filters applied
+      const buildBase = () => {
+        let q = supabase.from("surveys").select("id", { count: "exact", head: true })
+        q = applyAllowedYears(q, user?.allowed_years)
+        const search = filters.search.trim()
+        if (search) q = q.or(`branch_name.ilike.%${search}%,bic.ilike.%${search}%,district.ilike.%${search}%,state.ilike.%${search}%`)
+        
+        if (filters.state) {
+          const { getStateAliases } = require("@/components/summary/states")
+          const aliases = getStateAliases(filters.state)
+          const orCond = aliases.map((a: string) => `state.ilike.%${a}%`).join(',')
+          q = q.or(orCond)
+        }
+        
+        if (filters.zone)  q = q.eq("zone", filters.zone)
+        if (filters.year) {
+          const [startYear, endYear] = filters.year.split("-")
+          q = q.gte("visit_date", `${startYear}-04-01`)
+          q = q.lte("visit_date", `${endYear}-03-31`)
+        }
+        if (filters.dateFrom) q = q.gte("visit_date", filters.dateFrom)
+        if (filters.dateTo)   q = q.lte("visit_date", filters.dateTo)
+        return q
       }
-      
-      if (filters.zone)  q = q.eq("zone", filters.zone)
-      if (filters.year) {
-        const [startYear, endYear] = filters.year.split("-")
-        q = q.gte("visit_date", `${startYear}-04-01`)
-        q = q.lte("visit_date", `${endYear}-03-31`)
-      }
-      if (filters.dateFrom) q = q.gte("visit_date", filters.dateFrom)
-      if (filters.dateTo)   q = q.lte("visit_date", filters.dateTo)
 
-      const { data, error } = await q.abortSignal(signal)
-      if (error) throw error
+      // Run pass and fail count queries in parallel
+      const [passRes, failRes] = await Promise.all([
+        buildBase().eq("overall_status", "Pass").abortSignal(signal),
+        buildBase().or("overall_status.eq.Flagged,overall_status.eq.Fail").abortSignal(signal),
+      ])
 
-      let pass = 0, fail = 0
-      for (const row of data ?? []) {
-        if (row.overall_status === "Pass") pass++
-        else if (row.overall_status === "Flagged" || row.overall_status === "Fail") fail++
-      }
-      return { pass, fail }
+      if (passRes.error) throw passRes.error
+      if (failRes.error) throw failRes.error
+
+      return { pass: passRes.count ?? 0, fail: failRes.count ?? 0 }
     },
     placeholderData: keepPreviousData,
   })

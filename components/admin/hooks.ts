@@ -268,6 +268,7 @@ export function useCreateUser() {
       mobile_number: string
       password: string
       role: Role
+      allowed_years?: string[]
     }) => {
       const res = await fetch("/api/admin/create-user", {
         method: "POST",

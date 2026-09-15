@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 
 export async function POST(req: Request) {
-  const { name, emp_id, designation, email, mobile_number, password, role } = await req.json()
+  const { name, emp_id, designation, email, mobile_number, password, role, allowed_years } = await req.json()
 
   if (!name || !emp_id || !password || !role) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
   // Insert the engineers row
   const { error: insertError } = await admin
     .from("engineers")
-    .insert({ name, emp_id, designation: designation || "Engineer", email: finalEmail, mobile_number: mobile_number || null, role })
+    .insert({ name, emp_id, designation: designation || "Engineer", email: finalEmail, mobile_number: mobile_number || null, role, allowed_years: allowed_years || null })
 
   if (insertError) {
     // Roll back the auth account so we don't leave an orphaned login
