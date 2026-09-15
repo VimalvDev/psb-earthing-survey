@@ -11,7 +11,7 @@ interface BranchDetailsCardProps {
 export function BranchDetailsCard({ r, editData, editing, setField, index }: BranchDetailsCardProps) {
   return (
     <StaggerSection index={index}>
-      <section className="bg-white rounded-[14px] shadow-sm border border-gray-100 p-6 sm:p-8 print:shadow-none print:border-0 print:p-0 print:rounded-none">
+      <section className="bg-white rounded-[14px] border border-gray-100 p-6 sm:p-8 print:border-0 print:p-0 print:rounded-none">
         <SectionHeading>Branch Details</SectionHeading>
         
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-6">

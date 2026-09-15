@@ -283,7 +283,7 @@ export function ManagerSignature({ signature, onChange }: ManagerSignatureProps)
           </div>
 
           <div className="flex-1 flex items-center justify-center p-6 bg-gray-50">
-            <div className="relative w-full max-w-md aspect-[16/10] bg-white rounded-2xl border-2 border-dashed border-gray-200 overflow-hidden shadow-sm">
+            <div className="relative w-full max-w-md aspect-[16/10] bg-white rounded-2xl border-2 border-dashed border-gray-200 overflow-hidden">
               <SignatureCanvas
                 ref={modalSigRef}
                 penColor="#1a1a1a"

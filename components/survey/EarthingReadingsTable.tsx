@@ -54,7 +54,7 @@ export function EarthingReadingsTable({
     onStatusChange(statuses);
   }
   return (
-    <section className="bg-white border border-gray-100 rounded-xl p-4 md:p-5">
+    <section className="bg-white border border-gray-200 rounded-xl p-4 md:p-5">
       <SectionHeading>Earthing Readings (v)</SectionHeading>
 
       {/* ── Desktop table header (hidden on mobile) ── */}
@@ -83,19 +83,19 @@ export function EarthingReadingsTable({
             className={`py-2 ${isLast ? "" : "border-b border-gray-50"}`}
           >
             {/* Mobile layout */}
-            <div className="md:hidden">
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-[9px] font-mono font-semibold text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded shrink-0">
+            <div className="md:hidden flex flex-col gap-2">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-mono font-semibold text-gray-500 uppercase tracking-wider mb-0.5">
                   {pit.epId}
                 </span>
-                <span className="text-xs font-medium text-gray-800 leading-tight">
+                <span className="text-sm font-semibold text-gray-800">
                   {pit.label}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 flex-1">
-                  <span className="text-[10px] text-gray-400 shrink-0">
-                    Reading (V)
+              <div className="grid grid-cols-2 gap-3 items-center mt-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-semibold text-gray-500 uppercase">
+                    Reading
                   </span>
                   <Input
                     type="number"
@@ -106,19 +106,24 @@ export function EarthingReadingsTable({
                     onChange={(e) =>
                       handleReadingChange(pit.epId, e.target.value)
                     }
-                    className="h-8 text-xs text-right tabular-nums flex-1"
+                    className="h-9 text-sm text-right tabular-nums flex-1 bg-gray-50 border-gray-200"
                   />
                 </div>
-                <StatusBadge status={status} />
+                <div className="flex items-center gap-2 justify-end">
+                  <span className="text-[11px] font-semibold text-gray-500 uppercase">
+                    Status
+                  </span>
+                  <StatusBadge status={status} />
+                </div>
               </div>
             </div>
 
             {/* Desktop layout */}
             <div className="hidden md:grid md:grid-cols-[auto_2fr_1fr_auto] gap-3 items-center">
-              <span className="text-[10px] font-mono text-gray-400 w-8">
+              <span className="text-xs font-mono font-semibold text-gray-500 w-8">
                 {pit.epId}
               </span>
-              <span className="text-xs text-gray-700 leading-snug">
+              <span className="text-sm font-medium text-gray-800">
                 {pit.label}
               </span>
               <Input
@@ -128,7 +133,7 @@ export function EarthingReadingsTable({
                 placeholder="0.0"
                 value={value}
                 onChange={(e) => handleReadingChange(pit.epId, e.target.value)}
-                className="h-8 text-xs text-right tabular-nums"
+                className="h-9 text-sm text-right tabular-nums bg-gray-50 border-gray-200"
               />
               <StatusBadge status={status} />
             </div>
@@ -141,7 +146,7 @@ export function EarthingReadingsTable({
 
       {/* ── Test Equipment ── */}
       <div className="flex flex-col gap-2">
-        <Label className="text-xs font-medium text-gray-600">
+        <Label className="text-[13px] font-semibold text-gray-700">
           Test Equipment Used
         </Label>
         <div className="flex gap-2">
@@ -158,10 +163,10 @@ export function EarthingReadingsTable({
                     : [...data.equipment, { make, model: "" }]
                   onChange({ ...data, equipment: updated })
                 }}
-                className={`flex-1 py-2.5 rounded-lg border text-sm font-semibold transition-all duration-150
+                className={`flex-1 py-2 rounded-lg border text-[13px] font-semibold transition-all duration-150 outline-none
                   ${selected
-                    ? "bg-[#027D3F] border-[#027D3F] text-white"
-                    : "bg-white border-gray-200 text-gray-600 hover:border-[#027D3F]/40 hover:text-[#027D3F]"
+                    ? "bg-[#027D3F]/10 border-[#027D3F] text-[#027D3F]"
+                    : "bg-white border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700 hover:bg-gray-50"
                   }`}
               >
                 {make}
@@ -170,7 +175,7 @@ export function EarthingReadingsTable({
           })}
         </div>
         {data.equipment.length === 0 && (
-          <p className="text-[11px] text-gray-400">
+          <p className="text-xs font-medium text-amber-600 mt-0.5">
             Select at least one instrument used for testing
           </p>
         )}

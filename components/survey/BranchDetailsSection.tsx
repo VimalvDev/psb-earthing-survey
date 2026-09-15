@@ -99,25 +99,25 @@ export function BranchDetailsSection({ onChange, values }: BranchDetailsSectionP
   }
 
   return (
-    <section className="bg-white border border-gray-100 rounded-xl p-4 md:p-5">
+    <section className="bg-white border border-gray-200 rounded-xl p-4 md:p-5">
       <SectionHeading>Branch Details</SectionHeading>
 
       <div className="flex flex-col gap-2">
         {/* Branch Code + Name */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs font-medium text-gray-600">Branch Code</Label>
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-[13px] font-semibold text-gray-700">Branch Code</Label>
           <div className="relative">
             <Input
               placeholder="e.g. A0001"
               value={values.bic ?? ""}
               onChange={handleBranchCodeChange}
-              className={`h-8 text-xs ${notFound ? "border-[#E41E23] focus-visible:ring-[#E41E23]" : ""}`}
+              className={`h-9 text-sm ${notFound ? "border-[#E41E23] focus-visible:ring-[#E41E23]" : ""}`}
             />
             {loading && (
               <FiLoader
-                size={12}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 animate-spin"
+                size={14}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 animate-spin"
               />
             )}
           </div>
@@ -155,24 +155,24 @@ export function BranchDetailsSection({ onChange, values }: BranchDetailsSectionP
 
       {/* Branch Manager + Phone */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs font-medium text-gray-600">Branch Manager Name</Label>
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-[13px] font-semibold text-gray-700">Branch Manager Name</Label>
           <Input
             placeholder="e.g. Suresh Nair"
             value={values.manager_name ?? ""}
             onChange={(e) => onChange("manager_name", e.target.value)}
-            className="h-8 text-xs"
+            className="h-9 text-sm"
           />
         </div>
 
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs font-medium text-gray-600">Phone No.</Label>
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-[13px] font-semibold text-gray-700">Phone No.</Label>
           <Input
             placeholder="e.g. 10 or 11 digits"
             maxLength={11}
             value={values.phone_no ?? ""}
             onChange={(e) => onChange("phone_no", e.target.value)}
-            className="h-8 text-xs"
+            className="h-9 text-sm"
           />
           {showSecondPhone && (
             <Input
@@ -180,15 +180,15 @@ export function BranchDetailsSection({ onChange, values }: BranchDetailsSectionP
               maxLength={11}
               value={values.phone_no_alt ?? ""}
               onChange={(e) => onChange("phone_no_alt", e.target.value)}
-              className="h-8 text-xs mt-1"
+              className="h-9 text-sm mt-1"
             />
           )}
           <button
             type="button"
             onClick={() => setShowSecondPhone((v) => !v)}
-            className="text-[10px] text-[#027D3F] hover:text-[#02612f] cursor-pointer text-left w-fit flex items-center gap-1 transition-colors duration-150 font-medium mt-0.5"
+            className="text-[11px] text-[#027D3F] hover:text-[#02612f] cursor-pointer text-left w-fit flex items-center gap-1.5 transition-colors duration-150 font-medium mt-1"
           >
-            <FiPlus size={10} />
+            <FiPlus size={12} />
             {showSecondPhone ? "Remove Alternate" : "Add Alternate Number"}
           </button>
         </div>
@@ -196,30 +196,30 @@ export function BranchDetailsSection({ onChange, values }: BranchDetailsSectionP
 
       {/* Date of Visit + Survey Type */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs font-medium text-gray-600">Date of Visit</Label>
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-[13px] font-semibold text-gray-700">Date of Visit</Label>
           <Input
             type="text"
             placeholder="DD-MM-YYYY"
             value={values.visit_date ?? ""}
             onChange={(e) => onChange("visit_date", e.target.value)}
-            className="h-8 text-xs font-mono"
+            className="h-9 text-sm font-mono"
           />
         </div>
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs font-medium text-gray-600">Survey Type</Label>
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-[13px] font-semibold text-gray-700">Survey Type</Label>
           <Select
             value={values.survey_type ?? ""}
             onValueChange={(v) => onChange("survey_type", v ?? "")}
           >
-            <SelectTrigger className="h-8 text-xs">
+            <SelectTrigger className="h-9 text-sm">
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="routine" className="text-xs">Routine Inspection</SelectItem>
-              <SelectItem value="post-rectification" className="text-xs">Post-Rectification</SelectItem>
-              <SelectItem value="complaint" className="text-xs">Complaint Based</SelectItem>
-              <SelectItem value="annual-audit" className="text-xs">Annual Audit</SelectItem>
+              <SelectItem value="routine" className="text-sm">Routine Inspection</SelectItem>
+              <SelectItem value="post-rectification" className="text-sm">Post-Rectification</SelectItem>
+              <SelectItem value="complaint" className="text-sm">Complaint Based</SelectItem>
+              <SelectItem value="annual-audit" className="text-sm">Annual Audit</SelectItem>
             </SelectContent>
           </Select>
         </div>

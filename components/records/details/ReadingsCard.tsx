@@ -10,7 +10,7 @@ interface ReadingsCardProps {
 export function ReadingsCard({ r, editing, setReading, index }: ReadingsCardProps) {
   return (
     <StaggerSection index={index}>
-      <section className="bg-white rounded-[14px] shadow-sm border border-gray-100 p-6 sm:p-8 print:shadow-none print:border-0 print:p-0 print:rounded-none">
+      <section className="bg-white rounded-[14px] border border-gray-100 p-6 sm:p-8 print:border-0 print:p-0 print:rounded-none">
         <SectionHeading>Earthing Readings</SectionHeading>
         <div className="overflow-x-auto -mx-2 sm:mx-0 rounded-lg border border-gray-100">
           <table className="w-full text-sm">

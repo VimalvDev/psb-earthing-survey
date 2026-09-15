@@ -112,7 +112,7 @@ export default function ResetPasswordPage() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-[#FAF6EE] px-4">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
 
           {/* Header */}
           <div className="bg-[#027D3F] px-8 py-6 flex items-center justify-between">

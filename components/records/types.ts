@@ -2,7 +2,7 @@
 
 export type SurveyStatus = "Pass" | "Flagged"
 export type StatusFilter = "All" | SurveyStatus
-export type SortBy = "newest" | "oldest" | "branch" | "status"
+export type SortBy = "newest" | "oldest" | "branch"
 
 export interface SurveyRecord {
   id: string
@@ -152,11 +152,6 @@ export function sortRecords(
       return a.created_at.localeCompare(b.created_at)
     if (sortBy === "branch")
       return (a.branch_name ?? "").localeCompare(b.branch_name ?? "")
-    // status: Fail first
-    const order: Record<string, number> = { Flagged: 0, Fail: 0, Pass: 1 }
-    return (
-      (order[a.overall_status as string] ?? 3) -
-      (order[b.overall_status as string] ?? 3)
-    )
+    return 0
   })
 }

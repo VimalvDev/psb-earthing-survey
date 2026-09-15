@@ -140,7 +140,7 @@ export default function LoginPage() {
         />
 
         {/* Structure India logo */}
-        <div className="relative z-10 animate-[fadeInUp_0.6s_ease-out_both]">
+        <div className="relative z-10 opacity-0 animate-[fadeInUp_0.6s_ease-out_both]">
           <Image src="/structureindia.png" alt="Structure India" width={50} height={50} className="object-contain brightness-0 invert" />
         </div>
 
@@ -148,7 +148,7 @@ export default function LoginPage() {
         <div className="relative z-10 flex flex-col gap-7">
 
           {/* Resistance gauge — signature element */}
-          <div className="relative w-32 h-20 animate-[fadeInUp_0.7s_ease-out_0.1s_both]">
+          <div className="relative w-32 h-20 opacity-0 animate-[fadeInUp_0.7s_ease-out_0.1s_both]">
             <svg viewBox="0 0 120 70" className="w-full h-full overflow-visible">
               <path d="M10 65 A50 50 0 0 1 43 17" stroke="#027D3F" strokeWidth="10" strokeLinecap="round" fill="none" className="opacity-90" stroke-color="#E41E23" />
               <path d="M10 65 A50 50 0 0 1 43 17" stroke="#E41E23" strokeWidth="10" strokeLinecap="round" fill="none" />
@@ -169,13 +169,13 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <h1 className="text-4xl font-bold text-white leading-tight animate-[fadeInUp_0.6s_ease-out_0.2s_both]">
+          <h1 className="text-4xl font-bold text-white leading-tight opacity-0 animate-[fadeInUp_0.6s_ease-out_0.2s_both]">
             PSB Earthing<br />Survey System
           </h1>
-          <p className="text-white/70 text-base leading-relaxed max-w-sm animate-[fadeInUp_0.6s_ease-out_0.3s_both]">
+          <p className="text-white/70 text-base leading-relaxed max-w-sm opacity-0 animate-[fadeInUp_0.6s_ease-out_0.3s_both]">
             Record and track earthing test results across all Punjab & Sind Bank branches pan-India.
           </p>
-          <div className="flex gap-6 mt-2 animate-[fadeInUp_0.6s_ease-out_0.4s_both]">
+          <div className="flex gap-6 mt-2 opacity-0 animate-[fadeInUp_0.6s_ease-out_0.4s_both]">
             {[
               { label: "Branches", value: "1,610" },
               { label: "States", value: "22+" },
@@ -189,7 +189,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="relative z-10 flex items-center gap-2 text-white/40 text-xs animate-[fadeInUp_0.6s_ease-out_0.5s_both]">
+        <div className="relative z-10 flex items-center gap-2 text-white/40 text-xs opacity-0 animate-[fadeInUp_0.6s_ease-out_0.5s_both]">
           <FiCheckCircle size={13} />
           <span>Threshold bands: Phase (200–270V) · Earth (0–5Ω)</span>
         </div>
@@ -205,7 +205,7 @@ export default function LoginPage() {
         </div>
 
         {/* Mobile headline */}
-        <div className="flex lg:hidden flex-col gap-2 px-6 pt-8 pb-2 animate-[fadeInUp_0.5s_ease-out_both]">
+        <div className="flex lg:hidden flex-col gap-2 px-6 pt-8 pb-2 opacity-0 animate-[fadeInUp_0.5s_ease-out_both]">
           <h1 className="text-2xl font-bold text-gray-900 leading-tight">PSB Earthing Survey</h1>
           <p className="text-sm text-gray-500">Log in to submit your survey records.</p>
         </div>
@@ -217,13 +217,13 @@ export default function LoginPage() {
             {/* ── LOGIN VIEW ─────────────────────────────────────────────── */}
             {view === "login" && (
               <>
-                <div className="mb-8 animate-[fadeInUp_0.5s_ease-out_0.05s_both]">
+                <div className="mb-8 opacity-0 animate-[fadeInUp_0.5s_ease-out_0.05s_both]">
                   <h2 className="text-2xl font-bold text-gray-900">Welcome back</h2>
                   <p className="text-sm text-gray-500 mt-1">Sign in to continue to your dashboard</p>
                 </div>
 
                 <div className="flex flex-col gap-4">
-                  <div className="flex flex-col gap-1.5 animate-[fadeInUp_0.5s_ease-out_0.1s_both]">
+                  <div className="flex flex-col gap-1.5 opacity-0 animate-[fadeInUp_0.5s_ease-out_0.1s_both]">
                     <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       User ID or Email
                     </label>
@@ -235,12 +235,12 @@ export default function LoginPage() {
                         onChange={(e) => setIdentifier(e.target.value)}
                         onKeyDown={handleKeyDown}
                         disabled={loading}
-                        className="w-full h-12 pl-10 pr-4 text-sm border border-gray-200 rounded-xl bg-gray-50 outline-none transition-all duration-200 focus:border-[#027D3F] focus:bg-white focus:ring-2 focus:ring-[#027D3F]/15 focus:shadow-sm disabled:opacity-60"
+                        className="w-full h-12 pl-10 pr-4 text-sm border border-gray-200 rounded-xl bg-gray-50 outline-none transition-all duration-200 focus:border-[#027D3F] focus:bg-white focus:ring-1 focus:ring-[#027D3F] disabled:opacity-60"
                       />
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-1.5 animate-[fadeInUp_0.5s_ease-out_0.15s_both]">
+                  <div className="flex flex-col gap-1.5 opacity-0 animate-[fadeInUp_0.5s_ease-out_0.15s_both]">
                     <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Password
                     </label>
@@ -253,7 +253,7 @@ export default function LoginPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         onKeyDown={handleKeyDown}
                         disabled={loading}
-                        className="w-full h-12 pl-10 pr-12 text-sm border border-gray-200 rounded-xl bg-gray-50 outline-none transition-all duration-200 focus:border-[#027D3F] focus:bg-white focus:ring-2 focus:ring-[#027D3F]/15 focus:shadow-sm disabled:opacity-60"
+                        className="w-full h-12 pl-10 pr-12 text-sm border border-gray-200 rounded-xl bg-gray-50 outline-none transition-all duration-200 focus:border-[#027D3F] focus:bg-white focus:ring-1 focus:ring-[#027D3F] disabled:opacity-60"
                       />
                       <button
                         type="button"
@@ -266,12 +266,12 @@ export default function LoginPage() {
                   </div>
 
                   {error && (
-                    <div className="px-3.5 py-2.5 rounded-xl bg-[#FDECEC] border border-[#F5B9B9] animate-[fadeInUp_0.3s_ease-out_both]">
+                    <div className="px-3.5 py-2.5 rounded-xl bg-[#FDECEC] border border-[#F5B9B9] opacity-0 animate-[fadeInUp_0.3s_ease-out_both]">
                       <p className="text-sm text-[#D81F26]">{error}</p>
                     </div>
                   )}
 
-                  <div className="flex justify-end animate-[fadeInUp_0.5s_ease-out_0.2s_both]">
+                  <div className="flex justify-end opacity-0 animate-[fadeInUp_0.5s_ease-out_0.2s_both]">
                     <button
                       type="button"
                       onClick={() => { setView("forgot"); setError(""); setResetSent(false) }}
@@ -285,7 +285,7 @@ export default function LoginPage() {
                     type="button"
                     onClick={handleLogin}
                     disabled={loading}
-                    className="w-full h-12 rounded-xl bg-[#027D3F] hover:bg-[#02612f] active:scale-[0.98] text-white font-semibold text-sm flex items-center justify-between px-5 transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-60 disabled:active:scale-100 mt-1 animate-[fadeInUp_0.5s_ease-out_0.25s_both]"
+                    className="w-full h-12 rounded-xl bg-[#027D3F] hover:bg-[#02612f] active:scale-[0.98] text-white font-semibold text-sm flex items-center justify-between px-5 transition-all duration-200 disabled:opacity-60 disabled:active:scale-100 mt-1 opacity-0 animate-[fadeInUp_0.5s_ease-out_0.25s_both]"
                   >
                     {loading
                       ? <><span>Signing in…</span><FiLoader size={16} className="animate-spin" /></>
@@ -294,7 +294,7 @@ export default function LoginPage() {
                   </button>
                 </div>
 
-                <p className="text-xs text-gray-400 mt-8 text-center animate-[fadeInUp_0.5s_ease-out_0.3s_both]">
+                <p className="text-xs text-gray-400 mt-8 text-center opacity-0 animate-[fadeInUp_0.5s_ease-out_0.3s_both]">
                   For access issues contact your system administrator.
                 </p>
               </>
@@ -313,7 +313,7 @@ export default function LoginPage() {
 
                 {!resetSent ? (
                   <>
-                    <div className="mb-8 animate-[fadeInUp_0.4s_ease-out_both]">
+                    <div className="mb-8 opacity-0 animate-[fadeInUp_0.4s_ease-out_both]">
                       <div className="w-12 h-12 rounded-2xl bg-[#E8F5EE] flex items-center justify-center mb-4">
                         <FiMail size={22} className="text-[#027D3F]" />
                       </div>
@@ -324,7 +324,7 @@ export default function LoginPage() {
                     </div>
 
                     <div className="flex flex-col gap-4">
-                      <div className="flex flex-col gap-1.5 animate-[fadeInUp_0.4s_ease-out_0.05s_both]">
+                      <div className="flex flex-col gap-1.5 opacity-0 animate-[fadeInUp_0.4s_ease-out_0.05s_both]">
                         <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
                           User ID or Email
                         </label>
@@ -336,13 +336,13 @@ export default function LoginPage() {
                             onChange={(e) => setResetIdentifier(e.target.value)}
                             onKeyDown={handleKeyDown}
                             disabled={resetLoading}
-                            className="w-full h-12 pl-10 pr-4 text-sm border border-gray-200 rounded-xl bg-gray-50 outline-none transition-all duration-200 focus:border-[#027D3F] focus:bg-white focus:ring-2 focus:ring-[#027D3F]/15 focus:shadow-sm disabled:opacity-60"
+                            className="w-full h-12 pl-10 pr-4 text-sm border border-gray-200 rounded-xl bg-gray-50 outline-none transition-all duration-200 focus:border-[#027D3F] focus:bg-white focus:ring-1 focus:ring-[#027D3F] disabled:opacity-60"
                           />
                         </div>
                       </div>
 
                       {resetError && (
-                        <div className="px-3.5 py-2.5 rounded-xl bg-[#FDECEC] border border-[#F5B9B9] animate-[fadeInUp_0.3s_ease-out_both]">
+                        <div className="px-3.5 py-2.5 rounded-xl bg-[#FDECEC] border border-[#F5B9B9] opacity-0 animate-[fadeInUp_0.3s_ease-out_both]">
                           <p className="text-sm text-[#D81F26]">{resetError}</p>
                         </div>
                       )}
@@ -351,7 +351,7 @@ export default function LoginPage() {
                         type="button"
                         onClick={handleForgotPassword}
                         disabled={resetLoading}
-                        className="w-full h-12 rounded-xl bg-[#027D3F] hover:bg-[#02612f] active:scale-[0.98] text-white font-semibold text-sm flex items-center justify-between px-5 transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-60 animate-[fadeInUp_0.4s_ease-out_0.1s_both]"
+                        className="w-full h-12 rounded-xl bg-[#027D3F] hover:bg-[#02612f] active:scale-[0.98] text-white font-semibold text-sm flex items-center justify-between px-5 transition-all duration-200 disabled:opacity-60 opacity-0 animate-[fadeInUp_0.4s_ease-out_0.1s_both]"
                       >
                         {resetLoading
                           ? <><span>Sending…</span><FiLoader size={16} className="animate-spin" /></>
@@ -361,8 +361,8 @@ export default function LoginPage() {
                     </div>
                   </>
                 ) : (
-                  <div className="flex flex-col items-center text-center gap-4 py-8 animate-[fadeInUp_0.4s_ease-out_both]">
-                    <div className="w-16 h-16 rounded-full bg-[#E8F5EE] flex items-center justify-center animate-[popIn_0.4s_cubic-bezier(0.22,1,0.36,1)_0.1s_both]">
+                  <div className="flex flex-col items-center text-center gap-4 py-8 opacity-0 animate-[fadeInUp_0.4s_ease-out_both]">
+                    <div className="w-16 h-16 rounded-full bg-[#E8F5EE] flex items-center justify-center opacity-0 animate-[popIn_0.4s_cubic-bezier(0.22,1,0.36,1)_0.1s_both]">
                       <FiMail size={28} className="text-[#027D3F]" />
                     </div>
                     <h2 className="text-xl font-bold text-gray-900">Check your email</h2>
@@ -396,15 +396,15 @@ export default function LoginPage() {
 
       <style jsx global>{`
         @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
         @keyframes needleSweep {
           from { transform: rotate(-90deg); }
           to { transform: rotate(8deg); }
         }
         @keyframes popIn {
-          from { opacity: 0; transform: scale(0.7); }
+          from { opacity: 0; transform: scale(0.95); }
           to { opacity: 1; transform: scale(1); }
         }
       `}</style>

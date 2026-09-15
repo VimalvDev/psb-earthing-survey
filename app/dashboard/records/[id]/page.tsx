@@ -204,8 +204,8 @@ function StaggerSection({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       transition={{
         duration: 0.45,
         delay: index * 0.1,
@@ -564,7 +564,7 @@ export default function RecordDetailPage() {
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.15 }}
                     onClick={startEditing}
-                    className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 text-[13px] sm:text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-[10px] shadow-sm hover:border-[#027D3F] hover:text-[#027D3F] hover:shadow transition-all"
+                    className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 text-[13px] sm:text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-[10px] hover:border-[#027D3F] hover:text-[#027D3F] transition-all"
                   >
                     <FiEdit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     Edit
@@ -578,7 +578,7 @@ export default function RecordDetailPage() {
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.15 }}
                     onClick={handleDelete}
-                    className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 text-[13px] sm:text-sm font-semibold text-white bg-red-600 rounded-[10px] shadow-sm hover:bg-red-700 hover:shadow transition-all"
+                    className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 text-[13px] sm:text-sm font-semibold text-white bg-red-600 rounded-[10px] hover:bg-red-700 transition-all"
                   >
                     <FiTrash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     Delete
@@ -595,7 +595,7 @@ export default function RecordDetailPage() {
                   >
                     <button
                       onClick={cancelEditing}
-                      className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 text-[13px] sm:text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-[10px] shadow-sm hover:bg-gray-50 transition-all"
+                      className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 text-[13px] sm:text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-[10px] hover:bg-gray-50 transition-all"
                     >
                       <FiX className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       Cancel
@@ -603,7 +603,7 @@ export default function RecordDetailPage() {
                     <button
                       onClick={saveChanges}
                       disabled={saving}
-                      className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 text-[13px] sm:text-sm font-semibold text-white bg-[#027D3F] rounded-[10px] shadow-sm hover:bg-[#02612f] disabled:opacity-60 transition-all"
+                      className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 text-[13px] sm:text-sm font-semibold text-white bg-[#027D3F] rounded-[10px] hover:bg-[#02612f] disabled:opacity-60 transition-all"
                     >
                       {saving ? (
                         <>
@@ -630,7 +630,7 @@ export default function RecordDetailPage() {
                       transition={{ duration: 0.15 }}
                       onClick={toggleFlag}
                       disabled={isFlagging}
-                      className={`inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 text-[13px] sm:text-sm font-semibold rounded-[10px] shadow-sm transition-all disabled:opacity-60
+                      className={`inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 text-[13px] sm:text-sm font-semibold rounded-[10px] transition-all disabled:opacity-60
                         ${isRecordFlagged 
                           ? "bg-red-50 text-red-600 border border-red-200 hover:bg-red-100" 
                           : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
@@ -653,7 +653,7 @@ export default function RecordDetailPage() {
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.15 }}
                     onClick={() => window.print()}
-                    className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 text-[13px] sm:text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-[10px] shadow-sm hover:bg-gray-50 transition-all"
+                    className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 text-[13px] sm:text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-[10px] hover:bg-gray-50 transition-all"
                   >
                     <FiPrinter className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     Print
@@ -700,7 +700,7 @@ export default function RecordDetailPage() {
                 
                 {/* LEFT: Logo & Title */}
                 <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-[10px] sm:rounded-xl bg-white/10 border border-white/15 backdrop-blur-sm flex items-center justify-center shrink-0 p-2 sm:p-2.5 shadow-sm">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-[10px] sm:rounded-xl bg-white/10 border border-white/15 backdrop-blur-sm flex items-center justify-center shrink-0 p-2 sm:p-2.5">
                     <Image
                       src="/psb_logo.png"
                       alt="Punjab & Sind Bank"
@@ -710,10 +710,10 @@ export default function RecordDetailPage() {
                     />
                   </div>
                   <div>
-                    <h1 className="text-lg sm:text-2xl font-bold text-white leading-tight drop-shadow-sm">
+                    <h1 className="text-lg sm:text-2xl font-bold text-white leading-tight">
                       Punjab & Sind Bank
                     </h1>
-                    <p className="text-[11px] sm:text-sm text-white/90 mt-0.5 font-medium drop-shadow-sm">
+                    <p className="text-[11px] sm:text-sm text-white/90 mt-0.5 font-medium">
                       Earthing Survey Report
                     </p>
                   </div>
@@ -721,19 +721,19 @@ export default function RecordDetailPage() {
 
                 {/* RIGHT: Status & Report ID */}
                 <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-3 sm:gap-2 shrink-0 pt-2 sm:pt-0 border-t border-white/10 sm:border-0 mt-2 sm:mt-0">
-                  <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-white/20 backdrop-blur-md border border-white/30 shadow-sm">
-                    <div className="text-white drop-shadow-sm scale-90 sm:scale-100">
+                  <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-white/20 backdrop-blur-md border border-white/30">
+                    <div className="text-white scale-90 sm:scale-100">
                       {overallCfg.icon}
                     </div>
-                    <span className="text-[11px] sm:text-sm font-bold text-white drop-shadow-sm">
+                    <span className="text-[11px] sm:text-sm font-bold text-white">
                       Overall: {overallStatus || "—"}
                     </span>
                   </div>
                   <div className="flex gap-2">
-                    <span className="text-[10px] sm:text-xs text-white/80 font-mono font-medium drop-shadow-sm bg-black/20 px-2 py-1 rounded">
+                    <span className="text-[10px] sm:text-xs text-white/80 font-mono font-medium bg-black/20 px-2 py-1 rounded">
                       {r.survey_id}
                     </span>
-                    <span className="text-[10px] sm:text-xs text-white/90 font-medium drop-shadow-sm bg-black/20 px-2 py-1 rounded uppercase tracking-wider">
+                    <span className="text-[10px] sm:text-xs text-white/90 font-medium bg-black/20 px-2 py-1 rounded uppercase tracking-wider">
                       {SURVEY_TYPE_LABELS[r.survey_type as keyof typeof SURVEY_TYPE_LABELS] ?? r.survey_type ?? "SURVEY"}
                     </span>
                   </div>
@@ -745,7 +745,7 @@ export default function RecordDetailPage() {
 
             {/* 1. Branch Details Card */}
             <StaggerSection index={2}>
-            <section className="bg-white rounded-[14px] shadow-sm border border-gray-100 p-6 sm:p-8 print:shadow-none print:border-0 print:p-0 print:rounded-none">
+            <section className="bg-white rounded-[14px] border border-gray-100 p-6 sm:p-8 print:border-0 print:p-0 print:rounded-none">
               <h2 className="text-base font-bold text-gray-900 mb-6 flex items-center gap-2 uppercase tracking-wide">
                 <span className="w-1 h-4 bg-[#027D3F] rounded-full inline-block"></span>
                 Branch Details
@@ -806,7 +806,7 @@ export default function RecordDetailPage() {
 
             {/* 2. Surveyor & Manager Card */}
             <StaggerSection index={3}>
-            <section className="bg-white rounded-[14px] shadow-sm border border-gray-100 p-6 sm:p-8 print:shadow-none print:border-0 print:p-0 print:rounded-none">
+            <section className="bg-white rounded-[14px] border border-gray-100 p-6 sm:p-8 print:border-0 print:p-0 print:rounded-none">
               <h2 className="text-base font-bold text-gray-900 mb-6 flex items-center gap-2 uppercase tracking-wide">
                 <span className="w-1 h-4 bg-[#027D3F] rounded-full inline-block"></span>
                 Surveyor & Manager Info
@@ -897,7 +897,7 @@ export default function RecordDetailPage() {
 
             {/* 3. Earthing Readings Card */}
             <StaggerSection index={4}>
-            <section className="bg-white rounded-[14px] shadow-sm border border-gray-100 p-6 sm:p-8 print:shadow-none print:border-0 print:p-0 print:rounded-none">
+            <section className="bg-white rounded-[14px] border border-gray-100 p-6 sm:p-8 print:border-0 print:p-0 print:rounded-none">
               <h2 className="text-base font-bold text-gray-900 mb-6 flex items-center gap-2 uppercase tracking-wide">
                 <span className="w-1 h-4 bg-[#027D3F] rounded-full inline-block"></span>
                 Earthing Readings
@@ -989,7 +989,7 @@ export default function RecordDetailPage() {
             {/* 4. Visual Inspection Checklist Card (Conditional) */}
             {Object.keys(r.checklist ?? {}).length > 0 && (
               <StaggerSection index={5}>
-              <section className="bg-white rounded-[14px] shadow-sm border border-gray-100 p-6 sm:p-8 print:shadow-none print:border-0 print:p-0 print:rounded-none mb-6">
+              <section className="bg-white rounded-[14px] border border-gray-100 p-6 sm:p-8 print:border-0 print:p-0 print:rounded-none mb-6">
                 <h2 className="text-base font-bold text-gray-900 mb-6 flex items-center gap-2 uppercase tracking-wide">
                   <span className="w-1 h-4 bg-[#027D3F] rounded-full inline-block"></span>
                   Visual Inspection Checklist
@@ -1022,7 +1022,7 @@ export default function RecordDetailPage() {
 
             {/* 5. Overall Status & Observations Card */}
             <StaggerSection index={6}>
-            <section className="bg-white rounded-[14px] shadow-sm border border-gray-100 p-6 sm:p-8 print:shadow-none print:border-0 print:p-0 print:rounded-none">
+            <section className="bg-white rounded-[14px] border border-gray-100 p-6 sm:p-8 print:border-0 print:p-0 print:rounded-none">
                 <h3 className="text-base font-bold text-gray-900 mb-6 flex items-center gap-2 uppercase tracking-wide">
                   <span className="w-1 h-4 bg-[#027D3F] rounded-full inline-block"></span>
                   Overall Status & Observations
@@ -1124,7 +1124,7 @@ export default function RecordDetailPage() {
             {/* 5. Photos Card */}
             {(hasPhotos || editing) && (
               <StaggerSection index={7}>
-              <section className="bg-white rounded-[14px] shadow-sm border border-gray-100 p-6 sm:p-8 print:shadow-none print:border-0 print:p-0 print:rounded-none">
+              <section className="bg-white rounded-[14px] border border-gray-100 p-6 sm:p-8 print:border-0 print:p-0 print:rounded-none">
                 <h2 className="text-base font-bold text-gray-900 mb-6 flex items-center gap-2 uppercase tracking-wide">
                   <span className="w-1 h-4 bg-[#027D3F] rounded-full inline-block"></span>
                   Photos
@@ -1151,12 +1151,12 @@ export default function RecordDetailPage() {
                           <button
                             type="button"
                             onClick={() => setPreviewImage(url)}
-                            className="aspect-[4/3] rounded-[10px] overflow-hidden border border-gray-100 shadow-sm cursor-zoom-in group relative"
+                            className="aspect-[4/3] rounded-[10px] overflow-hidden border border-gray-100 cursor-zoom-in group relative"
                           >
                             <img
                               src={url}
                               alt={label}
-                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              className="w-full h-full object-cover transition-transform duration-300"
                             />
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
                           </button>
@@ -1262,7 +1262,7 @@ export default function RecordDetailPage() {
             src={previewImage}
             alt="Full size preview"
             onClick={(e) => e.stopPropagation()}
-            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+            className="max-w-full max-h-full object-contain rounded-lg border border-gray-100"
           />
         </div>
       )}

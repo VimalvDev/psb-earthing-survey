@@ -14,7 +14,7 @@ export function ActiveFilterChips({ filters, setFilter, clearFilters, totalActiv
   if (totalActiveCount === 0) return null
 
   return (
-    <div className="flex w-full overflow-x-auto pb-2 scrollbar-hide lg:hidden">
+    <div className="flex w-full overflow-x-auto pb-2 scrollbar-hide">
       <div className="flex items-center gap-2 whitespace-nowrap">
         <span className="text-fluid-xs font-semibold text-gray-400">Active:</span>
         

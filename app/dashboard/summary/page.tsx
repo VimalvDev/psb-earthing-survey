@@ -21,25 +21,27 @@ import { ExportControls } from "@/components/summary/ExportControls";
 function StatCard({
   label,
   value,
-  icon,
   className,
   valueClass,
+  href,
 }: {
   label: string;
   value: number;
-  icon: React.ReactNode;
   className: string;
   valueClass: string;
+  href?: string;
 }) {
-  return (
-     <div className={`rounded-xl border flex   justify-between items-center px-4 py-3 ${className}`}>
-      <div className="flex items-center gap-1.5 mb-1">
-        {icon}
-        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{label}</p>
-      </div>
-      <p className={`text-2xl font-bold ${valueClass}`}>{value}</p>
+  const inner = (
+    <div className={`rounded-xl border px-5 py-4 transition-colors ${className}`}>
+      <p className="text-[12px] font-bold text-gray-500 uppercase tracking-widest mb-1">{label}</p>
+      <p className={`text-3xl font-bold ${valueClass}`}>{value}</p>
     </div>
   );
+
+  if (href) {
+    return <Link href={href} className="block group">{inner}</Link>;
+  }
+  return inner;
 }
 
 function SummarySkeleton() {
@@ -48,10 +50,13 @@ function SummarySkeleton() {
       {Array.from({ length: 3 }).map((_, index) => (
         <div
           key={index}
-          className="rounded-3xl border border-gray-100 bg-gray-50 p-5 animate-pulse"
+          className="rounded-xl border border-gray-100 bg-gray-50 p-4 animate-pulse flex gap-4"
         >
-          <div className="h-4 w-32 rounded bg-gray-200" />
-          <div className="mt-4 h-10 w-24 rounded bg-gray-200" />
+          <div className="w-10 h-10 rounded bg-gray-200 shrink-0" />
+          <div className="flex flex-col gap-2 flex-1">
+            <div className="h-4 w-32 rounded bg-gray-200" />
+            <div className="h-3 w-48 rounded bg-gray-200" />
+          </div>
         </div>
       ))}
     </div>
@@ -84,19 +89,20 @@ export default function SummaryPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-2">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Survey Summary</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            A quick overview of submitted surveys and recent activity.
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Survey Summary</h1>
+          <p className="text-[13px] text-gray-500 mt-0.5">
+            Overview of submitted surveys and recent activity.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 items-center">
+        <div className="flex flex-col sm:flex-row gap-2.5 sm:items-center">
           {filterOptions?.years && filterOptions.years.length > 1 ? (
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(e.target.value)}
-              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 outline-none transition focus:border-[#027D3F] focus:ring-1 focus:ring-[#027D3F]"
+              className="appearance-none w-full sm:w-auto rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-gray-700 outline-none transition focus:border-[#027D3F] focus:ring-1 focus:ring-[#027D3F]"
             >
               <option value="">All Financial Years</option>
               {filterOptions.years.map((year) => (
@@ -106,15 +112,15 @@ export default function SummaryPage() {
               ))}
             </select>
           ) : filterOptions?.years?.length === 1 ? (
-            <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700">
+            <div className="rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-gray-700">
               FY {filterOptions.years[0]}
             </div>
           ) : null}
           <Link
             href="/dashboard/records"
-            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-[#027D3F] hover:text-[#027D3F]"
+            className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-[13px] font-semibold text-gray-700 transition hover:bg-gray-50 hover:text-gray-900"
           >
-            <FiList size={16} />
+            <FiList size={14} />
             View Records
           </Link>
         </div>
@@ -126,40 +132,38 @@ export default function SummaryPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 ">
+      {/* KPI Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <StatCard
           label="Total"
           value={totalCount}
-          icon={<FiFileText size={20} className="text-gray-400 " />}
-          className="border-gray-100 bg-white"
+          className="border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
           valueClass="text-gray-900"
+          href={`/dashboard/records${effectiveYear ? `?year=${effectiveYear}` : ''}`}
         />
 
         <StatCard
           label="Pass"
           value={passCount}
-          icon={<FiCheckCircle size={20} className="text-[#027D3F]" />}
-          className="border-[#B9DEC8] bg-[#E8F5EE]"
+          className="border-[#027D3F]/20 bg-[#F4FAF6] hover:border-[#027D3F]/40 hover:bg-[#E8F5EE]"
           valueClass="text-[#027D3F]"
+          href={`/dashboard/records?status=Pass${effectiveYear ? `&year=${effectiveYear}` : ''}`}
         />
 
         <StatCard
           label="Flagged"
           value={failCount}
-          icon={
-            <Flag
-              size={20}
-              className="text-[#D81F26]"
-            />
-          }
-          className="border-[#F5B9B9] bg-[#FDECEC]"
-          valueClass="text-[#D81F26]"
+          className={`border-red-200 hover:border-red-300 transition-colors
+            ${failCount > 0 ? "bg-red-50/50 hover:bg-red-50" : "bg-white hover:bg-gray-50"}`}
+          valueClass={failCount > 0 ? "text-red-700" : "text-gray-400"}
+          href={`/dashboard/records?status=Flagged${effectiveYear ? `&year=${effectiveYear}` : ''}`}
         />
       </div>
+
       <StateWiseSummary year={effectiveYear} />
 
-      <div className="rounded-3xl border border-gray-100 bg-white p-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="rounded-xl border border-gray-200 bg-white p-5 sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-4 mb-4">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
               Recent Submissions
@@ -176,21 +180,21 @@ export default function SummaryPage() {
           </Link>
         </div>
 
-        <div className="mt-6">
+        <div className="mt-2">
           {recordsError || statsError ? (
-            <div className="rounded-2xl border border-[#F5B9B9] bg-[#FDECEC] px-5 py-4 text-sm text-[#D81F26]">
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700">
               Failed to load summary data. Please refresh the page.
             </div>
           ) : recordsLoading ? (
             <SummarySkeleton />
           ) : recentRecords.length > 0 ? (
-            <div className="grid gap-3">
+            <div className="flex flex-col">
               {recentRecords.map((record, i) => (
                 <RecordCard key={record.id} record={record} index={i} />
               ))}
             </div>
           ) : (
-            <div className="rounded-3xl border border-dashed border-gray-200 bg-gray-50 p-8 text-center text-sm text-gray-500">
+            <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-8 text-center text-sm text-gray-500">
               No survey records are available yet.
             </div>
           )}

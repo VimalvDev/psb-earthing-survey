@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { SectionHeading } from "@/components/ui/SectionHeading"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { createClient } from "@/lib/supabase/client"
 
 interface SurveyorSectionProps {
@@ -71,14 +72,14 @@ export function SurveyorSection({ values, onChange }: SurveyorSectionProps) {
   }
 
   return (
-    <section className="bg-white border border-gray-100 rounded-xl p-4 md:p-5">
+    <section className="bg-white border border-gray-200 rounded-xl p-4 md:p-5">
       <SectionHeading>Surveyor Info</SectionHeading>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">
+          <Label className="text-[13px] font-semibold text-gray-700">
             Surveyor Name
-          </label>
+          </Label>
           <div className="flex flex-col gap-2">
             <select
               value={dropdownValue}
@@ -106,9 +107,9 @@ export function SurveyorSection({ values, onChange }: SurveyorSectionProps) {
         </div>
 
         <div className="flex flex-col gap-1.5 justify-end">
-          <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">
+          <Label className="text-[13px] font-semibold text-gray-700">
             Employee ID
-          </label>
+          </Label>
           <Input
             value={values.emp_id}
             onChange={(e) => onChange("emp_id", e.target.value)}
@@ -118,9 +119,9 @@ export function SurveyorSection({ values, onChange }: SurveyorSectionProps) {
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">
+          <Label className="text-[13px] font-semibold text-gray-700">
             Designation
-          </label>
+          </Label>
           <Input
             value={values.designation}
             onChange={(e) => onChange("designation", e.target.value)}
@@ -130,9 +131,9 @@ export function SurveyorSection({ values, onChange }: SurveyorSectionProps) {
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">
+          <Label className="text-[13px] font-semibold text-gray-700">
             Contact
-          </label>
+          </Label>
           <Input
             value={values.mobile_number}
             onChange={(e) => onChange("mobile_number", e.target.value)}

@@ -44,7 +44,7 @@ export function OverallStatusSection({
   onNextDateChange,
 }: OverallStatusSectionProps) {
   return (
-    <section className="bg-white border border-gray-100 rounded-xl p-4 md:p-5">
+    <section className="bg-white border border-gray-200 rounded-xl p-4 md:p-5">
       <SectionHeading>Overall Earthing Status</SectionHeading>
 
       {/* Auto-suggest indicator */}
@@ -72,13 +72,13 @@ export function OverallStatusSection({
               key={value}
               type="button"
               onClick={() => onStatusChange(value)}
-              className={`flex-1 flex items-center justify-center gap-1.5 text-xs py-2 rounded-lg border-2 font-semibold transition-all duration-150
+              className={`flex-1 flex items-center justify-center gap-1.5 text-[13px] h-9 rounded-lg border font-semibold transition-all duration-150 outline-none
                 ${isActive
                   ? activeClass
-                  : `bg-white border-gray-200 text-gray-400 ${hoverClass}`
+                  : `bg-white border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700 hover:bg-gray-50`
                 }`}
             >
-              <Icon size={13} />
+              <Icon size={14} />
               {label || value}
             </button>
           )
@@ -86,19 +86,19 @@ export function OverallStatusSection({
       </div>
 
       {/* Observations */}
-      <div className="flex flex-col gap-1 mb-3">
-        <Label className="text-xs font-medium text-gray-600">Observations / Remarks</Label>
+      <div className="flex flex-col gap-1.5 mb-3">
+        <Label className="text-[13px] font-semibold text-gray-700">Observations / Remarks</Label>
         <Textarea
           placeholder="Issues, observations, or rectification notes..."
-          className="min-h-[80px] text-sm resize-none bg-[#FAF6EE] border-gray-200 focus:ring-[#027D3F] placeholder:text-xs"
+          className="min-h-[80px] text-sm resize-none bg-gray-50 border-gray-200 focus-visible:ring-0 placeholder:text-sm"
           value={remarks}
           onChange={(e) => onRemarksChange(e.target.value)}
         />
       </div>
 
       {/* Next Inspection Due */}
-      <div className="flex flex-col gap-1 max-w-[200px]">
-        <Label className="text-xs font-medium text-gray-600">Next Inspection Due</Label>
+      <div className="flex flex-col gap-1.5 max-w-[200px]">
+        <Label className="text-[13px] font-semibold text-gray-700">Next Inspection Due</Label>
         <Input
           type="date"
           className="h-9 text-sm"

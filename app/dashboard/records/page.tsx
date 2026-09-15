@@ -15,7 +15,7 @@ import JSZip from "jszip"
 import { saveAs } from "file-saver"
 
 import { RecordCard } from "@/components/records/RecordCard"
-import { FiltersPanel, FilterChips } from "@/components/records/FiltersPanel"
+
 import { Pagination } from "@/components/records/Pagination"
 import { useRecordsFilters } from "@/lib/hooks/use-records-filters"
 import { useCurrentUser } from "@/lib/hooks/use-current-user"
@@ -82,8 +82,8 @@ async function fetchPage(filters: Filters, sortBy: SortBy, page: number, allowed
 
   if (sortBy === "newest") q = q.order("created_at", { ascending: false })
   if (sortBy === "oldest") q = q.order("created_at", { ascending: true })
-  if (sortBy === "branch") q = q.order("branch_name", { ascending: true })
-  if (sortBy === "status") q = q.order("overall_status", { ascending: true })
+  if (sortBy === "branch") q = q.order("bic", { ascending: true })
+
 
   const from = (page - 1) * ITEMS_PER_PAGE
   const { data, error, count } = await q.range(from, from + ITEMS_PER_PAGE - 1)
@@ -276,13 +276,15 @@ export default function RecordsPage() {
     <div className="flex flex-col gap-6">
 
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Survey Records</h1>
-          <p className="text-sm text-gray-500 mt-1">All submitted earthing inspections · PSB Pan-India</p>
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-2">
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Survey Records</h1>
+            <p className="text-[13px] text-gray-500 mt-0.5">All submitted earthing inspections · PSB Pan-India</p>
+          </div>
         </div>
         {!isVisitor && (
-          <Link href="/dashboard/survey" className="inline-flex items-center gap-2 rounded-xl bg-[#027D3F] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#02612f] self-start sm:self-auto">
+          <Link href="/dashboard/survey" className="inline-flex items-center gap-2 rounded-lg bg-[#027D3F] px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-[#02612f] self-start sm:self-auto shrink-0">
             <FiPlus size={16} />
             New Survey
           </Link>
@@ -290,118 +292,59 @@ export default function RecordsPage() {
       </div>
 
       {/* Main layout */}
-      <div className="flex gap-6 items-start">
+      <div className="flex flex-col gap-4">
+        
+        <RecordsToolbar
+          localSearch={localSearch}
+          filters={filters}
+          setFilter={setFilter}
+          activeSecondaryCount={activeSecondaryCount}
+          totalCount={totalCount}
+          years={filterOptions?.years ?? []}
+          states={filterOptions?.states ?? []}
+          districts={filterOptions?.districts ?? []}
+          onOpenFilters={() => setMobileFiltersOpen(true)}
+          isPending={isPending}
+        />
 
-        {/* Sidebar */}
-        <aside className="hidden lg:block w-[260px] shrink-0">
-          <FiltersPanel
-            filters={filters} setFilter={setFilter} clearFilters={clearFilters}
-            states={filterOptions?.states ?? []} districts={filterOptions?.districts ?? []} zones={filterOptions?.zones ?? []} years={filterOptions?.years ?? []}
-          />
-        </aside>
+        <ActiveFilterChips
+          filters={filters}
+          setFilter={setFilter}
+          clearFilters={clearFilters}
+          totalActiveCount={totalActiveCount}
+        />
 
-        {/* List */}
-        <div className="flex-1 min-w-0 flex flex-col gap-4">
-
-          <RecordsToolbar
-            localSearch={localSearch}
-            filters={filters}
-            setFilter={setFilter}
-            activeSecondaryCount={activeSecondaryCount}
-            totalCount={totalCount}
-            years={filterOptions?.years ?? []}
-            states={filterOptions?.states ?? []}
-            districts={filterOptions?.districts ?? []}
-            onOpenFilters={() => setMobileFiltersOpen(true)}
-            isPending={isPending}
-          />
-
-          <ActiveFilterChips
-            filters={filters}
-            setFilter={setFilter}
-            clearFilters={clearFilters}
-            totalActiveCount={totalActiveCount}
-          />
-
-          {/* Mobile Record Count */}
-          <div className="lg:hidden flex items-center justify-between text-sm text-gray-400">
-            <p aria-live="polite">
-              <span className="font-bold text-gray-700">{totalCount}</span> records {isPending && <span className="animate-pulse ml-1 text-[#027D3F]">(updating...)</span>}
-            </p>
+        {/* Records */}
+        {isError ? (
+          <div className="rounded-xl border border-[#F5B9B9] bg-[#FDECEC] px-5 py-4 text-sm text-[#D81F26]">Failed to load records. Please refresh.</div>
+        ) : isLoading ? (
+          <div className="flex flex-col gap-3">
+            {Array.from({ length: ITEMS_PER_PAGE }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
-
-          {/* Desktop Toolbar */}
-          <div className="hidden lg:flex flex-wrap items-center gap-4 justify-between">
-            <div className="flex items-center gap-4 flex-1">
-              <p className="text-sm text-gray-400 shrink-0"><span className="font-bold text-gray-700">{totalCount}</span> records</p>
-              <div className="relative w-72">
-                <FiSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  value={localSearch}
-                  onChange={(e) => setFilter("search", e.target.value)}
-                  type="search"
-                  placeholder="Search branch, code, district…"
-                  className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-8 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#027D3F] focus:ring-2 focus:ring-[#027D3F]/15 [&::-webkit-search-cancel-button]:appearance-none"
-                />
-                {localSearch && (
-                  <button
-                    type="button"
-                    onClick={() => setFilter("search", "")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 rounded outline-none focus-visible:ring-2 focus-visible:ring-[#027D3F]"
-                  >
-                    <FiX size={14} />
-                  </button>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <select value={sortBy} onChange={(e) => setFilter("sortBy", e.target.value as SortBy)} className="appearance-none rounded-xl border border-gray-200 bg-white py-2 pl-3 pr-8 text-xs font-semibold text-gray-700 outline-none transition focus:border-[#027D3F] focus:ring-2 focus:ring-[#027D3F]/15">
-                  <option value="newest">Newest first</option>
-                  <option value="oldest">Oldest first</option>
-                  <option value="branch">Branch A–Z</option>
-                  <option value="status">Needs review first</option>
-                </select>
-                <FiChevronDown size={13} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-              </div>
-            </div>
+        ) : records.length > 0 ? (
+          <div className="flex flex-col gap-3">
+            {records.map((record, i) => (
+              <RecordCard key={record.id} record={record} index={i} />
+            ))}
           </div>
+        ) : (
+          <EmptyState clearFilters={clearFilters} hasFilters={activeFilterCount > 0} />
+        )}
 
-          {/* Desktop Filter chips */}
-          <div className="hidden lg:block">
-            <FilterChips filters={filters} setFilter={setFilter} clearFilters={clearFilters} />
-          </div>
-
-          {/* Records */}
-          {isError ? (
-            <div className="rounded-xl border border-[#F5B9B9] bg-[#FDECEC] px-5 py-4 text-sm text-[#D81F26]">Failed to load records. Please refresh.</div>
-          ) : isLoading ? (
-            <div className="flex flex-col gap-3">
-              {Array.from({ length: ITEMS_PER_PAGE }).map((_, i) => <SkeletonCard key={i} />)}
-            </div>
-          ) : records.length > 0 ? (
-            <div className="flex flex-col gap-3">
-              {records.map((record, i) => (
-                <RecordCard key={record.id} record={record} index={i} />
-              ))}
-            </div>
-          ) : (
-            <EmptyState clearFilters={clearFilters} hasFilters={activeFilterCount > 0} />
-          )}
-
-          {/* Pagination */}
-          {!isLoading && totalCount > ITEMS_PER_PAGE && (
+        {/* Pagination */}
+        {!isLoading && totalCount > ITEMS_PER_PAGE && (
+          <div className="mt-2">
             <Pagination
               currentPage={currentPage} totalPages={totalPages}
               pageStart={pageStart} pageEnd={pageEnd} totalRecords={totalCount}
               onPrevious={() => setFilter("page", Math.max(1, currentPage - 1))}
               onNext={() => setFilter("page", Math.min(totalPages, currentPage + 1))}
             />
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Mobile filters bottom sheet */}
+      {/* Filters bottom sheet / drawer */}
       <FiltersSheet
         isOpen={mobileFiltersOpen}
         onClose={() => setMobileFiltersOpen(false)}
@@ -411,6 +354,7 @@ export default function RecordsPage() {
         states={filterOptions?.states ?? []}
         districts={filterOptions?.districts ?? []}
         zones={filterOptions?.zones ?? []}
+        years={filterOptions?.years ?? []}
       />
     </div>
   )

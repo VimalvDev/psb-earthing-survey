@@ -321,7 +321,7 @@ export function EditScheduleModal({ year, onClose }: EditScheduleModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-3xl w-full max-w-[95vw] lg:max-w-[1400px] h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white rounded-3xl w-full max-w-[95vw] lg:max-w-[1400px] h-[90vh] flex flex-col overflow-hidden border border-gray-100 animate-in fade-in duration-150">
         
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/50">
@@ -564,8 +564,8 @@ export function EditScheduleModal({ year, onClose }: EditScheduleModalProps) {
 
       {/* Add Branch Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95 duration-200">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl w-full max-w-md border border-gray-100 p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Add New Branch</h3>
             <div className="space-y-4">
               <div>

@@ -19,13 +19,6 @@ function timeAgo(iso: string | null) {
 export default function ActiveSessionsCard() {
   const { data: users, isLoading } = useUserActivity()
   const revoke = useRevokeSession()
-  const [tick, setTick] = useState(0)
-
-  // Force re-renders every 5 seconds to keep status indicators fresh
-  useEffect(() => {
-    const interval = setInterval(() => setTick((t) => t + 1), 5000)
-    return () => clearInterval(interval)
-  }, [])
 
   const onlineCount = users?.filter((u) => {
     const lastSeen = u.last_seen_at ? new Date(u.last_seen_at).getTime() : 0
@@ -33,32 +26,25 @@ export default function ActiveSessionsCard() {
   }).length ?? 0
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-      <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
-        <FiMonitor size={15} className="text-[#027D3F]" />
-        <h3 className="font-semibold text-gray-900">User Activity</h3>
-        <span className="text-xs text-gray-400 ml-auto">
-          {onlineCount > 0 && <span className="text-green-600 font-medium">{onlineCount} online · </span>}
-          {users?.length ?? 0} users
+    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2 bg-gray-50/50">
+        <FiMonitor size={14} className="text-gray-500" />
+        <h3 className="text-[12px] font-bold text-gray-500 uppercase tracking-widest">User Activity</h3>
+        <span className="text-[11px] text-gray-400 font-medium ml-auto">
+          {onlineCount > 0 && <span className="text-[#027D3F] font-semibold">{onlineCount} online <span className="mx-1 text-gray-300">•</span> </span>}
+          {users?.length ?? 0} active users
         </span>
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-12 text-gray-400">
-          <FiLoader size={16} className="animate-spin mr-2" /> Loading…
+        <div className="flex items-center justify-center py-10 text-gray-400">
+          <FiLoader size={14} className="animate-spin mr-2" /> Loading…
         </div>
       ) : !users?.length ? (
-        <div className="py-12 text-center text-sm text-gray-400">No user activity yet.</div>
+        <div className="py-10 text-center text-[13px] text-gray-400">No user activity yet.</div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 text-left text-xs font-semibold text-gray-400 uppercase tracking-widest">
-                <th className="px-5 py-3">User</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3" />
-              </tr>
-            </thead>
+          <table className="w-full text-left border-collapse">
             <tbody>
               {users.map((u) => (
                 <UserRowItem 
@@ -100,31 +86,33 @@ function UserRowItem({
   const isOnline = lastSeenDate > 0 && Date.now() - lastSeenDate < 30000
   
   return (
-    <tr className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60 transition-colors">
-      <td className="px-5 py-3.5">
-        <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isOnline ? 'bg-green-500' : 'bg-gray-300'}`} title={isOnline ? "Online" : "Offline"} />
+    <tr className="border-b border-gray-100 last:border-0 hover:bg-gray-50/60 transition-colors group">
+      <td className="px-4 py-2.5">
+        <div className="flex items-center gap-3">
+          <div className="flex flex-col items-center justify-center w-4 shrink-0">
+            <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-[#027D3F]' : 'bg-gray-300'}`} title={isOnline ? "Online" : "Offline"} />
+          </div>
           <div>
-            <p className="font-medium text-gray-900">{displayName}</p>
-            <p className="text-xs text-gray-400">{displaySubtitle}</p>
+            <p className="font-semibold text-gray-900 text-[13px]">{displayName}</p>
+            <p className="text-[11px] text-gray-500 mt-0.5">{displaySubtitle}</p>
           </div>
         </div>
       </td>
-      <td className="px-5 py-3.5 text-xs">
+      <td className="px-4 py-2.5 text-[11px]">
         {isOnline ? (
-          <span className="text-green-600 font-medium">Online</span>
+          <span className="text-[#027D3F] font-semibold">Online</span>
         ) : (
           <span className="text-gray-500">{timeAgo(user.last_seen_at)}</span>
         )}
       </td>
-      <td className="px-5 py-3.5 text-right">
+      <td className="px-4 py-2.5 text-right">
         {user.has_active_session && (
           <button
             onClick={handleRevoke}
             disabled={isRevoking}
-            className="text-xs font-medium text-[#A32D2D] hover:underline flex items-center gap-1.5 disabled:opacity-50 ml-auto"
+            className="text-[11px] font-semibold text-[#D81F26] hover:underline flex items-center gap-1 disabled:opacity-50 ml-auto opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
           >
-            <FiLogOut size={13} /> {isRevoking ? "Revoking..." : "Revoke"}
+            <FiLogOut size={12} /> {isRevoking ? "Revoking..." : "Revoke"}
           </button>
         )}
       </td>

@@ -25,89 +25,92 @@ export function RecordCard({ record, index }: RecordCardProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 15 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       transition={{ duration: 0.25, delay: index * 0.05, ease: "easeOut" }}
     >
       <Link
         href={`/dashboard/records/${record.survey_id}`}
-        className={`group relative flex gap-4 overflow-hidden rounded-xl border p-4 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-sm
+        className={`group relative flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 overflow-hidden border-b p-3 sm:py-3 sm:px-4 transition-colors duration-150
           ${isRecordFlagged 
-            ? "border-red-200 bg-red-50/40 hover:border-red-300" 
-            : "border-gray-100 bg-white hover:border-[#027D3F]/30"
+            ? "border-red-100 bg-red-50/20 hover:bg-red-50" 
+            : "border-gray-100 bg-white hover:bg-gray-50"
           }`}
       >
-      {/* Photo thumbnail */}
-      <div
-        className={`w-14 h-14 shrink-0 rounded-lg overflow-hidden border flex items-center justify-center
-          ${hasPhoto 
-            ? isRecordFlagged ? "border-red-200" : "border-gray-100" 
-            : isRecordFlagged ? "border-dashed border-red-200 bg-red-50/50" : "border-dashed border-gray-200 bg-gray-50"
-          }`}
-      >
-        {photoUrl ? (
-          <img
-            src={photoUrl}
-            alt="Form"
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <FiImage size={18} className={isRecordFlagged ? "text-red-300" : "text-gray-300"} />
-        )}
-      </div>
-
-      {/* Main content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div className="min-w-0 flex items-center gap-2">
-            {isRecordFlagged && (
-              <Flag size={14} className="text-red-500 fill-red-100 shrink-0" />
+        <div className="flex items-start sm:items-center gap-3 sm:gap-4 w-full">
+          {/* Photo thumbnail */}
+          <div
+            className={`w-12 h-12 sm:w-10 sm:h-10 shrink-0 rounded border flex items-center justify-center
+              ${hasPhoto 
+                ? isRecordFlagged ? "border-red-200" : "border-gray-200" 
+                : isRecordFlagged ? "border-dashed border-red-200 bg-red-50/50" : "border-dashed border-gray-200 bg-gray-50"
+              }`}
+          >
+            {photoUrl ? (
+              <img
+                src={photoUrl}
+                alt="Form"
+                className="w-full h-full object-cover rounded-[3px]"
+              />
+            ) : (
+              <FiImage size={16} className={isRecordFlagged ? "text-red-300" : "text-gray-300"} />
             )}
-            <p className={`text-[15px] font-bold truncate transition-colors
-              ${isRecordFlagged ? "text-red-900 group-hover:text-red-700" : "text-gray-900 group-hover:text-[#027D3F]"}`}
-            >
-              {record.bic?.toUpperCase() ?? "—"}
-            </p>
-            <span className={`font-mono text-[11px] border rounded px-1.5 py-0.5
-              ${isRecordFlagged ? "text-red-600 bg-red-100/50 border-red-200" : "text-gray-400 bg-gray-50 border-gray-100"}`}
-            >
-              {record.branch_name ?? "Unknown Branch"}
-            </span>
           </div>
 
-          {/* Status badge */}
-          {config && status && (
-            <span
-              className={`shrink-0 inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-bold ${config.badge}`}
-            >
-              {config.label}
-            </span>
-          )}
-        </div>
+          {/* Main content */}
+          <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
+            
+            {/* Primary Identifiers */}
+            <div className="min-w-0 flex flex-col sm:w-[240px] shrink-0">
+              <div className="flex items-center gap-1.5">
+                {isRecordFlagged && (
+                  <Flag size={12} className="text-red-500 fill-red-100 shrink-0" />
+                )}
+                <p className={`text-[13px] font-bold truncate transition-colors leading-tight
+                  ${isRecordFlagged ? "text-red-900 group-hover:text-red-700" : "text-gray-900 group-hover:text-[#027D3F]"}`}
+                >
+                  {record.bic?.toUpperCase() ?? "—"}
+                </p>
+              </div>
+              <p className="text-[12px] text-gray-500 truncate leading-tight mt-0.5 font-medium">
+                {record.branch_name ?? "Unknown Branch"}
+              </p>
+            </div>
 
-        {/* Meta row */}
-        <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-          {(record.district || record.state) && (
-            <span className="flex items-center gap-1.5">
-              <FiMapPin size={12} className="text-gray-400 shrink-0" />
-              {[record.district, record.state].filter(Boolean).join(", ")}
-            </span>
-          )}
-          {record.visit_date && (
-            <span className="flex items-center gap-1.5">
-              <FiCalendar size={12} className="text-gray-400 shrink-0" />
-              {formatDate(record.visit_date)}
-            </span>
-          )}
-          {(record.surveyor_name || record.surveyor_emp_id) && (
-            <span className="flex items-center gap-1.5">
-              <FiUser size={12} className="text-gray-400 shrink-0" />
-              {record.surveyor_name || record.surveyor_emp_id}
-            </span>
-          )}
+            {/* Meta details */}
+            <div className="flex-1 flex flex-wrap sm:flex-nowrap items-center gap-x-4 gap-y-1 text-[12px] text-gray-500">
+              {(record.district || record.state) && (
+                <span className="flex items-center gap-1.5 truncate sm:w-[200px] shrink-0">
+                  <FiMapPin size={12} className="text-gray-400 shrink-0" />
+                  <span className="truncate">{[record.district, record.state].filter(Boolean).join(", ")}</span>
+                </span>
+              )}
+              {record.visit_date && (
+                <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+                  <FiCalendar size={12} className="text-gray-400 shrink-0" />
+                  {formatDate(record.visit_date)}
+                </span>
+              )}
+              <span className="hidden lg:flex items-center gap-1.5 shrink-0 whitespace-nowrap ml-auto">
+                <FiUser size={12} className="text-gray-400 shrink-0" />
+                {record.surveyor_name || record.surveyor_emp_id}
+              </span>
+            </div>
+
+            {/* Status badge */}
+            <div className="shrink-0 flex items-center justify-end sm:w-[100px] mt-1 sm:mt-0">
+              {config && status && (
+                <span
+                  className={`inline-flex items-center rounded border px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider ${config.badge}`}
+                >
+                  {config.label}
+                </span>
+              )}
+            </div>
+
+          </div>
         </div>
-      </div>
-    </Link>
+      </Link>
     </motion.div>
   );
 }

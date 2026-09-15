@@ -252,6 +252,7 @@ export function useRevokeSession() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "sessions"] })
+      queryClient.invalidateQueries({ queryKey: ["admin", "user-activity"] })
     },
   })
 }

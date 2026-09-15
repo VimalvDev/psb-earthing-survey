@@ -14,6 +14,7 @@ import {
   UserTable,
   CreateUserModal,
   YearAccessEditor,
+  ALL_YEARS,
 } from "@/components/admin/UserManagement";
 import { FiLoader, FiAlertTriangle, FiKey, FiCheck, FiX } from "react-icons/fi";
 
@@ -51,6 +52,7 @@ function AdminDashboard() {
   
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [yearFilter, setYearFilter] = useState("all"); // "all", "all_years", "no_access", or specific year
   
   const [passwordTarget, setPasswordTarget] = useState<Engineer | null>(null);
   const [yearsTarget, setYearsTarget] = useState<Engineer | null>(null);
@@ -63,6 +65,21 @@ function AdminDashboard() {
     
     if (roleFilter !== "all") {
       result = result.filter(u => u.role === roleFilter);
+    }
+
+    if (yearFilter !== "all") {
+      result = result.filter(u => {
+        const hasAllYears = !u.allowed_years || u.allowed_years.length === 0;
+        const hasNoAccess = u.allowed_years?.length === 1 && u.allowed_years[0] === "NONE";
+        
+        if (yearFilter === "all_years") {
+          return hasAllYears;
+        } else if (yearFilter === "no_access") {
+          return hasNoAccess;
+        } else {
+          return !hasAllYears && !hasNoAccess && (u.allowed_years?.includes(yearFilter) || false);
+        }
+      });
     }
     
     const q = search.trim().toLowerCase();
@@ -78,13 +95,18 @@ function AdminDashboard() {
     }
     
     return result;
-  }, [users, search, roleFilter]);
+  }, [users, search, roleFilter, yearFilter]);
 
   return (
     <div className="max-w-6xl mx-auto flex flex-col gap-6">
       
       {users && (
-        <UserManagementHeader users={users} onAddUser={() => setShowCreateUser(true)} />
+        <UserManagementHeader 
+          users={users} 
+          onAddUser={() => setShowCreateUser(true)}
+          roleFilter={roleFilter}
+          setRoleFilter={setRoleFilter}
+        />
       )}
 
       <div>
@@ -92,11 +114,13 @@ function AdminDashboard() {
           search={search} 
           setSearch={setSearch} 
           roleFilter={roleFilter} 
-          setRoleFilter={setRoleFilter} 
+          setRoleFilter={setRoleFilter}
+          yearFilter={yearFilter}
+          setYearFilter={setYearFilter}
         />
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-16 text-gray-400 bg-white border border-gray-200 rounded-xl">
+          <div className="flex items-center justify-center py-16 text-gray-400 bg-white border border-gray-200 rounded-lg">
             <FiLoader size={18} className="animate-spin mr-2" /> Loading users…
           </div>
         ) : (
@@ -108,7 +132,7 @@ function AdminDashboard() {
         )}
       </div>
 
-      <div className="mt-8">
+      <div className="mt-2">
         <ActiveSessionsCard />
       </div>
 
@@ -135,8 +159,6 @@ function AdminDashboard() {
   );
 }
 
-// Keep the password modal simple and isolated here for now, 
-// as it was already pretty good, just updated to match the new style slightly.
 function SetPasswordModal({
   user,
   onClose,
@@ -178,9 +200,9 @@ function SetPasswordModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl p-6 max-w-sm w-full animate-[fadeInUp_0.2s_ease-out_both] shadow-xl">
-        <div className="flex items-start justify-between mb-4">
+    <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 sm:p-4">
+      <div className="bg-white rounded-t-2xl sm:rounded-xl p-6 w-full max-w-sm animate-[fadeInUp_0.2s_ease-out_both] shadow-sm">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <FiKey size={18} className="text-[#027D3F]" />
             <h3 className="font-semibold text-gray-900 text-lg">Set password</h3>
@@ -188,33 +210,33 @@ function SetPasswordModal({
           <button
             onClick={onClose}
             aria-label="Close"
-            className="text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 p-1 rounded-full transition-colors"
+            className="text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 p-1.5 rounded-md transition-colors"
           >
-            <FiX size={18} />
+            <FiX size={16} />
           </button>
         </div>
         
         <div className="mb-5 bg-gray-50 rounded-lg p-3 border border-gray-100 flex items-center gap-3">
-           <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 font-bold text-sm shrink-0">
+           <div className="w-10 h-10 rounded-md bg-white border border-gray-200 flex items-center justify-center text-gray-600 font-bold text-sm shrink-0">
             {user.name.charAt(0).toUpperCase()}
           </div>
           <div>
-            <p className="font-medium text-gray-900 text-sm">{user.name}</p>
+            <p className="font-medium text-gray-900 text-[13px]">{user.name}</p>
             <p className="text-xs text-gray-500 capitalize">{user.email || user.emp_id}</p>
           </div>
         </div>
 
         {status === "success" ? (
           <div className="flex flex-col items-center text-center gap-3 py-6">
-            <div className="w-14 h-14 rounded-full bg-[#E8F5EE] flex items-center justify-center mb-1">
-              <FiCheck size={26} className="text-[#027D3F]" />
+            <div className="w-12 h-12 rounded-full bg-[#E8F5EE] flex items-center justify-center mb-1">
+              <FiCheck size={24} className="text-[#027D3F]" />
             </div>
-            <p className="text-[15px] font-medium text-gray-900">
+            <p className="text-sm font-medium text-gray-900">
               Password updated
             </p>
             <button
               onClick={onClose}
-              className="mt-2 w-full h-10 rounded-lg bg-[#027D3F] hover:bg-[#02612f] text-white font-medium transition-colors"
+              className="mt-2 w-full h-10 rounded-lg bg-[#027D3F] hover:bg-[#02612f] text-white text-sm font-medium transition-colors"
             >
               Done
             </button>
@@ -228,14 +250,14 @@ function SetPasswordModal({
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 autoFocus
-                className="w-full h-10 px-4 text-sm border border-gray-200 rounded-lg bg-gray-50 outline-none transition focus:border-[#027D3F] focus:bg-white focus:ring-1 focus:ring-[#027D3F]"
+                className="w-full h-10 px-3 text-sm border border-gray-200 rounded-md bg-gray-50 outline-none transition focus:border-[#027D3F] focus:bg-white focus:ring-1 focus:ring-[#027D3F]"
               />
               <input
                 type="password"
                 placeholder="Confirm new password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                className="w-full h-10 px-4 text-sm border border-gray-200 rounded-lg bg-gray-50 outline-none transition focus:border-[#027D3F] focus:bg-white focus:ring-1 focus:ring-[#027D3F]"
+                className="w-full h-10 px-3 text-sm border border-gray-200 rounded-md bg-gray-50 outline-none transition focus:border-[#027D3F] focus:bg-white focus:ring-1 focus:ring-[#027D3F]"
               />
             </div>
 
@@ -249,14 +271,14 @@ function SetPasswordModal({
             <div className="flex gap-3 pt-2">
               <button
                 onClick={onClose}
-                className="flex-1 h-10 rounded-lg border border-gray-200 text-gray-700 font-medium text-sm hover:bg-gray-50 transition-colors"
+                className="flex-1 h-10 rounded-md border border-gray-200 text-gray-700 font-medium text-sm hover:bg-gray-50 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={setPassword.isPending}
-                className="flex-[1.5] h-10 rounded-lg bg-[#027D3F] hover:bg-[#02612f] text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-60 shadow-sm"
+                className="flex-[1.5] h-10 rounded-md bg-[#027D3F] hover:bg-[#02612f] text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
               >
                 {setPassword.isPending ? (
                   <FiLoader size={16} className="animate-spin" />
