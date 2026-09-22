@@ -127,10 +127,22 @@ export function useFilterOptions() {
   return useQuery({
     queryKey: ["survey-filter-options", user?.allowed_years],
     queryFn: async () => {
-      let q = supabase.from("surveys").select("state, zone, visit_date")
-      q = applyAllowedYears(q, user?.allowed_years)
+      let allData: any[] = []
+      let from = 0
       
-      const { data } = await q
+      while (true) {
+        let q = supabase.from("surveys").select("state, zone, visit_date")
+        q = applyAllowedYears(q, user?.allowed_years)
+        
+        const { data, error } = await q.range(from, from + 999)
+        if (error) break
+        
+        allData = allData.concat(data || [])
+        if (!data || data.length < 1000) break
+        from += 1000
+      }
+      
+      const data = allData
       const { ALL_STATES } = await import("@/components/summary/states")
       
       const getFY = (d: string | null) => {

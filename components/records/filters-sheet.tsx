@@ -219,6 +219,64 @@ export function FiltersSheet({
                 </div>
               </div>
             </div>
+
+            {/* PN Reading range */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-gray-700">PN Reading (EP-1)</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs text-gray-500">Min</span>
+                  <input
+                    value={filters.pnMin}
+                    onChange={(e) => setFilter("pnMin", e.target.value)}
+                    type="number"
+                    step="0.01"
+                    placeholder="Min"
+                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-2 py-2 text-sm text-gray-800 outline-none focus:border-[#027D3F] focus:bg-white focus:ring-1 focus:ring-[#027D3F]"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs text-gray-500">Max</span>
+                  <input
+                    value={filters.pnMax}
+                    onChange={(e) => setFilter("pnMax", e.target.value)}
+                    type="number"
+                    step="0.01"
+                    placeholder="Max"
+                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-2 py-2 text-sm text-gray-800 outline-none focus:border-[#027D3F] focus:bg-white focus:ring-1 focus:ring-[#027D3F]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* PE Reading range */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-gray-700">PE Reading (EP-2)</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs text-gray-500">Min</span>
+                  <input
+                    value={filters.peMin}
+                    onChange={(e) => setFilter("peMin", e.target.value)}
+                    type="number"
+                    step="0.01"
+                    placeholder="Min"
+                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-2 py-2 text-sm text-gray-800 outline-none focus:border-[#027D3F] focus:bg-white focus:ring-1 focus:ring-[#027D3F]"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs text-gray-500">Max</span>
+                  <input
+                    value={filters.peMax}
+                    onChange={(e) => setFilter("peMax", e.target.value)}
+                    type="number"
+                    step="0.01"
+                    placeholder="Max"
+                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-2 py-2 text-sm text-gray-800 outline-none focus:border-[#027D3F] focus:bg-white focus:ring-1 focus:ring-[#027D3F]"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Footer (Sticky Actions) */}

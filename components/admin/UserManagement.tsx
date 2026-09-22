@@ -46,7 +46,7 @@ export function UserManagementHeader({
         </div>
         <button
           onClick={onAddUser}
-          className="h-8 px-3.5 rounded bg-[#027D3F] hover:bg-[#02612f] text-white text-[13px] font-semibold flex items-center gap-2 transition-colors"
+          className="h-8 px-3.5 rounded-md bg-[#027D3F] hover:bg-[#02612f] text-white text-[13px] font-semibold flex items-center gap-2 transition-all duration-200 shadow-sm hover:shadow active:scale-95"
         >
           <FiUserPlus size={14} /> Add User
         </button>
@@ -105,7 +105,7 @@ export function UserFilters({
           placeholder="Search name, ID, email…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full h-9 pl-9 pr-4 text-[13px] border border-gray-200 rounded-md bg-white outline-none transition focus:border-[#027D3F] focus:ring-1 focus:ring-[#027D3F]"
+          className="w-full h-9 pl-9 pr-4 text-[13px] border border-gray-200 rounded-md bg-white outline-none transition-all duration-200 focus:border-[#027D3F] focus:ring-4 focus:ring-[#027D3F]/10 hover:border-gray-300"
         />
       </div>
       <div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 hide-scrollbar">
@@ -236,8 +236,8 @@ export function YearAccessEditor({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 sm:p-4">
-      <div className="bg-white rounded-t-2xl sm:rounded-xl p-5 max-w-sm w-full max-h-[90vh] flex flex-col opacity-0 animate-[fadeInUp_0.2s_ease-out_both]">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 sm:p-4 transition-all duration-300">
+      <div className="bg-white rounded-t-2xl sm:rounded-xl p-5 max-w-sm w-full max-h-[90vh] flex flex-col opacity-0 animate-[fadeInUp_0.2s_ease-out_both] shadow-xl">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-gray-900 text-[15px]">Report Year Access</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1.5 rounded-md hover:bg-gray-100 transition-colors">
@@ -404,8 +404,8 @@ export function CreateUserModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 sm:p-4">
-      <div className="bg-white rounded-t-2xl sm:rounded-xl p-5 sm:p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto opacity-0 animate-[fadeInUp_0.2s_ease-out_both]">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 sm:p-4 transition-all duration-300">
+      <div className="bg-white rounded-t-2xl sm:rounded-xl p-5 sm:p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto opacity-0 animate-[fadeInUp_0.2s_ease-out_both] shadow-xl">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <FiUserPlus size={16} className="text-[#027D3F]" />
@@ -523,6 +523,12 @@ export function CreateUserModal({ onClose }: { onClose: () => void }) {
           </div>
         )}
       </div>
+      <style jsx global>{`
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   )
 }
@@ -538,7 +544,7 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full h-9 px-3 text-[13px] border border-gray-200 rounded-md bg-gray-50 outline-none transition focus:border-[#027D3F] focus:bg-white focus:ring-1 focus:ring-[#027D3F]"
+        className="w-full h-9 px-3 text-[13px] border border-gray-200 rounded-md bg-gray-50 outline-none transition-all duration-200 focus:border-[#027D3F] focus:bg-white focus:ring-4 focus:ring-[#027D3F]/10 hover:border-gray-300"
       />
     </div>
   )
@@ -624,7 +630,7 @@ function UserRow({
     <tr className="border-b border-gray-100 last:border-0 hover:bg-[#F9FAFB] transition-colors group">
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded bg-white border border-gray-200 text-gray-600 font-bold flex items-center justify-center shrink-0 text-xs">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 border border-gray-200 text-gray-700 font-bold flex items-center justify-center shrink-0 text-xs shadow-inner">
             {initials}
           </div>
           <div>

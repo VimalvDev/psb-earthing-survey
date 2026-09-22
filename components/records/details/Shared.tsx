@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
 import { FiCheckCircle, FiXCircle } from "react-icons/fi";
 
+// ── Types ──────────────────────────────────────────────────────────────────
+
 export type OverallStatus = "Pass" | "Fail";
 
 export interface SurveyDetail {
@@ -35,6 +37,8 @@ export interface SurveyDetail {
   is_flagged?: boolean;
 }
 
+// ── Constants ──────────────────────────────────────────────────────────────
+
 export const EP_LABELS: Record<string, string> = {
   "EP-1": "Phase/Neutral (P/N)",
   "EP-2": "Phase/Earth (P/E)",
@@ -65,59 +69,59 @@ export const SURVEY_TYPE_LABELS: Record<string, string> = {
   "annual-audit": "Annual Audit",
 };
 
+// ── Helpers ────────────────────────────────────────────────────────────────
+
 export function formatDate(iso: string | null): string {
   if (!iso) return "—";
-  try {
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return iso;
-    return d.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  } catch {
-    return iso;
-  }
+  if (/^\d{2}-\d{2}-\d{4}$/.test(iso)) return iso;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
 }
 
 export function formatDateTime(iso: string | null): string {
   if (!iso) return "—";
-  try {
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return iso;
-    return d.toLocaleString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
-  } catch {
-    return iso;
-  }
+  return new Date(iso).toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export function getReadingStatus(value: string, epId?: string): { label: string; badge: string } {
-  const num = parseFloat(value);
-  if (isNaN(num)) return { label: "N/A", badge: "bg-gray-100 text-gray-600 border-gray-200" };
+  const v = parseFloat(value);
+  if (isNaN(v)) return { label: "—", badge: "bg-gray-100 text-gray-400" };
 
   if (epId === "EP-1" || epId === "EP-2") {
-    if (num >= 220 && num <= 240) return { label: "Normal", badge: "bg-green-50 text-green-700 border-green-200" };
-    return { label: "Abnormal", badge: "bg-red-50 text-red-700 border-red-200" };
-  } else if (epId === "EP-3" || epId === "EP-4") {
-    if (num < 2) return { label: "Excellent", badge: "bg-green-50 text-green-700 border-green-200" };
-    if (num <= 5) return { label: "Acceptable", badge: "bg-yellow-50 text-yellow-700 border-yellow-200" };
-    return { label: "High", badge: "bg-red-50 text-red-700 border-red-200" };
+    // 200 to 270 range
+    if (v >= 200 && v <= 270) return { label: "Pass", badge: "bg-[#E6F1FB] text-[#185FA5]" };
+    return { label: "Fail", badge: "bg-[#E41E23]/10 text-[#E41E23]" };
+  } else {
+    // 0 to 5 range
+    if (v <= 5) return { label: "Pass", badge: "bg-[#E6F1FB] text-[#185FA5]" };
+    return { label: "Fail", badge: "bg-[#E41E23]/10 text-[#E41E23]" };
   }
-  return { label: "Unknown", badge: "bg-gray-100 text-gray-600 border-gray-200" };
 }
 
-export function StaggerSection({ children, index }: { children: React.ReactNode; index: number }) {
+// ── Shared Sub-components ──────────────────────────────────────────────────
+
+export function StaggerSection({
+  children,
+  index,
+}: {
+  children: React.ReactNode;
+  index: number;
+}) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       transition={{
         duration: 0.45,
         delay: index * 0.1,
@@ -129,10 +133,24 @@ export function StaggerSection({ children, index }: { children: React.ReactNode;
   );
 }
 
-export function Field({ label, value, editing, onChange, type = "text" }: { label: string; value: string; editing?: boolean; onChange?: (v: string) => void; type?: string }) {
+export function Field({
+  label,
+  value,
+  editing,
+  onChange,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  editing?: boolean;
+  onChange?: (v: string) => void;
+  type?: string;
+}) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-[11px] text-gray-400 uppercase tracking-wide">{label}</span>
+      <span className="text-[11px] text-gray-400 uppercase tracking-wide">
+        {label}
+      </span>
       {editing && onChange ? (
         <input
           type={type}
@@ -141,7 +159,9 @@ export function Field({ label, value, editing, onChange, type = "text" }: { labe
           className="text-sm font-medium text-gray-800 border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-[#027D3F] focus:ring-1 focus:ring-[#027D3F]/20 transition-colors bg-[#FAF6EE]"
         />
       ) : (
-        <span className="text-sm font-medium text-gray-800">{value || "—"}</span>
+        <span className="text-sm font-medium text-gray-800">
+          {value || "—"}
+        </span>
       )}
     </div>
   );

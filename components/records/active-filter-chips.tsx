@@ -39,6 +39,18 @@ export function ActiveFilterChips({ filters, setFilter, clearFilters, totalActiv
         {filters.dateTo && (
           <Chip label={`To: ${filters.dateTo}`} onRemove={() => setFilter("dateTo", "")} />
         )}
+        {filters.pnMin && (
+          <Chip label={`PN Min: ${filters.pnMin}`} onRemove={() => setFilter("pnMin", "")} />
+        )}
+        {filters.pnMax && (
+          <Chip label={`PN Max: ${filters.pnMax}`} onRemove={() => setFilter("pnMax", "")} />
+        )}
+        {filters.peMin && (
+          <Chip label={`PE Min: ${filters.peMin}`} onRemove={() => setFilter("peMin", "")} />
+        )}
+        {filters.peMax && (
+          <Chip label={`PE Max: ${filters.peMax}`} onRemove={() => setFilter("peMax", "")} />
+        )}
         
         <button
           type="button"

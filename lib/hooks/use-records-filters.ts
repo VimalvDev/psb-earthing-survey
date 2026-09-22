@@ -18,6 +18,10 @@ export function useRecordsFilters() {
     year: searchParams.get("year") || DEFAULT_FILTERS.year,
     dateFrom: searchParams.get("dateFrom") || DEFAULT_FILTERS.dateFrom,
     dateTo: searchParams.get("dateTo") || DEFAULT_FILTERS.dateTo,
+    pnMin: searchParams.get("pnMin") || DEFAULT_FILTERS.pnMin,
+    pnMax: searchParams.get("pnMax") || DEFAULT_FILTERS.pnMax,
+    peMin: searchParams.get("peMin") || DEFAULT_FILTERS.peMin,
+    peMax: searchParams.get("peMax") || DEFAULT_FILTERS.peMax,
     page: parseInt(searchParams.get("page") || String(DEFAULT_FILTERS.page), 10),
     sortBy: (searchParams.get("sortBy") as any) || DEFAULT_FILTERS.sortBy,
   }), [searchParams])
@@ -130,6 +134,10 @@ export function useRecordsFilters() {
     !!urlFilters.zone,
     !!urlFilters.dateFrom,
     !!urlFilters.dateTo,
+    !!urlFilters.pnMin,
+    !!urlFilters.pnMax,
+    !!urlFilters.peMin,
+    !!urlFilters.peMax,
   ].filter(Boolean).length
 
   const totalActiveCount = [
@@ -142,6 +150,10 @@ export function useRecordsFilters() {
       !!urlFilters.zone,
       !!urlFilters.dateFrom,
       !!urlFilters.dateTo,
+      !!urlFilters.pnMin,
+      !!urlFilters.pnMax,
+      !!urlFilters.peMin,
+      !!urlFilters.peMax,
     ],
   ].filter(Boolean).length
 

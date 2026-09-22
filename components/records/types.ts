@@ -35,6 +35,10 @@ export interface Filters {
   year: string
   dateFrom: string
   dateTo: string
+  pnMin: string
+  pnMax: string
+  peMin: string
+  peMax: string
   page: number
   sortBy: SortBy
 }
@@ -50,6 +54,10 @@ export const DEFAULT_FILTERS: Filters = {
   year: "",
   dateFrom: "",
   dateTo: "",
+  pnMin: "",
+  pnMax: "",
+  peMin: "",
+  peMax: "",
   page: 1,
   sortBy: "newest",
 }

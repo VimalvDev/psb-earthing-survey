@@ -80,6 +80,11 @@ async function fetchPage(filters: Filters, sortBy: SortBy, page: number, allowed
   if (filters.dateFrom) q = q.gte("visit_date", filters.dateFrom)
   if (filters.dateTo)   q = q.lte("visit_date", filters.dateTo)
 
+  if (filters.pnMin) q = q.gte("readings->>EP-1::numeric", filters.pnMin)
+  if (filters.pnMax) q = q.lte("readings->>EP-1::numeric", filters.pnMax)
+  if (filters.peMin) q = q.gte("readings->>EP-2::numeric", filters.peMin)
+  if (filters.peMax) q = q.lte("readings->>EP-2::numeric", filters.peMax)
+
   if (sortBy === "newest") q = q.order("created_at", { ascending: false })
   if (sortBy === "oldest") q = q.order("created_at", { ascending: true })
   if (sortBy === "branch") q = q.order("bic", { ascending: true })
@@ -112,6 +117,10 @@ async function fetchStats(filters: Filters, allowed_years?: string[]) {
     }
     if (filters.dateFrom) q = q.gte("visit_date", filters.dateFrom)
     if (filters.dateTo)   q = q.lte("visit_date", filters.dateTo)
+    if (filters.pnMin) q = q.gte("readings->>EP-1::numeric", filters.pnMin)
+    if (filters.pnMax) q = q.lte("readings->>EP-1::numeric", filters.pnMax)
+    if (filters.peMin) q = q.gte("readings->>EP-2::numeric", filters.peMin)
+    if (filters.peMax) q = q.lte("readings->>EP-2::numeric", filters.peMax)
     return q
   }
   const [p, f] = await Promise.all([

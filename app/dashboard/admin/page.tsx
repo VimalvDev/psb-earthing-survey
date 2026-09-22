@@ -200,8 +200,8 @@ function SetPasswordModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 sm:p-4">
-      <div className="bg-white rounded-t-2xl sm:rounded-xl p-6 w-full max-w-sm animate-[fadeInUp_0.2s_ease-out_both] shadow-sm">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 sm:p-4 transition-all duration-300">
+      <div className="bg-white rounded-t-2xl sm:rounded-xl p-6 w-full max-w-sm animate-[fadeInUp_0.2s_ease-out_both] shadow-xl">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <FiKey size={18} className="text-[#027D3F]" />

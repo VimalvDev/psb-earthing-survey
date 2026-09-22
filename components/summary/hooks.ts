@@ -25,19 +25,30 @@ export function useStateWiseCounts(year?: string, allowed_years?: string[]) {
   return useQuery({
     queryKey: ["survey-state-counts", year, allowed_years],
     queryFn: async ({ signal }) => {
-      let q = supabase.from("surveys").select("state, visit_date, branch_name, bic")
+      let allData: any[] = []
+      let from = 0
       
-      q = applyAllowedYears(q, allowed_years)
-      
-      if (year) {
-        const [startYear, endYear] = year.split("-")
-        q = q.gte("visit_date", `${startYear}-04-01`)
-        q = q.lte("visit_date", `${endYear}-03-31`)
+      while (true) {
+        let q = supabase.from("surveys").select("state, visit_date, branch_name, bic")
+        
+        q = applyAllowedYears(q, allowed_years)
+        
+        if (year) {
+          const [startYear, endYear] = year.split("-")
+          q = q.gte("visit_date", `${startYear}-04-01`)
+          q = q.lte("visit_date", `${endYear}-03-31`)
+        }
+
+        const { data, error } = await q.range(from, from + 999).abortSignal(signal)
+
+        if (error) throw error
+        
+        allData = allData.concat(data || [])
+        if (!data || data.length < 1000) break
+        from += 1000
       }
 
-      const { data, error } = await q.abortSignal(signal)
-
-      if (error) throw error
+      const data = allData
 
       const counts = new Map<string, number>()
       for (const state of ALL_STATES) counts.set(state.label, 0)
