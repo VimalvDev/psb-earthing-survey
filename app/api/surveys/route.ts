@@ -84,6 +84,7 @@ export async function POST(req: NextRequest) {
     surveyor_mobile,
     surveyor_emp_id: formEmpId,
     financial_year: _clientFY, // explicitly discard any client-supplied value
+    branch_id: _clientBranchId, // server derives this from branch master
     ...restBody
   } = body;
 
@@ -92,6 +93,28 @@ export async function POST(req: NextRequest) {
   if (!financialYear) {
     return NextResponse.json(
       { error: "Invalid or missing visit_date. Expected format: YYYY-MM-DD" },
+      { status: 400 }
+    )
+  }
+
+  // Resolve branch_id from master branches table using the submitted BIC
+  const submittedBic = (restBody.bic ?? "").trim().toUpperCase()
+  if (!submittedBic) {
+    return NextResponse.json(
+      { error: "Branch code (BIC) is required." },
+      { status: 400 }
+    )
+  }
+
+  const { data: branchRow, error: branchError } = await adminClient
+    .from("branches")
+    .select("id")
+    .ilike("bic", submittedBic)
+    .single()
+
+  if (branchError || !branchRow) {
+    return NextResponse.json(
+      { error: "Branch code not found. The branch must exist in the master branches table." },
       { status: 400 }
     )
   }
@@ -109,6 +132,7 @@ export async function POST(req: NextRequest) {
     created_at: new Date().toISOString(),
     status: "submitted",
     financial_year: financialYear,
+    branch_id: branchRow.id,
   }
 
   const client = isAdmin ? adminClient : supabase;
