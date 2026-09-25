@@ -113,18 +113,21 @@ export function useSurveyStats(filters: Filters) {
   })
 }
 
-export function useFilterOptions() {
+export function useFilterOptions(category?: string) {
   const supabase = createClient()
   const { data: user } = useCurrentUser()
 
   return useQuery({
-    queryKey: ["survey-filter-options", user?.allowed_years],
+    queryKey: ["survey-filter-options", category, user?.allowed_years],
     queryFn: async () => {
       let allData: any[] = []
       let from = 0
       
       while (true) {
-        let q = supabase.from("surveys").select("state, zone, financial_year")
+        let q = supabase.from("surveys").select("state, zone, financial_year, branches!inner(branch_category)")
+        
+        q = q.eq("branches.branch_category", category || "existing_amc")
+        
         q = applyAllowedYears(q, user?.allowed_years)
         
         const { data, error } = await q.range(from, from + 999)

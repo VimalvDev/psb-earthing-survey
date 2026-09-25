@@ -2,10 +2,11 @@
 
 import { useStateWiseCounts } from "@/components/summary/hooks"
 import { useCurrentUser } from "@/lib/hooks/use-current-user"
+import { BranchCategory } from "@/components/records/types"
 
-export function StateWiseSummary({ year }: { year?: string }) {
+export function StateWiseSummary({ year, category }: { year?: string; category?: BranchCategory }) {
   const { data: user } = useCurrentUser()
-  const { data, isLoading } = useStateWiseCounts(year, user?.allowed_years)
+  const { data, isLoading } = useStateWiseCounts(year, category, user?.allowed_years)
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5 sm:p-6">

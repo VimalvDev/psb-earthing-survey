@@ -14,7 +14,7 @@ import {
 import { Flag } from "lucide-react";
 import { RecordCard } from "@/components/records/RecordCard";
 import { useSurveyRecords, useSurveyStats, useFilterOptions } from "@/components/records/hooks";
-import { DEFAULT_FILTERS } from "@/components/records/types";
+import { DEFAULT_FILTERS, BranchCategory, CATEGORY_LABELS } from "@/components/records/types";
 import { useCurrentUser } from "@/lib/hooks/use-current-user";
 import { ExportControls } from "@/components/summary/ExportControls";
 
@@ -66,10 +66,11 @@ function SummarySkeleton() {
 export default function SummaryPage() {
   const { data: user } = useCurrentUser();
   const [selectedYear, setSelectedYear] = useState<string>("");
-  const { data: filterOptions } = useFilterOptions();
+  const [activeCategory, setActiveCategory] = useState<BranchCategory>("existing_amc");
+  const { data: filterOptions } = useFilterOptions(activeCategory);
 
   const effectiveYear = selectedYear || (filterOptions?.years?.length === 1 ? filterOptions.years[0] : "");
-  const filters = { ...DEFAULT_FILTERS, year: effectiveYear };
+  const filters = { ...DEFAULT_FILTERS, year: effectiveYear, category: activeCategory };
 
   const {
     data: statsData,
@@ -117,13 +118,34 @@ export default function SummaryPage() {
             </div>
           ) : null}
           <Link
-            href="/dashboard/records"
+            href={`/dashboard/records?category=${activeCategory}${effectiveYear ? `&year=${effectiveYear}` : ''}`}
             className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-[13px] font-semibold text-gray-700 transition hover:bg-gray-50 hover:text-gray-900"
           >
             <FiList size={14} />
             View Records
           </Link>
         </div>
+      </div>
+
+      {/* Category Tabs */}
+      <div className="flex items-center gap-1 border-b border-gray-200">
+        {(["existing_amc", "new_installation"] as BranchCategory[]).map((cat) => (
+          <button
+            key={cat}
+            type="button"
+            onClick={() => setActiveCategory(cat)}
+            className={`relative px-4 py-2.5 text-[13px] font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#027D3F] rounded-t-lg ${
+              activeCategory === cat
+                ? "text-[#027D3F]"
+                : "text-gray-400 hover:text-gray-600"
+            }`}
+          >
+            {CATEGORY_LABELS[cat]}
+            {activeCategory === cat && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#027D3F] rounded-full" />
+            )}
+          </button>
+        ))}
       </div>
 
       {(user?.role === "admin" || user?.role === "visitor") && effectiveYear && (
@@ -139,7 +161,7 @@ export default function SummaryPage() {
           value={totalCount}
           className="border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
           valueClass="text-gray-900"
-          href={`/dashboard/records${effectiveYear ? `?year=${effectiveYear}` : ''}`}
+          href={`/dashboard/records?category=${activeCategory}${effectiveYear ? `&year=${effectiveYear}` : ''}`}
         />
 
         <StatCard
@@ -147,7 +169,7 @@ export default function SummaryPage() {
           value={passCount}
           className="border-[#027D3F]/20 bg-[#F4FAF6] hover:border-[#027D3F]/40 hover:bg-[#E8F5EE]"
           valueClass="text-[#027D3F]"
-          href={`/dashboard/records?status=Pass${effectiveYear ? `&year=${effectiveYear}` : ''}`}
+          href={`/dashboard/records?category=${activeCategory}&status=Pass${effectiveYear ? `&year=${effectiveYear}` : ''}`}
         />
 
         <StatCard
@@ -156,11 +178,11 @@ export default function SummaryPage() {
           className={`border-red-200 hover:border-red-300 transition-colors
             ${failCount > 0 ? "bg-red-50/50 hover:bg-red-50" : "bg-white hover:bg-gray-50"}`}
           valueClass={failCount > 0 ? "text-red-700" : "text-gray-400"}
-          href={`/dashboard/records?status=Flagged${effectiveYear ? `&year=${effectiveYear}` : ''}`}
+          href={`/dashboard/records?category=${activeCategory}&status=Flagged${effectiveYear ? `&year=${effectiveYear}` : ''}`}
         />
       </div>
 
-      <StateWiseSummary year={effectiveYear} />
+      <StateWiseSummary year={effectiveYear} category={activeCategory} />
 
       <div className="rounded-xl border border-gray-200 bg-white p-5 sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-4 mb-4">
@@ -173,7 +195,7 @@ export default function SummaryPage() {
             </p>
           </div>
           <Link
-            href="/dashboard/records"
+            href={`/dashboard/records?category=${activeCategory}${effectiveYear ? `&year=${effectiveYear}` : ''}`}
             className="text-sm font-semibold text-[#027D3F] hover:underline"
           >
             View all records

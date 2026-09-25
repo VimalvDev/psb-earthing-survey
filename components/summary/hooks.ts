@@ -17,26 +17,27 @@ Object.entries(STATE_ALIASES).forEach(([alias, target]) => {
   }
 })
 
+import { BranchCategory } from "@/components/records/types"
 import { applyAllowedYears } from "@/components/records/hooks"
 
-export function useStateWiseCounts(year?: string, allowed_years?: string[]) {
+export function useStateWiseCounts(year?: string, category?: BranchCategory, allowed_years?: string[]) {
   const supabase = createClient()
 
   return useQuery({
-    queryKey: ["survey-state-counts", year, allowed_years],
+    queryKey: ["survey-state-counts", year, category, allowed_years],
     queryFn: async ({ signal }) => {
       let allData: any[] = []
       let from = 0
       
       while (true) {
-        let q = supabase.from("surveys").select("state, visit_date, branch_name, bic")
+        let q = supabase.from("surveys").select("state, branch_name, bic, branches!inner(branch_category)")
+        
+        q = q.eq("branches.branch_category", category || "existing_amc")
         
         q = applyAllowedYears(q, allowed_years)
         
         if (year) {
-          const [startYear, endYear] = year.split("-")
-          q = q.gte("visit_date", `${startYear}-04-01`)
-          q = q.lte("visit_date", `${endYear}-03-31`)
+          q = q.eq("financial_year", year)
         }
 
         const { data, error } = await q.range(from, from + 999).abortSignal(signal)
