@@ -7,9 +7,13 @@ import { useCurrentUser } from "@/lib/hooks/use-current-user"
 
 export function buildQuery(supabase: ReturnType<typeof createClient>, filters: Filters, sortBy: SortBy) {
   let q = supabase.from("surveys").select(
-    "id, survey_id, bic, branch_name, state, district, zone, visit_date, surveyor_emp_id, surveyor_email, overall_status, readings, site_photo, created_at",
+    "id, survey_id, bic, branch_name, state, district, zone, visit_date, surveyor_emp_id, surveyor_email, overall_status, readings, site_photo, created_at, branches!inner(branch_category)",
     { count: "exact" }
   )
+
+  if (filters.category) {
+    q = q.eq("branches.branch_category", filters.category)
+  }
 
   const search = filters.search.trim()
   if (search) {
@@ -62,7 +66,7 @@ export function useSurveyRecords(filters: Filters, sortBy: SortBy, page: number)
         .range(from, to)
         .abortSignal(signal)
       if (error) throw error
-      return { records: (data as SurveyRecord[]) ?? [], totalCount: count ?? 0 }
+      return { records: (data as unknown as SurveyRecord[]) ?? [], totalCount: count ?? 0 }
     },
     placeholderData: keepPreviousData,
   })
@@ -77,7 +81,10 @@ export function useSurveyStats(filters: Filters) {
     queryFn: async ({ signal }) => {
       // Helper to build the base query with all filters applied
       const buildBase = () => {
-        let q = supabase.from("surveys").select("id", { count: "exact", head: true })
+        let q = supabase.from("surveys").select("id, branches!inner(branch_category)", { count: "exact", head: true })
+        if (filters.category) {
+          q = q.eq("branches.branch_category", filters.category)
+        }
         q = applyAllowedYears(q, user?.allowed_years)
         const search = filters.search.trim()
         if (search) q = q.or(`branch_name.ilike.%${search}%,bic.ilike.%${search}%,district.ilike.%${search}%,state.ilike.%${search}%`)

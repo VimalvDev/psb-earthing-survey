@@ -92,41 +92,43 @@ export default function SummaryPage() {
   return (
     <div className="flex flex-col gap-8">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-2">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Survey Summary</h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">
-            Overview of submitted surveys and recent activity.
-          </p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2.5 sm:items-center">
-          {filterOptions?.years && filterOptions.years.length > 1 ? (
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
-              className="appearance-none w-full sm:w-auto rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-gray-700 outline-none transition focus:border-[#027D3F] focus:ring-1 focus:ring-[#027D3F]"
+      {user?.role !== "visitor" && (
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-2">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Survey Summary</h1>
+            <p className="text-[13px] text-gray-500 mt-0.5">
+              Overview of submitted surveys and recent activity.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2.5 sm:items-center">
+            {filterOptions?.years && filterOptions.years.length > 1 ? (
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                className="appearance-none w-full sm:w-auto rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-gray-700 outline-none transition focus:border-[#027D3F] focus:ring-1 focus:ring-[#027D3F]"
+              >
+                <option value="">All Financial Years</option>
+                {filterOptions.years.map((year) => (
+                  <option key={year} value={year}>
+                    FY {year}
+                  </option>
+                ))}
+              </select>
+            ) : filterOptions?.years?.length === 1 ? (
+              <div className="rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-gray-700">
+                FY {filterOptions.years[0]}
+              </div>
+            ) : null}
+            <Link
+              href={`/dashboard/records?category=${activeCategory}${effectiveYear ? `&year=${effectiveYear}` : ''}`}
+              className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-[13px] font-semibold text-gray-700 transition hover:bg-gray-50 hover:text-gray-900"
             >
-              <option value="">All Financial Years</option>
-              {filterOptions.years.map((year) => (
-                <option key={year} value={year}>
-                  FY {year}
-                </option>
-              ))}
-            </select>
-          ) : filterOptions?.years?.length === 1 ? (
-            <div className="rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-gray-700">
-              FY {filterOptions.years[0]}
-            </div>
-          ) : null}
-          <Link
-            href={`/dashboard/records?category=${activeCategory}${effectiveYear ? `&year=${effectiveYear}` : ''}`}
-            className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-[13px] font-semibold text-gray-700 transition hover:bg-gray-50 hover:text-gray-900"
-          >
-            <FiList size={14} />
-            View Records
-          </Link>
+              <FiList size={14} />
+              View Records
+            </Link>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Category Tabs */}
       <div className="flex items-center gap-1 border-b border-gray-200">
