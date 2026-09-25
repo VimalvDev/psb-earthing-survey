@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useTransition, useMemo, useRef } from "react"
 import { useRouter, usePathname, useSearchParams } from "next/navigation"
-import { Filters, StatusFilter, DEFAULT_FILTERS } from "@/components/records/types"
+import { Filters, StatusFilter, BranchCategory, DEFAULT_FILTERS } from "@/components/records/types"
 
 export function useRecordsFilters() {
   const router = useRouter()
@@ -16,6 +16,7 @@ export function useRecordsFilters() {
     district: searchParams.get("district") || DEFAULT_FILTERS.district,
     zone: searchParams.get("zone") || DEFAULT_FILTERS.zone,
     year: searchParams.get("year") || DEFAULT_FILTERS.year,
+    category: (searchParams.get("category") as BranchCategory) || DEFAULT_FILTERS.category,
     dateFrom: searchParams.get("dateFrom") || DEFAULT_FILTERS.dateFrom,
     dateTo: searchParams.get("dateTo") || DEFAULT_FILTERS.dateTo,
     pnMin: searchParams.get("pnMin") || DEFAULT_FILTERS.pnMin,
@@ -50,7 +51,8 @@ export function useRecordsFilters() {
           value === "All" ||
           value === "" ||
           (key === "page" && (value === 1 || value === "1")) ||
-          (key === "sortBy" && value === "newest")
+          (key === "sortBy" && value === "newest") ||
+          (key === "category" && value === "existing_amc")
         if (isDefault) {
           params.delete(key)
         } else {

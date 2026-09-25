@@ -27,9 +27,7 @@ export function buildQuery(supabase: ReturnType<typeof createClient>, filters: F
   }
   if (filters.zone)  q = q.eq("zone", filters.zone)
   if (filters.year) {
-    const [startYear, endYear] = filters.year.split("-")
-    q = q.gte("visit_date", `${startYear}-04-01`)
-    q = q.lte("visit_date", `${endYear}-03-31`)
+    q = q.eq("financial_year", filters.year)
   }
   if (filters.dateFrom) q = q.gte("visit_date", filters.dateFrom)
   if (filters.dateTo)   q = q.lte("visit_date", filters.dateTo)
@@ -43,10 +41,7 @@ export function buildQuery(supabase: ReturnType<typeof createClient>, filters: F
 
 export function applyAllowedYears(q: any, allowed_years?: string[]) {
   if (allowed_years && allowed_years.length > 0) {
-    const orConditions = allowed_years.map(year => {
-      const [startYear, endYear] = year.split("-");
-      return `and(visit_date.gte.${startYear}-04-01,visit_date.lte.${endYear}-03-31)`;
-    });
+    const orConditions = allowed_years.map(year => `financial_year.eq.${year}`);
     return q.or(orConditions.join(","));
   }
   return q;
@@ -96,9 +91,7 @@ export function useSurveyStats(filters: Filters) {
         
         if (filters.zone)  q = q.eq("zone", filters.zone)
         if (filters.year) {
-          const [startYear, endYear] = filters.year.split("-")
-          q = q.gte("visit_date", `${startYear}-04-01`)
-          q = q.lte("visit_date", `${endYear}-03-31`)
+          q = q.eq("financial_year", filters.year)
         }
         if (filters.dateFrom) q = q.gte("visit_date", filters.dateFrom)
         if (filters.dateTo)   q = q.lte("visit_date", filters.dateTo)
@@ -131,7 +124,7 @@ export function useFilterOptions() {
       let from = 0
       
       while (true) {
-        let q = supabase.from("surveys").select("state, zone, visit_date")
+        let q = supabase.from("surveys").select("state, zone, financial_year")
         q = applyAllowedYears(q, user?.allowed_years)
         
         const { data, error } = await q.range(from, from + 999)
@@ -144,19 +137,12 @@ export function useFilterOptions() {
       
       const data = allData
       const { ALL_STATES } = await import("@/components/summary/states")
-      
-      const getFY = (d: string | null) => {
-        if (!d) return null
-        const date = new Date(d)
-        if (isNaN(date.getTime())) return null
-        const y = date.getFullYear()
-        return date.getMonth() < 3 ? `${y - 1}-${y}` : `${y}-${y + 1}`
-      }
 
       return {
         states: ALL_STATES.map(s => s.label).sort(),
         zones:  [...new Set((data ?? []).map((r) => r.zone).filter(Boolean))].sort() as string[],
-        years:  ([...new Set((data ?? []).map((r) => getFY(r.visit_date)).filter(Boolean) as string[])]).sort((a, b) => b.localeCompare(a)),
+        // Use financial_year column directly — no client-side date derivation
+        years:  ([...new Set((data ?? []).map((r) => r.financial_year).filter(Boolean) as string[])]).sort((a, b) => b.localeCompare(a)),
       }
     },
     staleTime: 5 * 60 * 1000,

@@ -2,6 +2,7 @@
 
 export type SurveyStatus = "Pass" | "Flagged"
 export type StatusFilter = "All" | SurveyStatus
+export type BranchCategory = "existing_amc" | "new_installation"
 export type SortBy = "newest" | "oldest" | "branch"
 
 export interface SurveyRecord {
@@ -23,6 +24,8 @@ export interface SurveyRecord {
   equipment: { make: string; model: string }[] | null
   checklist: Record<string, boolean> | null
   site_photo: Record<string, string> | null
+  financial_year: string | null
+  branch_category: BranchCategory | null
   created_at: string
 }
 
@@ -33,6 +36,7 @@ export interface Filters {
   district: string
   zone: string
   year: string
+  category: BranchCategory
   dateFrom: string
   dateTo: string
   pnMin: string
@@ -52,6 +56,7 @@ export const DEFAULT_FILTERS: Filters = {
   district: "",
   zone: "",
   year: "",
+  category: "existing_amc",
   dateFrom: "",
   dateTo: "",
   pnMin: "",
@@ -60,6 +65,11 @@ export const DEFAULT_FILTERS: Filters = {
   peMax: "",
   page: 1,
   sortBy: "newest",
+}
+
+export const CATEGORY_LABELS: Record<BranchCategory, string> = {
+  existing_amc: "Existing / AMC",
+  new_installation: "New Installation",
 }
 
 export const ITEMS_PER_PAGE = 10

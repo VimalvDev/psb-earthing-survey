@@ -23,8 +23,8 @@ import { RecordsToolbar } from "@/components/records/records-toolbar"
 import { ActiveFilterChips } from "@/components/records/active-filter-chips"
 import { FiltersSheet } from "@/components/records/filters-sheet"
 import {
-  SurveyRecord, Filters, SortBy,
-  DEFAULT_FILTERS, ITEMS_PER_PAGE,
+  SurveyRecord, Filters, SortBy, BranchCategory,
+  DEFAULT_FILTERS, ITEMS_PER_PAGE, CATEGORY_LABELS,
   getActiveFilterCount,
 } from "@/components/records/types"
 
@@ -36,19 +36,20 @@ const supabase = createClient()
 
 function applyAllowedYears(q: any, allowed_years?: string[]) {
   if (allowed_years && allowed_years.length > 0) {
-    const orConditions = allowed_years.map(year => {
-      const [startYear, endYear] = year.split("-");
-      return `and(visit_date.gte.${startYear}-04-01,visit_date.lte.${endYear}-03-31)`;
-    });
+    const orConditions = allowed_years.map(year => `financial_year.eq.${year}`);
     return q.or(orConditions.join(","));
   }
   return q;
 }
 
 async function fetchPage(filters: Filters, sortBy: SortBy, page: number, allowed_years?: string[]) {
+  // Use inner join on branches to filter by branch_category server-side
   let q = supabase
     .from("surveys")
-    .select("id, survey_id, bic, branch_name, state, district, zone, visit_date, surveyor_emp_id, surveyor_name, surveyor_email, overall_status, readings, remarks, next_inspection_date, equipment, site_photo, created_at", { count: "exact" })
+    .select("id, survey_id, bic, branch_name, state, district, zone, visit_date, financial_year, surveyor_emp_id, surveyor_name, surveyor_email, overall_status, readings, remarks, next_inspection_date, equipment, site_photo, created_at, branches!inner(branch_category)", { count: "exact" })
+
+  // Category filter via the joined branch master
+  q = q.eq("branches.branch_category", filters.category)
 
   q = applyAllowedYears(q, allowed_years)
 
@@ -71,10 +72,9 @@ async function fetchPage(filters: Filters, sortBy: SortBy, page: number, allowed
   if (filters.district) q = q.ilike("district", filters.district)
   if (filters.zone)  q = q.eq("zone", filters.zone)
   
+  // Use financial_year column directly instead of date-range conversion
   if (filters.year) {
-    const [startYear, endYear] = filters.year.split("-")
-    q = q.gte("visit_date", `${startYear}-04-01`)
-    q = q.lte("visit_date", `${endYear}-03-31`)
+    q = q.eq("financial_year", filters.year)
   }
 
   if (filters.dateFrom) q = q.gte("visit_date", filters.dateFrom)
@@ -93,11 +93,23 @@ async function fetchPage(filters: Filters, sortBy: SortBy, page: number, allowed
   const from = (page - 1) * ITEMS_PER_PAGE
   const { data, error, count } = await q.range(from, from + ITEMS_PER_PAGE - 1)
   if (error) throw error
-  return { records: (data as SurveyRecord[]) ?? [], total: count ?? 0 }
+
+  // Flatten the joined branches data into each record
+  const records = (data ?? []).map((row: any) => {
+    const { branches, ...rest } = row
+    return {
+      ...rest,
+      branch_category: branches?.branch_category ?? null,
+    } as SurveyRecord
+  })
+
+  return { records, total: count ?? 0 }
 }
 
 async function fetchStats(filters: Filters, allowed_years?: string[]) {
   const applyFilters = (q: any) => {
+    // Inner join on branches for category filtering
+    q = q.eq("branches.branch_category", filters.category)
     q = applyAllowedYears(q, allowed_years)
     const search = filters.search.trim()
     if (search) q = q.or(`branch_name.ilike.%${search}%,bic.ilike.%${search}%,district.ilike.%${search}%,state.ilike.%${search}%`)
@@ -110,10 +122,9 @@ async function fetchStats(filters: Filters, allowed_years?: string[]) {
     
     if (filters.district) q = q.ilike("district", filters.district)
     if (filters.zone)  q = q.eq("zone", filters.zone)
+    // Use financial_year column directly
     if (filters.year) {
-      const [startYear, endYear] = filters.year.split("-")
-      q = q.gte("visit_date", `${startYear}-04-01`)
-      q = q.lte("visit_date", `${endYear}-03-31`)
+      q = q.eq("financial_year", filters.year)
     }
     if (filters.dateFrom) q = q.gte("visit_date", filters.dateFrom)
     if (filters.dateTo)   q = q.lte("visit_date", filters.dateTo)
@@ -124,8 +135,8 @@ async function fetchStats(filters: Filters, allowed_years?: string[]) {
     return q
   }
   const [p, f] = await Promise.all([
-    applyFilters(supabase.from("surveys").select("*", { count: "exact", head: true }).eq("overall_status", "Pass")),
-    applyFilters(supabase.from("surveys").select("*", { count: "exact", head: true }).in("overall_status", ["Flagged", "Fail"])),
+    applyFilters(supabase.from("surveys").select("id, branches!inner(branch_category)", { count: "exact", head: true }).eq("overall_status", "Pass")),
+    applyFilters(supabase.from("surveys").select("id, branches!inner(branch_category)", { count: "exact", head: true }).in("overall_status", ["Flagged", "Fail"])),
   ])
   return { pass: p.count ?? 0, fail: f.count ?? 0 }
 }
@@ -152,27 +163,22 @@ async function fetchSurveyDetail(surveyId: string) {
   return { ...data, surveyor_name, surveyor_mobile }
 }
 
-async function fetchFilterOptions(allowed_years?: string[]) {
-  let q = supabase.from("surveys").select("state, district, zone, visit_date")
+async function fetchFilterOptions(allowed_years?: string[], category?: BranchCategory) {
+  // Use inner join on branches for category filtering; select only needed fields
+  let q = supabase.from("surveys").select("state, district, zone, financial_year, branches!inner(branch_category)")
+  q = q.eq("branches.branch_category", category || "existing_amc")
   q = applyAllowedYears(q, allowed_years)
   const { data } = await q
   if (!data) return { states: [], districts: [], zones: [], years: [] }
-  
-  const getFY = (d: string | null) => {
-    if (!d) return null
-    const date = new Date(d)
-    if (isNaN(date.getTime())) return null
-    const y = date.getFullYear()
-    return date.getMonth() < 3 ? `${y - 1}-${y}` : `${y}-${y + 1}`
-  }
 
   const allStates = ALL_STATES.map(s => s.label).sort();
 
   return {
     states: allStates,
-    districts: [...new Set(data.map((r) => r.district).filter(Boolean))].sort() as string[],
-    zones:  [...new Set(data.map((r) => r.zone).filter(Boolean))].sort() as string[],
-    years:  ([...new Set(data.map((r) => getFY(r.visit_date)).filter(Boolean) as string[])]).sort((a, b) => b.localeCompare(a)),
+    districts: [...new Set(data.map((r: any) => r.district).filter(Boolean))].sort() as string[],
+    zones:  [...new Set(data.map((r: any) => r.zone).filter(Boolean))].sort() as string[],
+    // Use financial_year column directly — no client-side date derivation
+    years:  ([...new Set(data.map((r: any) => r.financial_year).filter(Boolean) as string[])]).sort((a, b) => b.localeCompare(a)),
   }
 }
 
@@ -243,8 +249,8 @@ export default function RecordsPage() {
   })
 
   const { data: filterOptions } = useQuery({
-    queryKey: ["filter-options", user?.allowed_years],
-    queryFn: () => fetchFilterOptions(user?.allowed_years),
+    queryKey: ["filter-options", filters.category, user?.allowed_years],
+    queryFn: () => fetchFilterOptions(user?.allowed_years, filters.category),
     staleTime: 5 * 60 * 1000,
   })
 
@@ -298,6 +304,27 @@ export default function RecordsPage() {
             New Survey
           </Link>
         )}
+      </div>
+
+      {/* Category Tabs */}
+      <div className="flex items-center gap-1 border-b border-gray-200">
+        {(["existing_amc", "new_installation"] as BranchCategory[]).map((cat) => (
+          <button
+            key={cat}
+            type="button"
+            onClick={() => setFilter("category", cat)}
+            className={`relative px-4 py-2.5 text-[13px] font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#027D3F] rounded-t-lg ${
+              filters.category === cat
+                ? "text-[#027D3F]"
+                : "text-gray-400 hover:text-gray-600"
+            }`}
+          >
+            {CATEGORY_LABELS[cat]}
+            {filters.category === cat && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#027D3F] rounded-full" />
+            )}
+          </button>
+        ))}
       </div>
 
       {/* Main layout */}
