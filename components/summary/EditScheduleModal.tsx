@@ -21,7 +21,7 @@ export function EditScheduleModal({ year, onClose }: EditScheduleModalProps) {
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [deletedBics, setDeletedBics] = useState<string[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newBranch, setNewBranch] = useState({ bic: "", branch_name: "", address: "", state: "", district: "", zone: "" });
+  const [newBranch, setNewBranch] = useState({ bic: "", branch_name: "", address: "", state: "", district: "", zone: "", branch_category: "existing_amc" });
   const [uploadingRow, setUploadingRow] = useState<number | null>(null);
   const [draggedRow, setDraggedRow] = useState<number | null>(null);
   const supabase = createClient();
@@ -33,7 +33,7 @@ export function EditScheduleModal({ year, onClose }: EditScheduleModalProps) {
         let branchesData: any[] = [];
         let fromB = 0;
         while (true) {
-          const { data: bData, error } = await supabase.from("branches").select("bic, address, state, district, zone, branch_name, manager_name, phone_no").order("bic", { ascending: true }).range(fromB, fromB + 999);
+          const { data: bData, error } = await supabase.from("branches").select("bic, address, state, district, zone, branch_name, manager_name, phone_no, branch_category").order("bic", { ascending: true }).range(fromB, fromB + 999);
           if (error) throw error;
           branchesData = branchesData.concat(bData || []);
           if (!bData || bData.length < 1000) break;
@@ -113,7 +113,9 @@ export function EditScheduleModal({ year, onClose }: EditScheduleModalProps) {
             surveyor_emp_id: survey ? survey.surveyor_emp_id : (existing["surveyor_emp_id"] || ""),
             original_surveyor_emp_id: survey ? survey.surveyor_emp_id : (existing["surveyor_emp_id"] || ""),
             surveyor_name: survey ? survey.surveyor_name : "",
-            hasSurvey: !!survey
+            hasSurvey: !!survey,
+            branch_category: b.branch_category || "existing_amc",
+            isModified: false
           };
         });
 
@@ -130,7 +132,7 @@ export function EditScheduleModal({ year, onClose }: EditScheduleModalProps) {
 
   const handleChange = (index: number, field: string, value: string) => {
     const newData = [...data];
-    newData[index] = { ...newData[index], [field]: value };
+    newData[index] = { ...newData[index], [field]: value, isModified: true };
     setData(newData);
   };
 
@@ -140,8 +142,8 @@ export function EditScheduleModal({ year, onClose }: EditScheduleModalProps) {
 
   const submitNewBranch = () => {
     if (!newBranch.bic) return alert("Branch Code is required.");
-    setData([{ ...newBranch, date: "", spd: "yes", earthing: "yes", hasSurvey: false, isNew: true, surveyor_emp_id: "" }, ...data]);
-    setNewBranch({ bic: "", branch_name: "", address: "", state: "", district: "", zone: "" });
+    setData([{ ...newBranch, date: "", spd: "yes", earthing: "yes", hasSurvey: false, isNew: true, isModified: true, surveyor_emp_id: "" }, ...data]);
+    setNewBranch({ bic: "", branch_name: "", address: "", state: "", district: "", zone: "", branch_category: "existing_amc" });
     setIsAddModalOpen(false);
   };
 
@@ -260,17 +262,22 @@ export function EditScheduleModal({ year, onClose }: EditScheduleModalProps) {
       const branchesToUpsert: any[] = [];
       const surveyUpdates: any[] = [];
 
+      let validationError = null;
+
       data.forEach(r => {
         if (!r.bic) return; // Skip empty branch codes
 
-        branchesToUpsert.push({
-          bic: r.bic.trim().toUpperCase(),
-          address: r.address || "",
-          state: r.state || "",
-          district: r.district || "",
-          zone: r.zone || "",
-          branch_name: r.branch_name || ""
-        });
+        if (r.isModified || r.isNew) {
+          branchesToUpsert.push({
+            bic: r.bic.trim().toUpperCase(),
+            address: r.address || "",
+            state: r.state || "",
+            district: r.district || "",
+            zone: r.zone || "",
+            branch_name: r.branch_name || "",
+            branch_category: r.branch_category || "existing_amc"
+          });
+        }
 
         // Track surveyor changes for completed surveys
         if (r.hasSurvey && r.surveyor_emp_id && r.surveyor_emp_id !== r.original_surveyor_emp_id) {
@@ -285,6 +292,10 @@ export function EditScheduleModal({ year, onClose }: EditScheduleModalProps) {
           }
         }
       });
+
+      if (validationError) {
+        throw new Error(validationError);
+      }
 
       // Build the schedule rows for server-side Excel generation
       const scheduleRows = data.filter(r => r.bic).map(r => ({
@@ -406,6 +417,7 @@ export function EditScheduleModal({ year, onClose }: EditScheduleModalProps) {
                       <th className="px-4 py-3 whitespace-nowrap">State</th>
                       <th className="px-4 py-3 whitespace-nowrap">District</th>
                       <th className="px-4 py-3 whitespace-nowrap min-w-[200px]">Surveyor Name</th>
+                      <th className="px-4 py-3 whitespace-nowrap">Category</th>
                       <th className="px-4 py-3 whitespace-nowrap">Visit Date</th>
                       <th className="px-4 py-3 whitespace-nowrap">SPD Status</th>
                       <th className="px-4 py-3 whitespace-nowrap">Earthing Status</th>
@@ -468,6 +480,16 @@ export function EditScheduleModal({ year, onClose }: EditScheduleModalProps) {
                             {row.hasSurvey && row.surveyor_emp_id && !engineers.find(e => String(e.emp_id) === String(row.surveyor_emp_id)) && (
                               <option value={row.surveyor_emp_id}>{row.surveyor_name || row.surveyor_emp_id}</option>
                             )}
+                          </select>
+                        </td>
+                        <td className="px-4 py-2">
+                          <select
+                            value={row.branch_category || "existing_amc"}
+                            onChange={(e) => handleChange(i, "branch_category", e.target.value)}
+                            className="w-full px-3 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-[#027D3F] focus:ring-1 focus:ring-[#027D3F] transition-all bg-white text-gray-800"
+                          >
+                            <option value="existing_amc">Existing / AMC</option>
+                            <option value="new_installation">New Installation</option>
                           </select>
                         </td>
                         <td className="px-4 py-2">
@@ -624,6 +646,19 @@ export function EditScheduleModal({ year, onClose }: EditScheduleModalProps) {
                   onChange={e => setNewBranch(p => ({ ...p, zone: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-[#027D3F] focus:border-[#027D3F] outline-none text-sm"
                 />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Category</label>
+                  <select
+                    value={newBranch.branch_category}
+                    onChange={e => setNewBranch(p => ({ ...p, branch_category: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-[#027D3F] focus:border-[#027D3F] outline-none text-sm bg-white"
+                  >
+                    <option value="existing_amc">Existing / AMC</option>
+                    <option value="new_installation">New Installation</option>
+                  </select>
+                </div>
               </div>
             </div>
             <div className="flex gap-3 mt-6">

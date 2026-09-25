@@ -13,6 +13,14 @@ export async function POST(request: Request) {
       );
     }
 
+    // Validation
+    for (const b of branches) {
+      if (!b.bic) continue;
+      if (b.branch_category !== "existing_amc" && b.branch_category !== "new_installation") {
+        return NextResponse.json({ error: `Invalid branch category for ${b.bic}` }, { status: 400 });
+      }
+    }
+
     const supabaseAdmin = createAdminClient();
 
     // Upsert branches
