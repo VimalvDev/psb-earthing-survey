@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { StateWiseSummary } from "@/components/summary/StateWiseSummary";
+import { CoverageMetrics } from "@/components/summary/CoverageMetrics";
 import {
   FiAlertTriangle,
   FiCheckCircle,
@@ -153,6 +154,8 @@ export default function SummaryPage() {
           <ExportControls year={effectiveYear} />
         </div>
       )}
+
+      <CoverageMetrics year={effectiveYear} category={activeCategory} />
 
       {/* KPI Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

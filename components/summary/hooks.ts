@@ -83,3 +83,45 @@ export function useStateWiseCounts(year?: string, category?: BranchCategory, all
     staleTime: 60 * 1000,
   })
 }
+
+export function useCoverageStats(year?: string, category?: BranchCategory, allowed_years?: string[]) {
+  const supabase = createClient()
+
+  return useQuery({
+    queryKey: ["survey-coverage", category, year, allowed_years],
+    enabled: !!year,
+    queryFn: async ({ signal }) => {
+      // 1. Branch Universe query
+      const { count: universe, error: err1 } = await supabase
+        .from("branches")
+        .select("*", { count: "exact", head: true })
+        .eq("branch_category", category || "existing_amc")
+        .abortSignal(signal)
+      if (err1) throw err1
+
+      // 2. Submitted Reports query
+      let q = supabase
+        .from("surveys")
+        .select("id, branches!inner(branch_category)", { count: "exact", head: true })
+        .eq("financial_year", year)
+        .eq("branches.branch_category", category || "existing_amc")
+      
+      q = applyAllowedYears(q, allowed_years)
+      
+      const { count: submitted, error: err2 } = await q.abortSignal(signal)
+      if (err2) throw err2
+
+      const uni = universe ?? 0
+      const sub = submitted ?? 0
+      const remaining = uni - sub
+      let coverage = 0
+      if (uni > 0) {
+        coverage = (sub / uni) * 100
+      }
+
+      return { universe: uni, submitted: sub, remaining, coverage }
+    },
+    placeholderData: keepPreviousData,
+    staleTime: 5 * 60 * 1000,
+  })
+}
