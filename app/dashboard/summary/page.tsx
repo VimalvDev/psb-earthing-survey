@@ -106,71 +106,78 @@ export default function SummaryPage() {
   const failCount = statsData?.fail ?? 0;
   const recentRecords = pageData?.records.slice(0, 5) ?? [];
 
+  const canSeeSummaryHeader =
+    user?.role === "admin" ||
+    user?.role === "engineer" ||
+    user?.role === "manager";
+
   return (
     <div className="flex flex-col gap-8">
-      {/* Header */}
-      {user?.role !== "visitor" && (
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-2">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Survey Summary</h1>
-            <p className="text-[13px] text-gray-500 mt-0.5">
-              Overview of submitted surveys and recent activity.
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2.5 sm:items-center">
-            {filterOptions?.years && filterOptions.years.length > 1 ? (
-              <select
-                value={selectedYear === "auto" ? effectiveYear : selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-                className="appearance-none w-full sm:w-auto rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-gray-700 outline-none transition focus:border-[#027D3F] focus:ring-1 focus:ring-[#027D3F]"
+      {canSeeSummaryHeader && (
+        <div className="flex flex-col gap-8">
+          {/* Header */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-2">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Survey Summary</h1>
+              <p className="text-[13px] text-gray-500 mt-0.5">
+                Overview of submitted surveys and recent activity.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2.5 sm:items-center">
+              {filterOptions?.years && filterOptions.years.length > 1 ? (
+                <select
+                  value={selectedYear === "auto" ? effectiveYear : selectedYear}
+                  onChange={(e) => setSelectedYear(e.target.value)}
+                  className="appearance-none w-full sm:w-auto rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-gray-700 outline-none transition focus:border-[#027D3F] focus:ring-1 focus:ring-[#027D3F]"
+                >
+                  <option value="">All Financial Years</option>
+                  {filterOptions.years.map((year) => (
+                    <option key={year} value={year}>
+                      FY {year}
+                    </option>
+                  ))}
+                </select>
+              ) : filterOptions?.years?.length === 1 ? (
+                <div className="rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-gray-700">
+                  FY {filterOptions.years[0]}
+                </div>
+              ) : null}
+              <Link
+                href={`/dashboard/records?category=${activeCategory}${effectiveYear ? `&year=${effectiveYear}` : ''}`}
+                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-[13px] font-semibold text-gray-700 transition hover:bg-gray-50 hover:text-gray-900"
               >
-                <option value="">All Financial Years</option>
-                {filterOptions.years.map((year) => (
-                  <option key={year} value={year}>
-                    FY {year}
-                  </option>
-                ))}
-              </select>
-            ) : filterOptions?.years?.length === 1 ? (
-              <div className="rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-gray-700">
-                FY {filterOptions.years[0]}
-              </div>
-            ) : null}
-            <Link
-              href={`/dashboard/records?category=${activeCategory}${effectiveYear ? `&year=${effectiveYear}` : ''}`}
-              className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-[13px] font-semibold text-gray-700 transition hover:bg-gray-50 hover:text-gray-900"
-            >
-              <FiList size={14} />
-              View Records
-            </Link>
+                <FiList size={14} />
+                View Records
+              </Link>
+            </div>
           </div>
-        </div>
-      )}
 
-      {/* Category Tabs */}
-      <div className="flex items-center gap-1 border-b border-gray-200">
-        {(["existing_amc", "new_installation"] as BranchCategory[]).map((cat) => (
-          <button
-            key={cat}
-            type="button"
-            onClick={() => setActiveCategory(cat)}
-            className={`relative px-4 py-2.5 text-[13px] font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#027D3F] rounded-t-lg ${
-              activeCategory === cat
-                ? "text-[#027D3F]"
-                : "text-gray-400 hover:text-gray-600"
-            }`}
-          >
-            {CATEGORY_LABELS[cat]}
-            {activeCategory === cat && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#027D3F] rounded-full" />
-            )}
-          </button>
-        ))}
-      </div>
+          {/* Category Tabs */}
+          <div className="flex items-center gap-1 border-b border-gray-200">
+            {(["existing_amc", "new_installation"] as BranchCategory[]).map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setActiveCategory(cat)}
+                className={`relative px-4 py-2.5 text-[13px] font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#027D3F] rounded-t-lg ${
+                  activeCategory === cat
+                    ? "text-[#027D3F]"
+                    : "text-gray-400 hover:text-gray-600"
+                }`}
+              >
+                {CATEGORY_LABELS[cat]}
+                {activeCategory === cat && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#027D3F] rounded-full" />
+                )}
+              </button>
+            ))}
+          </div>
 
-      {(user?.role === "admin" || user?.role === "visitor") && effectiveYear && (
-        <div className="flex justify-end">
-          <ExportControls year={effectiveYear} />
+          {user?.role === "admin" && effectiveYear && (
+            <div className="flex justify-end">
+              <ExportControls year={effectiveYear} />
+            </div>
+          )}
         </div>
       )}
 
