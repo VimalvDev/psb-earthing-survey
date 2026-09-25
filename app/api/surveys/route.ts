@@ -119,6 +119,22 @@ export async function POST(req: NextRequest) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    // PostgreSQL 23505 = unique_violation
+    // Only treat the BIC+financial_year index as the duplicate-report business error;
+    // other unique violations (e.g. survey_id) keep the generic 500 behavior.
+    const isDuplicateReport =
+      error.code === "23505" &&
+      error.message?.includes("idx_surveys_bic_financial_year_unique")
+
+    if (isDuplicateReport) {
+      return NextResponse.json(
+        { error: "A report already exists for this branch for the selected financial year." },
+        { status: 409 }
+      )
+    }
+
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
   return NextResponse.json({ survey: data }, { status: 201 })
 }
