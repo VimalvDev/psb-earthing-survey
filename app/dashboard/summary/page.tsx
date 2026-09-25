@@ -66,11 +66,28 @@ function SummarySkeleton() {
 
 export default function SummaryPage() {
   const { data: user } = useCurrentUser();
-  const [selectedYear, setSelectedYear] = useState<string>("");
+  const [selectedYear, setSelectedYear] = useState<string>("auto");
   const [activeCategory, setActiveCategory] = useState<BranchCategory>("existing_amc");
   const { data: filterOptions } = useFilterOptions(activeCategory);
 
-  const effectiveYear = selectedYear || (filterOptions?.years?.length === 1 ? filterOptions.years[0] : "");
+  let effectiveYear = "";
+  if (selectedYear !== "auto") {
+    effectiveYear = selectedYear;
+  } else if (filterOptions?.years) {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const isNextYear = today.getMonth() >= 3; // April is 3
+    const startYear = isNextYear ? currentYear : currentYear - 1;
+    const endYear = String(startYear + 1).slice(-2);
+    const currentFY = `${startYear}-${endYear}`;
+
+    if (filterOptions.years.includes(currentFY)) {
+      effectiveYear = currentFY;
+    } else if (filterOptions.years.length > 0) {
+      effectiveYear = filterOptions.years[0];
+    }
+  }
+
   const filters = { ...DEFAULT_FILTERS, year: effectiveYear, category: activeCategory };
 
   const {
@@ -103,7 +120,7 @@ export default function SummaryPage() {
           <div className="flex flex-col sm:flex-row gap-2.5 sm:items-center">
             {filterOptions?.years && filterOptions.years.length > 1 ? (
               <select
-                value={selectedYear}
+                value={selectedYear === "auto" ? effectiveYear : selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
                 className="appearance-none w-full sm:w-auto rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-gray-700 outline-none transition focus:border-[#027D3F] focus:ring-1 focus:ring-[#027D3F]"
               >
