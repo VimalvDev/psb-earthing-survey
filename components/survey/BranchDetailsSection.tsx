@@ -15,6 +15,8 @@ import { LockedInput } from "@/components/ui/LockedInput";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { createClient } from "@/lib/supabase/client";
 
+type BranchCategory = "existing_amc" | "new_installation";
+
 interface BranchData {
   bic: string;
   branch_name: string;
@@ -24,7 +26,13 @@ interface BranchData {
   address: string;
   manager_name: string;
   phone_no: string;
+  branch_category: BranchCategory | null;
 }
+
+const CATEGORY_LABELS: Record<BranchCategory, string> = {
+  existing_amc: "Existing / AMC",
+  new_installation: "New Installation",
+};
 
 interface BranchDetailsSectionProps {
   onChange: (field: string, value: string) => void;
@@ -36,6 +44,7 @@ export function BranchDetailsSection({ onChange, values }: BranchDetailsSectionP
   const [loading, setLoading] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [showSecondPhone, setShowSecondPhone] = useState(false);
+  const [branchCategory, setBranchCategory] = useState<BranchCategory | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const supabase = createClient();
@@ -48,10 +57,10 @@ export function BranchDetailsSection({ onChange, values }: BranchDetailsSectionP
     setLoading(true);
     setNotFound(false);
 
-    // Fetch branch info
+    // Fetch branch info — only the fields this component needs
     const { data, error } = await supabase
       .from("branches")
-      .select("*")
+      .select("bic, branch_name, zone, district, state, address, manager_name, phone_no, branch_category")
       .ilike("bic", code)
       .single();
 
@@ -72,6 +81,7 @@ export function BranchDetailsSection({ onChange, values }: BranchDetailsSectionP
 
     if (error || !data) {
       setNotFound(true);
+      setBranchCategory(null);
       ["branch_name", "zone", "district", "state", "address", "manager_name", "phone_no"].forEach(
         (f) => onChange(f, "")
       );
@@ -86,6 +96,7 @@ export function BranchDetailsSection({ onChange, values }: BranchDetailsSectionP
     onChange("address", branch.address);
     onChange("manager_name", branch.manager_name);
     onChange("phone_no", branch.phone_no);
+    setBranchCategory(branch.branch_category ?? null);
     setNotFound(false);
   }
 
@@ -140,6 +151,16 @@ export function BranchDetailsSection({ onChange, values }: BranchDetailsSectionP
           onChange={(v) => onChange("branch_name", v)}
         />
       </div>
+
+      {/* Report Category — read-only, derived from branch master */}
+      {branchCategory && (
+        <div className="flex flex-col gap-1">
+          <Label className="text-[13px] font-semibold text-gray-700">Report Category</Label>
+          <div className="h-9 flex items-center px-3 text-sm bg-gray-50 border border-gray-200 rounded-md text-gray-900">
+            {CATEGORY_LABELS[branchCategory]}
+          </div>
+        </div>
+      )}
 
       {/* State / District / Zone */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
