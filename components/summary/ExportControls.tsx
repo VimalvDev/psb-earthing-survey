@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { FiDownload, FiEdit3, FiLoader } from "react-icons/fi";
 import * as XLSX from "xlsx-js-style";
-import JSZip from "jszip";
+
 import { saveAs } from "file-saver";
 import { createClient } from "@/lib/supabase/client";
 import { EditScheduleModal } from "./EditScheduleModal";
@@ -11,6 +11,54 @@ import { useCurrentUser } from "@/lib/hooks/use-current-user";
 
 interface ExportControlsProps {
   year: string;
+}
+
+let globalEventSource: EventSource | null = null;
+let globalEventSourceYear: string | null = null;
+let globalPdfState: any = null;
+const stateSubscribers = new Set<Function>();
+
+function setGlobalPdfState(newState: any) {
+  if (typeof newState === 'function') {
+    globalPdfState = newState(globalPdfState);
+  } else {
+    globalPdfState = { ...globalPdfState, ...newState };
+  }
+  stateSubscribers.forEach(fn => fn(globalPdfState));
+}
+
+function startGlobalWarming(year: string) {
+  if (globalEventSourceYear === year && globalEventSource) return;
+  if (globalEventSource) globalEventSource.close();
+  
+  globalEventSourceYear = year;
+  globalPdfState = null;
+  stateSubscribers.forEach(fn => fn(globalPdfState));
+  
+  globalEventSource = new EventSource(`/api/summary/export-pdf/stream?year=${year}`);
+  
+  globalEventSource.onmessage = (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      if (data.phase === "ready" || data.phase === "error") {
+        globalEventSource?.close();
+        globalEventSource = null;
+      }
+      setGlobalPdfState((prev: any) => ({
+        phase: data.phase,
+        processed: data.processedReports ?? prev?.processed,
+        total: data.totalReports ?? prev?.total,
+        downloadUrl: data.downloadUrl ?? prev?.downloadUrl,
+        error: data.error ?? prev?.error
+      }));
+    } catch (err) {}
+  };
+
+  globalEventSource.onerror = () => {
+    setGlobalPdfState((prev: any) => prev?.phase === 'ready' ? prev : { phase: 'error', error: 'Connection lost' });
+    globalEventSource?.close();
+    globalEventSource = null;
+  };
 }
 
 function formatDateSafely(val: any): string {
@@ -244,76 +292,65 @@ export function ExportControls({ year }: ExportControlsProps) {
   }
 
   const [isExportingImages, setIsExportingImages] = useState(false)
-  const [imageProgress, setImageProgress] = useState("")
+  const [pdfState, setPdfState] = useState<any>(globalEventSourceYear === year ? globalPdfState : null);
+
+  useEffect(() => {
+    if (!year) return;
+    
+    startGlobalWarming(year);
+    setPdfState(globalPdfState);
+    
+    const handler = (newState: any) => {
+      setPdfState(newState);
+    };
+    stateSubscribers.add(handler);
+    
+    return () => {
+      stateSubscribers.delete(handler);
+    };
+  }, [year]);
 
   async function handleExportImages() {
-    if (!year) return alert("Please select a specific year to export.")
-    setIsExportingImages(true)
-    setImageProgress("Fetching records...")
-    try {
-      const { data, error } = await supabase
-        .from("surveys")
-        .select("id, bic, site_photo, branch_name, state, district, zone, visit_date, overall_status, surveyor_emp_id")
-        .eq("financial_year", year)
-        .limit(10000)
-
-      if (error) throw error
-
-      const recordsWithPhotos = data.filter(r => r.site_photo && (typeof r.site_photo === "string" || r.site_photo.form || r.site_photo.site))
-      if (recordsWithPhotos.length === 0) {
-        alert("No images found for the selected year.")
-        return
-      }
-
-      setImageProgress(`Downloading 0 of ${recordsWithPhotos.length} images...`)
-      
-      const zip = new JSZip()
-      let downloadedCount = 0
-      const usedNames: Record<string, number> = {}
-
-      const batchSize = 5;
-      for (let i = 0; i < recordsWithPhotos.length; i += batchSize) {
-        const batch = recordsWithPhotos.slice(i, i + batchSize);
-        await Promise.all(batch.map(async (record) => {
-          const photosToDownload: { type: string; url: string }[] = []
-          if (typeof record.site_photo === "string") {
-            photosToDownload.push({ type: 'photo', url: record.site_photo })
-          } else {
-            if (record.site_photo?.form) photosToDownload.push({ type: 'form', url: record.site_photo.form })
-            if (record.site_photo?.site) photosToDownload.push({ type: 'site', url: record.site_photo.site })
-          }
-
-          for (const photo of photosToDownload) {
-            try {
-              const response = await fetch(photo.url)
-              if (!response.ok) throw new Error(`HTTP ${response.status}`)
-              const blob = await response.blob()
-
-              const code = record.bic || 'Unknown'
-              const nameKey = code
-              usedNames[nameKey] = (usedNames[nameKey] || 0) + 1
-              const filename = usedNames[nameKey] === 1 ? `${code}.jpg` : `${code}_${usedNames[nameKey]}.jpg`
-              zip.file(filename, blob)
-            } catch (err) {
-              console.error("Failed to download image for", record.bic, err)
-            }
-          }
-          downloadedCount++
-        }));
-        setImageProgress(`Downloading ${downloadedCount} of ${recordsWithPhotos.length} records...`)
-      }
-
-      setImageProgress("Zipping files...")
-      const zipBlob = await zip.generateAsync({ type: "blob" })
-      saveAs(zipBlob, `psb-earthing-images-${year}.zip`)
-    } catch (err) {
-      console.error(err)
-      alert("Failed to export images")
-    } finally {
-      setIsExportingImages(false)
-      setImageProgress("")
+    if (!year) return alert("Please select a specific year to export.");
+    
+    if (pdfState?.phase === 'ready' && pdfState.downloadUrl) {
+      const a = document.createElement('a');
+      a.href = pdfState.downloadUrl;
+      a.download = `psb-earthing-reports-${year}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     }
   }
+
+  const renderPdfProgress = () => {
+    if (!pdfState) return "Checking report cache...";
+    if (pdfState.phase === 'checking-cache') return "Checking report cache...";
+    if (pdfState.phase === 'preparing') {
+      const tot = pdfState.total ? ` 0 / ${pdfState.total}` : '';
+      return `Preparing report PDF${tot}`;
+    }
+    if (pdfState.phase === 'processing') {
+      const p = pdfState.processed || 0;
+      const t = pdfState.total || 0;
+      const pct = t > 0 ? Math.round((p / t) * 100) : 0;
+      return `Preparing report PDF - ${p} / ${t} reports (${pct}%)`;
+    }
+    if (pdfState.phase === 'finalizing') return "Finalizing PDF...";
+    if (pdfState.phase === 'ready') return "PDF ready";
+    if (pdfState.phase === 'downloading') {
+      const p = pdfState.processed || 0;
+      const t = pdfState.total || 0;
+      if (t > 0) {
+        const pct = Math.round((p / t) * 100);
+        return `Downloading PDF - ${pct}%`;
+      }
+      return "PDF ready — downloading...";
+    }
+    if (pdfState.phase === 'error') return "Unable to prepare report PDF.";
+    return "Download Reports";
+  };
+
 
   return (
     <>
@@ -330,11 +367,11 @@ export function ExportControls({ year }: ExportControlsProps) {
 
         <button
           onClick={handleExportImages}
-          disabled={isExportingImages || isExporting}
+          disabled={isExportingImages || isExporting || (pdfState?.phase !== 'ready' && pdfState?.phase !== 'error')}
           className="h-10 px-4 rounded-xl border border-[#F0D9A8] text-[#854F0B] font-semibold text-sm hover:bg-[#FAEEDA] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          {isExportingImages ? <FiLoader size={16} className="animate-spin" /> : <FiDownload size={16} />}
-          {isExportingImages ? imageProgress : "Download Reports"}
+          {(isExportingImages || (pdfState && pdfState.phase !== 'ready' && pdfState.phase !== 'error')) ? <FiLoader size={16} className="animate-spin" /> : <FiDownload size={16} />}
+          {renderPdfProgress()}
         </button>
 
         <button
