@@ -19,32 +19,6 @@ import { DEFAULT_FILTERS, BranchCategory, CATEGORY_LABELS } from "@/components/r
 import { useCurrentUser } from "@/lib/hooks/use-current-user";
 import { ExportControls } from "@/components/summary/ExportControls";
 
-function StatCard({
-  label,
-  value,
-  className,
-  valueClass,
-  href,
-}: {
-  label: string;
-  value: number;
-  className: string;
-  valueClass: string;
-  href?: string;
-}) {
-  const inner = (
-    <div className={`rounded-xl border px-5 py-4 transition-colors ${className}`}>
-      <p className="text-[12px] font-bold text-gray-500 uppercase tracking-widest mb-1">{label}</p>
-      <p className={`text-3xl font-bold ${valueClass}`}>{value}</p>
-    </div>
-  );
-
-  if (href) {
-    return <Link href={href} className="block group">{inner}</Link>;
-  }
-  return inner;
-}
-
 function SummarySkeleton() {
   return (
     <div className="grid gap-3">
@@ -70,23 +44,8 @@ export default function SummaryPage() {
   const [activeCategory, setActiveCategory] = useState<BranchCategory>("existing_amc");
   const { data: filterOptions } = useFilterOptions(activeCategory);
 
-  let effectiveYear = "";
-  if (selectedYear !== "auto") {
-    effectiveYear = selectedYear;
-  } else if (filterOptions?.years) {
-    const today = new Date();
-    const currentYear = today.getFullYear();
-    const isNextYear = today.getMonth() >= 3; // April is 3
-    const startYear = isNextYear ? currentYear : currentYear - 1;
-    const endYear = String(startYear + 1).slice(-2);
-    const currentFY = `${startYear}-${endYear}`;
-
-    if (filterOptions.years.includes(currentFY)) {
-      effectiveYear = currentFY;
-    } else if (filterOptions.years.length > 0) {
-      effectiveYear = filterOptions.years[0];
-    }
-  }
+  const defaultYear = user?.allowed_years && user.allowed_years.length > 0 ? user.allowed_years[0] : "";
+  const effectiveYear = selectedYear === "auto" ? defaultYear : selectedYear;
 
   const filters = { ...DEFAULT_FILTERS, year: effectiveYear, category: activeCategory };
 
@@ -101,9 +60,6 @@ export default function SummaryPage() {
     isError: recordsError,
   } = useSurveyRecords(filters, "newest", 1);
 
-  const totalCount = pageData?.totalCount ?? 0;
-  const passCount = statsData?.pass ?? 0;
-  const failCount = statsData?.fail ?? 0;
   const recentRecords = pageData?.records.slice(0, 5) ?? [];
 
   const canSeeSummaryHeader =
@@ -178,38 +134,10 @@ export default function SummaryPage() {
               <ExportControls year={effectiveYear} />
             </div>
           )}
+
+          <CoverageMetrics year={effectiveYear} category={activeCategory} />
         </div>
       )}
-
-      <CoverageMetrics year={effectiveYear} category={activeCategory} />
-
-      {/* KPI Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <StatCard
-          label="Total"
-          value={totalCount}
-          className="border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
-          valueClass="text-gray-900"
-          href={`/dashboard/records?category=${activeCategory}${effectiveYear ? `&year=${effectiveYear}` : ''}`}
-        />
-
-        <StatCard
-          label="Pass"
-          value={passCount}
-          className="border-[#027D3F]/20 bg-[#F4FAF6] hover:border-[#027D3F]/40 hover:bg-[#E8F5EE]"
-          valueClass="text-[#027D3F]"
-          href={`/dashboard/records?category=${activeCategory}&status=Pass${effectiveYear ? `&year=${effectiveYear}` : ''}`}
-        />
-
-        <StatCard
-          label="Flagged"
-          value={failCount}
-          className={`border-red-200 hover:border-red-300 transition-colors
-            ${failCount > 0 ? "bg-red-50/50 hover:bg-red-50" : "bg-white hover:bg-gray-50"}`}
-          valueClass={failCount > 0 ? "text-red-700" : "text-gray-400"}
-          href={`/dashboard/records?category=${activeCategory}&status=Flagged${effectiveYear ? `&year=${effectiveYear}` : ''}`}
-        />
-      </div>
 
       <StateWiseSummary year={effectiveYear} category={activeCategory} />
 
