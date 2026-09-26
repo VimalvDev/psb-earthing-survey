@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { FiDownload, FiEdit3, FiLoader } from "react-icons/fi";
-import * as XLSX from "xlsx";
+import * as XLSX from "xlsx-js-style";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import { createClient } from "@/lib/supabase/client";
@@ -76,7 +76,7 @@ function exportExcel(records: any[], yearString: string) {
         if (!worksheet[address]) {
           worksheet[address] = { t: "s", v: "" };
         }
-        worksheet[address].s = { fill: { fgColor: { rgb: "CCFFCC" } } };
+        worksheet[address].s = { fill: { fgColor: { rgb: "D9F99D" } } };
       }
     }
   });
