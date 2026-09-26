@@ -8,7 +8,6 @@ import { saveAs } from "file-saver";
 import { createClient } from "@/lib/supabase/client";
 import { EditScheduleModal } from "./EditScheduleModal";
 import { useCurrentUser } from "@/lib/hooks/use-current-user";
-import { EMPTY_BRANCHES } from "./empty-branches";
 
 interface ExportControlsProps {
   year: string;
@@ -87,21 +86,19 @@ export function ExportControls({ year }: ExportControlsProps) {
       let branchesData: any[] = []
       let fromB = 0
       while (true) {
-        const { data, error } = await supabase.from("branches").select("bic, address, state, district, zone, branch_name").order("bic", { ascending: true }).range(fromB, fromB + 999)
+        const { data, error } = await supabase.from("branches").select("id, bic, address, state, district, zone, branch_name, branch_category").order("bic", { ascending: true }).range(fromB, fromB + 999)
         if (error) throw error
         branchesData = branchesData.concat(data || [])
         if (!data || data.length < 1000) break
         fromB += 1000
       }
 
-      const [startYear, endYear] = year.split("-")
       let surveysData: any[] = []
       let fromS = 0
       while (true) {
         const { data, error } = await supabase.from("surveys")
-          .select("id, bic, visit_date, district")
-          .gte("visit_date", `${startYear}-04-01`)
-          .lte("visit_date", `${endYear}-03-31`)
+          .select("id, branch_id, bic, visit_date, district")
+          .eq("financial_year", year)
           .order("id", { ascending: true })
           .range(fromS, fromS + 999)
         if (error) throw error
@@ -124,8 +121,8 @@ export function ExportControls({ year }: ExportControlsProps) {
             if (bic) {
               fallbackDatesMap.set(String(bic).trim().toUpperCase(), {
                 date: row["Date"] || "",
-                spd: row["Spd"] || "yes",
-                earthing: row["Earthing"] || "yes"
+                spd: row["Spd"] || "",
+                earthing: row["Earthing"] || ""
               });
             }
           }
@@ -134,56 +131,59 @@ export function ExportControls({ year }: ExportControlsProps) {
         console.warn("Could not fetch fallback dates excel", err);
       }
 
-      const completedSurveysByBic = new Map<string, any>()
+      const completedSurveysByBranchId = new Map<string, any>()
       for (const s of surveysData) {
-        if (!s.bic) continue;
-        const nbic = String(s.bic).trim().toUpperCase();
-        if (!completedSurveysByBic.has(nbic) || new Date(s.visit_date) > new Date(completedSurveysByBic.get(nbic).visit_date)) {
-          completedSurveysByBic.set(nbic, s)
+        if (!s.branch_id) continue;
+        if (!completedSurveysByBranchId.has(s.branch_id) || new Date(s.visit_date) > new Date(completedSurveysByBranchId.get(s.branch_id).visit_date)) {
+          completedSurveysByBranchId.set(s.branch_id, s)
         }
       }
 
       const exportRows = (branchesData || []).map(b => {
         const nbic = String(b.bic || "").trim().toUpperCase()
-        const survey = completedSurveysByBic.get(nbic)
-        if (survey) completedSurveysByBic.delete(nbic)
+        const survey = completedSurveysByBranchId.get(b.id)
         
-        let finalDate = survey ? survey.visit_date : null
-        let spd = "yes"
-        let earthing = "yes"
+        let finalDate = "";
+        let spd = "";
+        let earthing = "";
 
-        if (fallbackDatesMap.has(nbic)) {
-           const fallbackData = fallbackDatesMap.get(nbic);
-           if (!finalDate) finalDate = fallbackData.date;
-           
-           spd = fallbackData.spd || "yes";
-           earthing = fallbackData.earthing || "yes";
-        }
-
-        if (EMPTY_BRANCHES.has(nbic)) {
+        if (survey) {
+          finalDate = survey.visit_date;
+          spd = "yes";
+          earthing = "yes";
+        } else if (b.branch_category === "existing_amc") {
+          if (fallbackDatesMap.has(nbic)) {
+            const fallbackData = fallbackDatesMap.get(nbic);
+            finalDate = fallbackData.date;
+            spd = fallbackData.spd;
+            earthing = fallbackData.earthing;
+          }
+        } else if (b.branch_category === "new_installation") {
           finalDate = "";
-          spd = "";
-          earthing = "";
+          spd = "no";
+          earthing = "no";
         }
+
+        const isCompleted = !!finalDate && 
+                            String(spd).trim().toLowerCase() === "yes" && 
+                            String(earthing).trim().toLowerCase() === "yes";
 
         return {
           bic: b.bic, address: b.address, state: b.state, district: b.district, zone: b.zone,
-          branch_name: b.branch_name, visit_date: finalDate, spd, earthing
+          branch_name: b.branch_name, visit_date: finalDate, spd, earthing,
+          _category: b.branch_category,
+          _isCompleted: isCompleted
         }
       })
 
-      for (const [nbic, survey] of completedSurveysByBic.entries()) {
-        const isEmpty = EMPTY_BRANCHES.has(nbic);
-        exportRows.push({
-          bic: survey.bic, address: "Unknown Address", state: "", district: "", zone: "", branch_name: "Unknown Branch",
-          visit_date: isEmpty ? "" : survey.visit_date, spd: isEmpty ? "" : "yes", earthing: isEmpty ? "" : "yes"
-        })
-      }
-
       exportRows.sort((a, b) => {
-        if (a.spd && !b.spd) return -1
-        if (!a.spd && b.spd) return 1
-        return (a.bic || "").localeCompare(b.bic || "")
+        if (a._category === "existing_amc" && b._category !== "existing_amc") return -1;
+        if (a._category !== "existing_amc" && b._category === "existing_amc") return 1;
+
+        if (a._isCompleted && !b._isCompleted) return -1;
+        if (!a._isCompleted && b._isCompleted) return 1;
+
+        return String(a.bic || "").localeCompare(String(b.bic || ""));
       })
 
       exportExcel(exportRows, year)
@@ -203,13 +203,10 @@ export function ExportControls({ year }: ExportControlsProps) {
     setIsExportingImages(true)
     setImageProgress("Fetching records...")
     try {
-      const [startYear, endYear] = year.split("-")
-      
       const { data, error } = await supabase
         .from("surveys")
         .select("id, bic, site_photo, branch_name, state, district, zone, visit_date, overall_status, surveyor_emp_id")
-        .gte("visit_date", `${startYear}-04-01`)
-        .lte("visit_date", `${endYear}-03-31`)
+        .eq("financial_year", year)
         .limit(10000)
 
       if (error) throw error
@@ -289,7 +286,7 @@ export function ExportControls({ year }: ExportControlsProps) {
           className="h-10 px-4 rounded-xl border border-[#F0D9A8] text-[#854F0B] font-semibold text-sm hover:bg-[#FAEEDA] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
         >
           {isExportingImages ? <FiLoader size={16} className="animate-spin" /> : <FiDownload size={16} />}
-          {isExportingImages ? imageProgress : "Images ZIP"}
+          {isExportingImages ? imageProgress : "Download Reports"}
         </button>
 
         <button
@@ -298,7 +295,7 @@ export function ExportControls({ year }: ExportControlsProps) {
           className="h-10 px-4 rounded-xl bg-[#027D3F] hover:bg-[#02612f] text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
         >
           {isExporting ? <FiLoader size={16} className="animate-spin" /> : <FiDownload size={16} />}
-          {isExporting ? "Exporting..." : "Download excel sheet"}
+          {isExporting ? "Exporting..." : "Download Excel"}
         </button>
       </div>
       
