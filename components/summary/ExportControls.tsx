@@ -45,7 +45,7 @@ function exportExcel(records: any[], yearString: string) {
   records.forEach(r => {
     aoa.push([
       r.bic ?? "", r.address ?? "", r.state ?? "", r.district ?? "", r.zone ?? "",
-      formatDateSafely(r.visit_date), r.spd ?? "", r.earthing ?? ""
+      r._isSpecialNextYear ? r.visit_date : formatDateSafely(r.visit_date), r.spd ?? "", r.earthing ?? ""
     ])
   })
   
@@ -67,7 +67,21 @@ function exportExcel(records: any[], yearString: string) {
     }
   }
 
-  worksheet["!cols"] = [{ wch: 15 }, { wch: 60 }, { wch: 25 }, { wch: 25 }, { wch: 25 }, { wch: 15 }, { wch: 10 }, { wch: 10 }]
+  // Apply row highlights for special records
+  records.forEach((r, i) => {
+    if (r._isSpecialNextYear) {
+      const rowIndex = i + 2; // +2 because header is row 0 and 1
+      for (let C = 0; C < headers.length; ++C) {
+        const address = XLSX.utils.encode_cell({ r: rowIndex, c: C });
+        if (!worksheet[address]) {
+          worksheet[address] = { t: "s", v: "" };
+        }
+        worksheet[address].s = { fill: { fgColor: { rgb: "CCFFCC" } } };
+      }
+    }
+  });
+
+  worksheet["!cols"] = [{ wch: 15 }, { wch: 60 }, { wch: 25 }, { wch: 25 }, { wch: 25 }, { wch: 30 }, { wch: 10 }, { wch: 10 }]
   const workbook = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(workbook, worksheet, "Records")
   XLSX.writeFile(workbook, `psb-earthing-records-${yearString}.xlsx`)
@@ -97,8 +111,8 @@ export function ExportControls({ year }: ExportControlsProps) {
       let fromS = 0
       while (true) {
         const { data, error } = await supabase.from("surveys")
-          .select("id, branch_id, bic, visit_date, district")
-          .eq("financial_year", year)
+          .select("id, branch_id, bic, visit_date, district, financial_year")
+          .in("financial_year", [year, "2026-27"])
           .order("id", { ascending: true })
           .range(fromS, fromS + 999)
         if (error) throw error
@@ -131,48 +145,70 @@ export function ExportControls({ year }: ExportControlsProps) {
         console.warn("Could not fetch fallback dates excel", err);
       }
 
-      const completedSurveysByBranchId = new Map<string, any>()
+      const currentYearSurveysByBranchId = new Map<string, any>()
+      const nextYearSurveysByBranchId = new Map<string, any>()
+      
       for (const s of surveysData) {
         if (!s.branch_id) continue;
-        if (!completedSurveysByBranchId.has(s.branch_id) || new Date(s.visit_date) > new Date(completedSurveysByBranchId.get(s.branch_id).visit_date)) {
-          completedSurveysByBranchId.set(s.branch_id, s)
+        if (s.financial_year === year) {
+          if (!currentYearSurveysByBranchId.has(s.branch_id) || new Date(s.visit_date) > new Date(currentYearSurveysByBranchId.get(s.branch_id).visit_date)) {
+            currentYearSurveysByBranchId.set(s.branch_id, s)
+          }
+        } else if (s.financial_year === "2026-27") {
+          if (!nextYearSurveysByBranchId.has(s.branch_id) || new Date(s.visit_date) > new Date(nextYearSurveysByBranchId.get(s.branch_id).visit_date)) {
+            nextYearSurveysByBranchId.set(s.branch_id, s)
+          }
         }
       }
 
       const exportRows = (branchesData || []).map(b => {
         const nbic = String(b.bic || "").trim().toUpperCase()
-        const survey = completedSurveysByBranchId.get(b.id)
         
         let finalDate = "";
         let spd = "";
         let earthing = "";
+        let isSpecialNextYear = false;
+        let isCompleted = false;
 
-        if (survey) {
-          finalDate = survey.visit_date;
+        if (b.branch_category === "existing_amc") {
+          const survey = currentYearSurveysByBranchId.get(b.id);
           spd = "yes";
           earthing = "yes";
-        } else if (b.branch_category === "existing_amc") {
-          if (fallbackDatesMap.has(nbic)) {
-            const fallbackData = fallbackDatesMap.get(nbic);
-            finalDate = fallbackData.date;
-            spd = fallbackData.spd;
-            earthing = fallbackData.earthing;
+          if (survey) {
+             finalDate = survey.visit_date;
+          } else if (fallbackDatesMap.has(nbic)) {
+             finalDate = fallbackDatesMap.get(nbic).date || "";
           }
+          isCompleted = !!finalDate;
         } else if (b.branch_category === "new_installation") {
-          finalDate = "";
-          spd = "no";
-          earthing = "no";
+          const currentSurvey = currentYearSurveysByBranchId.get(b.id);
+          const nextSurvey = nextYearSurveysByBranchId.get(b.id);
+          
+          if (currentSurvey) {
+             finalDate = currentSurvey.visit_date;
+             spd = "yes";
+             earthing = "yes";
+             isCompleted = true;
+          } else if (nextSurvey) {
+             finalDate = `NEW INSTALLATION - ${formatDateSafely(nextSurvey.visit_date)}`;
+             spd = "yes";
+             earthing = "yes";
+             isSpecialNextYear = true;
+             isCompleted = false; // Special rows go into group 2
+          } else {
+             finalDate = "";
+             spd = "no";
+             earthing = "no";
+             isCompleted = false; // Unsurveyed goes into group 3
+          }
         }
-
-        const isCompleted = !!finalDate && 
-                            String(spd).trim().toLowerCase() === "yes" && 
-                            String(earthing).trim().toLowerCase() === "yes";
 
         return {
           bic: b.bic, address: b.address, state: b.state, district: b.district, zone: b.zone,
           branch_name: b.branch_name, visit_date: finalDate, spd, earthing,
           _category: b.branch_category,
-          _isCompleted: isCompleted
+          _isCompleted: isCompleted,
+          _isSpecialNextYear: isSpecialNextYear
         }
       })
 
@@ -180,8 +216,19 @@ export function ExportControls({ year }: ExportControlsProps) {
         if (a._category === "existing_amc" && b._category !== "existing_amc") return -1;
         if (a._category !== "existing_amc" && b._category === "existing_amc") return 1;
 
-        if (a._isCompleted && !b._isCompleted) return -1;
-        if (!a._isCompleted && b._isCompleted) return 1;
+        if (a._category === "existing_amc") {
+           if (a._isCompleted && !b._isCompleted) return -1;
+           if (!a._isCompleted && b._isCompleted) return 1;
+        } else {
+           const getGroup = (r: any) => {
+              if (r._isCompleted && !r._isSpecialNextYear) return 1;
+              if (r._isSpecialNextYear) return 2;
+              return 3;
+           }
+           const groupA = getGroup(a);
+           const groupB = getGroup(b);
+           if (groupA !== groupB) return groupA - groupB;
+        }
 
         return String(a.bic || "").localeCompare(String(b.bic || ""));
       })
