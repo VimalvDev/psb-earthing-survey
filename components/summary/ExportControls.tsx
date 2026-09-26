@@ -69,7 +69,7 @@ function exportExcel(records: any[], yearString: string) {
 
   // Apply row highlights for special records
   records.forEach((r, i) => {
-    if (r._isSpecialNextYear) {
+    if (r._isPendingNewInstallation) {
       const rowIndex = i + 2; // +2 because header is row 0 and 1
       for (let C = 0; C < headers.length; ++C) {
         const address = XLSX.utils.encode_cell({ r: rowIndex, c: C });
@@ -208,7 +208,8 @@ export function ExportControls({ year }: ExportControlsProps) {
           branch_name: b.branch_name, visit_date: finalDate, spd, earthing,
           _category: b.branch_category,
           _isCompleted: isCompleted,
-          _isSpecialNextYear: isSpecialNextYear
+          _isSpecialNextYear: isSpecialNextYear,
+          _isPendingNewInstallation: b.branch_category === "new_installation" && !isCompleted
         }
       })
 
