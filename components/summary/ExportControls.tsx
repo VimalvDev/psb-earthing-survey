@@ -13,54 +13,6 @@ interface ExportControlsProps {
   year: string;
 }
 
-let globalEventSource: EventSource | null = null;
-let globalEventSourceYear: string | null = null;
-let globalPdfState: any = null;
-const stateSubscribers = new Set<Function>();
-
-function setGlobalPdfState(newState: any) {
-  if (typeof newState === 'function') {
-    globalPdfState = newState(globalPdfState);
-  } else {
-    globalPdfState = { ...globalPdfState, ...newState };
-  }
-  stateSubscribers.forEach(fn => fn(globalPdfState));
-}
-
-function startGlobalWarming(year: string) {
-  if (globalEventSourceYear === year && globalEventSource) return;
-  if (globalEventSource) globalEventSource.close();
-  
-  globalEventSourceYear = year;
-  globalPdfState = null;
-  stateSubscribers.forEach(fn => fn(globalPdfState));
-  
-  globalEventSource = new EventSource(`/api/summary/export-pdf/stream?year=${year}`);
-  
-  globalEventSource.onmessage = (e) => {
-    try {
-      const data = JSON.parse(e.data);
-      if (data.phase === "ready" || data.phase === "error") {
-        globalEventSource?.close();
-        globalEventSource = null;
-      }
-      setGlobalPdfState((prev: any) => ({
-        phase: data.phase,
-        processed: data.processedReports ?? prev?.processed,
-        total: data.totalReports ?? prev?.total,
-        downloadUrl: data.downloadUrl ?? prev?.downloadUrl,
-        error: data.error ?? prev?.error
-      }));
-    } catch (err) {}
-  };
-
-  globalEventSource.onerror = () => {
-    setGlobalPdfState((prev: any) => prev?.phase === 'ready' ? prev : { phase: 'error', error: 'Connection lost' });
-    globalEventSource?.close();
-    globalEventSource = null;
-  };
-}
-
 function formatDateSafely(val: any): string {
   if (!val) return "";
   if (typeof val === "string") {
@@ -86,7 +38,7 @@ function formatDateSafely(val: any): string {
 }
 
 function exportExcel(records: any[], yearString: string) {
-  const headerText = `PSB REPORT FOR THE YEAR ${yearString} – PRESENT IN APP`
+  const headerText = `PSB REPORT FOR THE YEAR ${yearString}`
   const headers = ["Branch Code", "Branch Address", "State", "District", "Zone", "Visit Date", "Spd", "Earthing"]
   const aoa: any[][] = [[headerText], headers]
   
@@ -292,62 +244,131 @@ export function ExportControls({ year }: ExportControlsProps) {
   }
 
   const [isExportingImages, setIsExportingImages] = useState(false)
-  const [pdfState, setPdfState] = useState<any>(globalEventSourceYear === year ? globalPdfState : null);
+  const [zipState, setZipState] = useState<{
+    phase: string;
+    processed?: number;
+    total?: number;
+    downloadUrl?: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!year) return;
     
-    startGlobalWarming(year);
-    setPdfState(globalPdfState);
-    
-    const handler = (newState: any) => {
-      setPdfState(newState);
+    let isMounted = true;
+    let timer: any = null;
+
+    const pollStatus = async () => {
+      try {
+        const res = await fetch(`/api/summary/export-zip?year=${year}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        if (!isMounted) return;
+
+        if (data.status === 'processing') {
+          setZipState({ phase: 'processing', processed: data.processedReports, total: data.totalReports });
+          timer = setTimeout(pollStatus, 1500);
+        } else if (data.status === 'finalizing') {
+          setZipState({ phase: 'processing', processed: data.totalReports, total: data.totalReports });
+          timer = setTimeout(pollStatus, 1500);
+        } else if (data.status === 'ready') {
+          setZipState({ phase: 'ready', downloadUrl: data.downloadUrl });
+        } else if (data.status === 'error') {
+          setZipState({ phase: 'error' });
+        } else {
+          // missing or stale -> clear state, ready to download
+          if (zipState?.phase === 'processing') {
+            setZipState(null);
+          }
+        }
+      } catch (err) {
+        if (isMounted) timer = setTimeout(pollStatus, 3000);
+      }
     };
-    stateSubscribers.add(handler);
-    
+
+    pollStatus();
+
     return () => {
-      stateSubscribers.delete(handler);
+      isMounted = false;
+      if (timer) clearTimeout(timer);
     };
   }, [year]);
 
   async function handleExportImages() {
     if (!year) return alert("Please select a specific year to export.");
     
-    if (pdfState?.phase === 'ready' && pdfState.downloadUrl) {
+    if (zipState?.phase === 'ready' && zipState.downloadUrl) {
       const a = document.createElement('a');
-      a.href = pdfState.downloadUrl;
-      a.download = `psb-earthing-reports-${year}.pdf`;
+      a.href = zipState.downloadUrl;
+      a.download = `psb-earthing-reports-${year}.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+      return;
+    }
+
+    if (zipState?.phase === 'processing') return; // already generating
+
+    setIsExportingImages(true);
+    setZipState({ phase: 'starting' });
+    try {
+      const res = await fetch('/api/summary/export-zip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ year })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to start export");
+      
+      if (data.status === 'ready') {
+        // fast cache hit
+        const getRes = await fetch(`/api/summary/export-zip?year=${year}`);
+        const getData = await getRes.json();
+        if (getData.status === 'ready' && getData.downloadUrl) {
+          const a = document.createElement('a');
+          a.href = getData.downloadUrl;
+          a.download = `psb-earthing-reports-${year}.zip`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setZipState({ phase: 'ready', downloadUrl: getData.downloadUrl });
+        }
+      } else {
+        // processing
+        setZipState({ phase: 'processing', processed: 0, total: 1 }); // will be updated by effect poll
+        
+        // Trigger a poll immediately
+        const triggerPoll = async () => {
+          const pRes = await fetch(`/api/summary/export-zip?year=${year}`);
+          const pData = await pRes.json();
+          if (pData.status === 'processing' || pData.status === 'finalizing') {
+            setZipState({ phase: 'processing', processed: pData.processedReports, total: pData.totalReports });
+          } else if (pData.status === 'ready') {
+             setZipState({ phase: 'ready', downloadUrl: pData.downloadUrl });
+          }
+        };
+        setTimeout(triggerPoll, 1500);
+      }
+    } catch (err: any) {
+      alert(err.message);
+      setZipState({ phase: 'error' });
+    } finally {
+      setIsExportingImages(false);
     }
   }
 
-  const renderPdfProgress = () => {
-    if (!pdfState) return "Checking report cache...";
-    if (pdfState.phase === 'checking-cache') return "Checking report cache...";
-    if (pdfState.phase === 'preparing') {
-      const tot = pdfState.total ? ` 0 / ${pdfState.total}` : '';
-      return `Preparing report PDF${tot}`;
+  const renderZipProgress = () => {
+    if (!zipState) return "Download Reports";
+    if (zipState.phase === 'starting') return "Preparing...";
+    if (zipState.phase === 'processing') {
+      const p = zipState.processed || 0;
+      const t = zipState.total || 0;
+      if (t === 0) return "Preparing...";
+      const pct = Math.round((p / t) * 100);
+      return `[ Preparing ${pct}% ] ${p} / ${t}`;
     }
-    if (pdfState.phase === 'processing') {
-      const p = pdfState.processed || 0;
-      const t = pdfState.total || 0;
-      const pct = t > 0 ? Math.round((p / t) * 100) : 0;
-      return `Preparing report PDF - ${p} / ${t} reports (${pct}%)`;
-    }
-    if (pdfState.phase === 'finalizing') return "Finalizing PDF...";
-    if (pdfState.phase === 'ready') return "PDF ready";
-    if (pdfState.phase === 'downloading') {
-      const p = pdfState.processed || 0;
-      const t = pdfState.total || 0;
-      if (t > 0) {
-        const pct = Math.round((p / t) * 100);
-        return `Downloading PDF - ${pct}%`;
-      }
-      return "PDF ready — downloading...";
-    }
-    if (pdfState.phase === 'error') return "Unable to prepare report PDF.";
+    if (zipState.phase === 'ready') return "Download Reports";
+    if (zipState.phase === 'error') return "Error preparing ZIP";
     return "Download Reports";
   };
 
@@ -367,11 +388,11 @@ export function ExportControls({ year }: ExportControlsProps) {
 
         <button
           onClick={handleExportImages}
-          disabled={isExportingImages || isExporting || (pdfState?.phase !== 'ready' && pdfState?.phase !== 'error')}
+          disabled={isExportingImages || isExporting || zipState?.phase === 'processing' || zipState?.phase === 'starting'}
           className="h-10 px-4 rounded-xl border border-[#F0D9A8] text-[#854F0B] font-semibold text-sm hover:bg-[#FAEEDA] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          {(isExportingImages || (pdfState && pdfState.phase !== 'ready' && pdfState.phase !== 'error')) ? <FiLoader size={16} className="animate-spin" /> : <FiDownload size={16} />}
-          {renderPdfProgress()}
+          {(isExportingImages || zipState?.phase === 'processing' || zipState?.phase === 'starting') ? <FiLoader size={16} className="animate-spin" /> : <FiDownload size={16} />}
+          {renderZipProgress()}
         </button>
 
         <button

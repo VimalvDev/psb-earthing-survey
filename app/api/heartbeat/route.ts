@@ -1,28 +1,8 @@
-import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
-import { createAdminClient } from "@/lib/supabase/admin"
+import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 
-export async function POST() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  if (!user?.email) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
-  // Use admin client to bypass RLS for updating the engineers table
-  const adminClient = createAdminClient()
-
-  // Update the last_seen_at column for the user
-  const { error } = await adminClient
-    .from("engineers")
-    .update({ last_seen_at: new Date().toISOString() })
-    .or(`email.eq.${user.email},gmail.eq.${user.email}`)
-
-  if (error) {
-    console.error("Heartbeat error:", error)
-    return NextResponse.json({ error: "Failed to update heartbeat" }, { status: 500 })
-  }
-
-  return NextResponse.json({ success: true })
+export async function GET() {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('export_jobs').select('id').limit(1);
+  return NextResponse.json({ exists: !error || !error.message.includes('does not exist'), error });
 }

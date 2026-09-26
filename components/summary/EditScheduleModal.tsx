@@ -21,7 +21,7 @@ export function EditScheduleModal({ year, onClose }: EditScheduleModalProps) {
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [deletedBics, setDeletedBics] = useState<string[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newBranch, setNewBranch] = useState({ bic: "", branch_name: "", address: "", state: "", district: "", zone: "", branch_category: "existing_amc" });
+  const [newBranch, setNewBranch] = useState({ bic: "", branch_name: "", address: "", state: "", district: "", zone: "", branch_category: "new_installation" });
   const [uploadingRow, setUploadingRow] = useState<number | null>(null);
   const [draggedRow, setDraggedRow] = useState<number | null>(null);
   const supabase = createClient();
@@ -33,30 +33,38 @@ export function EditScheduleModal({ year, onClose }: EditScheduleModalProps) {
         let branchesData: any[] = [];
         let fromB = 0;
         while (true) {
-          const { data: bData, error } = await supabase.from("branches").select("bic, address, state, district, zone, branch_name, manager_name, phone_no, branch_category").order("bic", { ascending: true }).range(fromB, fromB + 999);
-          if (error) throw error;
+          const { data: bData, error } = await supabase.from("branches").select("id, bic, address, state, district, zone, branch_name, manager_name, phone_no, branch_category").order("bic", { ascending: true }).range(fromB, fromB + 999);
+          if (error) {
+            console.error("Failed to fetch branches:", error);
+            throw new Error("Failed to load branches from database.");
+          }
           branchesData = branchesData.concat(bData || []);
           if (!bData || bData.length < 1000) break;
           fromB += 1000;
         }
 
-        // 1b. Fetch Engineers
+        // 1b. Fetch Engineers (Optional)
         const { data: engData, error: engErr } = await supabase.from("engineers").select("name, emp_id, email, mobile_number, designation").order("name");
-        if (!engErr && engData) setEngineers(engData);
+        if (engErr) {
+          console.warn("Failed to load engineers:", engErr);
+        } else if (engData) {
+          setEngineers(engData);
+        }
 
         // 2. Fetch Surveys for the selected year
-        const [startYear, endYear] = year.split("-");
         let surveysData: any[] = [];
         let fromS = 0;
         while (true) {
           const { data: sData, error } = await supabase
             .from("surveys")
-            .select("bic, visit_date, surveyor_emp_id, surveyor_name")
-            .gte("visit_date", `${startYear}-04-01`)
-            .lte("visit_date", `${endYear}-03-31`)
+            .select("bic, visit_date, surveyor_emp_id, surveyor_name, site_photo")
+            .eq("financial_year", year)
             .order("id", { ascending: true })
             .range(fromS, fromS + 999);
-          if (error) throw error;
+          if (error) {
+            console.error("Failed to fetch surveys:", error);
+            throw new Error("Failed to load surveys from database.");
+          }
           surveysData = surveysData.concat(sData || []);
           if (!sData || sData.length < 1000) break;
           fromS += 1000;
@@ -71,7 +79,7 @@ export function EditScheduleModal({ year, onClose }: EditScheduleModalProps) {
           }
         }
 
-        // 3. Fetch Schedule Excel
+        // 3. Fetch Schedule Excel (Optional Fallback)
         const fallbackDatesMap = new Map<string, any>();
         try {
           const scheduleUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/schedules/schedule.xlsx?t=${Date.now()}`;
@@ -85,9 +93,11 @@ export function EditScheduleModal({ year, onClose }: EditScheduleModalProps) {
               const bic = row["Branch Code"];
               if (bic) fallbackDatesMap.set(String(bic).trim().toUpperCase(), row);
             }
+          } else {
+             console.warn("Schedule fallback returned non-OK status:", res.status);
           }
         } catch (err) {
-          console.warn("No existing schedule found or failed to load.", err);
+          console.warn("No existing schedule found or failed to parse.", err);
         }
 
         // 4. Merge
@@ -96,9 +106,37 @@ export function EditScheduleModal({ year, onClose }: EditScheduleModalProps) {
           const existing = fallbackDatesMap.get(bic) || {};
           const survey = completedSurveysByBic.get(bic);
           
-          const isEmpty = EMPTY_BRANCHES.has(bic);
+          const cat = b.branch_category || "existing_amc";
+          
+          let date = "";
+          let spd = "";
+          let earthing = "";
+          
+          if (cat === "new_installation") {
+            if (survey) {
+               date = survey.visit_date;
+               spd = "yes";
+               earthing = "yes";
+            } else {
+               date = "";
+               spd = "no";
+               earthing = "no";
+            }
+          } else {
+            const isEmpty = EMPTY_BRANCHES.has(bic);
+            if (survey) {
+               date = survey.visit_date;
+               spd = "yes";
+               earthing = "yes";
+            } else {
+               date = isEmpty ? "" : (existing["Date"] || "");
+               spd = isEmpty ? "" : (existing["Spd"] || "yes");
+               earthing = isEmpty ? "" : (existing["Earthing"] || "yes");
+            }
+          }
 
           return {
+            id: b.id,
             bic: b.bic,
             branch_name: b.branch_name,
             address: b.address,
@@ -107,22 +145,22 @@ export function EditScheduleModal({ year, onClose }: EditScheduleModalProps) {
             zone: b.zone,
             manager_name: b.manager_name,
             phone_no: b.phone_no,
-            date: isEmpty ? "" : (survey ? survey.visit_date : (existing["Date"] || "")),
-            spd: isEmpty ? "" : (existing["Spd"] || "yes"),
-            earthing: isEmpty ? "" : (existing["Earthing"] || "yes"),
+            date,
+            spd,
+            earthing,
             surveyor_emp_id: survey ? survey.surveyor_emp_id : (existing["surveyor_emp_id"] || ""),
             original_surveyor_emp_id: survey ? survey.surveyor_emp_id : (existing["surveyor_emp_id"] || ""),
             surveyor_name: survey ? survey.surveyor_name : "",
             hasSurvey: !!survey,
-            branch_category: b.branch_category || "existing_amc",
+            branch_category: cat,
             isModified: false
           };
         });
 
         setData(merged);
-      } catch (err) {
-        console.error(err);
-        alert("Failed to load records for editing.");
+      } catch (err: any) {
+        console.error("Root cause for edit failure:", err);
+        alert("Unable to load branch records. Please try again.");
       } finally {
         setIsLoading(false);
       }
@@ -142,8 +180,12 @@ export function EditScheduleModal({ year, onClose }: EditScheduleModalProps) {
 
   const submitNewBranch = () => {
     if (!newBranch.bic) return alert("Branch Code is required.");
-    setData([{ ...newBranch, date: "", spd: "yes", earthing: "yes", hasSurvey: false, isNew: true, isModified: true, surveyor_emp_id: "" }, ...data]);
-    setNewBranch({ bic: "", branch_name: "", address: "", state: "", district: "", zone: "", branch_category: "existing_amc" });
+    const normalizedBic = newBranch.bic.trim().toUpperCase();
+    if (data.some(r => String(r.bic).trim().toUpperCase() === normalizedBic)) {
+      return alert("Branch Code already exists in the table.");
+    }
+    setData([{ ...newBranch, date: "", spd: "no", earthing: "no", hasSurvey: false, isNew: true, isModified: true, surveyor_emp_id: "" }, ...data]);
+    setNewBranch({ bic: "", branch_name: "", address: "", state: "", district: "", zone: "", branch_category: "new_installation" });
     setIsAddModalOpen(false);
   };
 
@@ -646,19 +688,6 @@ export function EditScheduleModal({ year, onClose }: EditScheduleModalProps) {
                   onChange={e => setNewBranch(p => ({ ...p, zone: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-[#027D3F] focus:border-[#027D3F] outline-none text-sm"
                 />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Category</label>
-                  <select
-                    value={newBranch.branch_category}
-                    onChange={e => setNewBranch(p => ({ ...p, branch_category: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-[#027D3F] focus:border-[#027D3F] outline-none text-sm bg-white"
-                  >
-                    <option value="existing_amc">Existing / AMC</option>
-                    <option value="new_installation">New Installation</option>
-                  </select>
-                </div>
               </div>
             </div>
             <div className="flex gap-3 mt-6">
