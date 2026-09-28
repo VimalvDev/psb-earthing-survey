@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { FiDownload, FiEdit3, FiLoader } from "react-icons/fi";
 import * as XLSX from "xlsx-js-style";
 
@@ -12,6 +12,84 @@ import { useCurrentUser } from "@/lib/hooks/use-current-user";
 interface ExportControlsProps {
   year: string;
 }
+
+// ─── Module-level state: survives React unmount / SPA navigation ────
+interface ZipExportState {
+  phase: "idle" | "preparing" | "processing" | "finalizing" | "ready" | "error";
+  processed: number;
+  total: number;
+  downloadUrl?: string;
+  error?: string;
+  year?: string;
+}
+
+let _globalES: EventSource | null = null;
+let _globalState: ZipExportState = { phase: "idle", processed: 0, total: 0 };
+const _subs = new Set<() => void>();
+
+function _notify() {
+  _subs.forEach(fn => fn());
+}
+
+function _startExport(year: string) {
+  // Already running for this year?
+  if (_globalES && _globalState.year === year && (_globalState.phase === "processing" || _globalState.phase === "preparing" || _globalState.phase === "finalizing")) {
+    return;
+  }
+  // Close any existing connection
+  if (_globalES) { _globalES.close(); _globalES = null; }
+
+  _globalState = { phase: "preparing", processed: 0, total: 0, year };
+  _notify();
+
+  _globalES = new EventSource(`/api/summary/export-zip/stream?year=${encodeURIComponent(year)}`);
+
+  _globalES.onmessage = (e) => {
+    try {
+      const data = JSON.parse(e.data);
+
+      _globalState = {
+        phase: data.phase ?? _globalState.phase,
+        processed: data.processed ?? _globalState.processed,
+        total: data.total ?? _globalState.total,
+        downloadUrl: data.downloadUrl ?? _globalState.downloadUrl,
+        error: data.error ?? _globalState.error,
+        year,
+      };
+      _notify();
+
+      if (data.phase === "ready") {
+        // Trigger browser-native download via invisible anchor
+        const a = document.createElement("a");
+        a.href = `/api/summary/export-zip/stream?action=download&year=${encodeURIComponent(year)}`;
+        a.download = `psb-earthing-reports-${year}.zip`;
+        a.style.display = "none";
+        document.body.appendChild(a);
+        a.click();
+        // Small delay before cleanup to ensure download starts
+        setTimeout(() => document.body.removeChild(a), 1000);
+        _globalES?.close();
+        _globalES = null;
+      }
+
+      if (data.phase === "error") {
+        _globalES?.close();
+        _globalES = null;
+      }
+    } catch {}
+  };
+
+  _globalES.onerror = () => {
+    // Only set error if we're not already in a terminal state
+    if (_globalState.phase !== "ready") {
+      _globalState = { ..._globalState, phase: "error", error: "Connection lost" };
+      _notify();
+    }
+    _globalES?.close();
+    _globalES = null;
+  };
+}
+// ─── End module-level state ─────────────────────────────────────────
 
 function formatDateSafely(val: any): string {
   if (!val) return "";
@@ -92,6 +170,48 @@ export function ExportControls({ year }: ExportControlsProps) {
   const [isEditing, setIsEditing] = useState(false)
   const supabase = createClient()
   const { data: user } = useCurrentUser()
+
+  // Subscribe to module-level export state
+  const [zipState, setZipState] = useState<ZipExportState>(_globalState);
+
+  useEffect(() => {
+    // Sync immediately in case state changed while unmounted
+    setZipState({ ..._globalState });
+    const handler = () => setZipState({ ..._globalState });
+    _subs.add(handler);
+    return () => { _subs.delete(handler); };
+  }, []);
+
+  function handleExportImages() {
+    if (!year) return alert("Please select a specific year to export.");
+    // If already ready, re-trigger download
+    if (zipState.phase === "ready" && zipState.year === year) {
+      const a = document.createElement("a");
+      a.href = `/api/summary/export-zip/stream?action=download&year=${encodeURIComponent(year)}`;
+      a.download = `psb-earthing-reports-${year}.zip`;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => document.body.removeChild(a), 1000);
+      return;
+    }
+    _startExport(year);
+  }
+
+  const isActive = zipState.year === year && (zipState.phase === "preparing" || zipState.phase === "processing" || zipState.phase === "finalizing");
+  const pct = zipState.total > 0 ? Math.round((zipState.processed / zipState.total) * 100) : 0;
+
+  function renderButtonText() {
+    if (zipState.year !== year) return "Download Reports";
+    switch (zipState.phase) {
+      case "preparing": return "Preparing...";
+      case "processing": return zipState.total > 0 ? `Processing ${pct}%` : "Processing...";
+      case "finalizing": return "Finalizing ZIP...";
+      case "ready": return "Download Reports";
+      case "error": return "Retry Download";
+      default: return "Download Reports";
+    }
+  }
 
   async function handleExport() {
     if (!year) return alert("Please select a specific year to export.")
@@ -243,136 +363,6 @@ export function ExportControls({ year }: ExportControlsProps) {
     }
   }
 
-  const [isExportingImages, setIsExportingImages] = useState(false)
-  const [zipState, setZipState] = useState<{
-    phase: string;
-    processed?: number;
-    total?: number;
-    downloadUrl?: string;
-  } | null>(null);
-
-  useEffect(() => {
-    if (!year) return;
-    
-    let isMounted = true;
-    let timer: any = null;
-
-    const pollStatus = async () => {
-      try {
-        const res = await fetch(`/api/summary/export-zip?year=${year}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        
-        if (!isMounted) return;
-
-        if (data.status === 'processing') {
-          setZipState({ phase: 'processing', processed: data.processedReports, total: data.totalReports });
-          timer = setTimeout(pollStatus, 1500);
-        } else if (data.status === 'finalizing') {
-          setZipState({ phase: 'processing', processed: data.totalReports, total: data.totalReports });
-          timer = setTimeout(pollStatus, 1500);
-        } else if (data.status === 'ready') {
-          setZipState({ phase: 'ready', downloadUrl: data.downloadUrl });
-        } else if (data.status === 'error') {
-          setZipState({ phase: 'error' });
-        } else {
-          // missing or stale -> clear state, ready to download
-          if (zipState?.phase === 'processing') {
-            setZipState(null);
-          }
-        }
-      } catch (err) {
-        if (isMounted) timer = setTimeout(pollStatus, 3000);
-      }
-    };
-
-    pollStatus();
-
-    return () => {
-      isMounted = false;
-      if (timer) clearTimeout(timer);
-    };
-  }, [year]);
-
-  async function handleExportImages() {
-    if (!year) return alert("Please select a specific year to export.");
-    
-    if (zipState?.phase === 'ready' && zipState.downloadUrl) {
-      const a = document.createElement('a');
-      a.href = zipState.downloadUrl;
-      a.download = `psb-earthing-reports-${year}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      return;
-    }
-
-    if (zipState?.phase === 'processing') return; // already generating
-
-    setIsExportingImages(true);
-    setZipState({ phase: 'starting' });
-    try {
-      const res = await fetch('/api/summary/export-zip', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ year })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to start export");
-      
-      if (data.status === 'ready') {
-        // fast cache hit
-        const getRes = await fetch(`/api/summary/export-zip?year=${year}`);
-        const getData = await getRes.json();
-        if (getData.status === 'ready' && getData.downloadUrl) {
-          const a = document.createElement('a');
-          a.href = getData.downloadUrl;
-          a.download = `psb-earthing-reports-${year}.zip`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          setZipState({ phase: 'ready', downloadUrl: getData.downloadUrl });
-        }
-      } else {
-        // processing
-        setZipState({ phase: 'processing', processed: 0, total: 1 }); // will be updated by effect poll
-        
-        // Trigger a poll immediately
-        const triggerPoll = async () => {
-          const pRes = await fetch(`/api/summary/export-zip?year=${year}`);
-          const pData = await pRes.json();
-          if (pData.status === 'processing' || pData.status === 'finalizing') {
-            setZipState({ phase: 'processing', processed: pData.processedReports, total: pData.totalReports });
-          } else if (pData.status === 'ready') {
-             setZipState({ phase: 'ready', downloadUrl: pData.downloadUrl });
-          }
-        };
-        setTimeout(triggerPoll, 1500);
-      }
-    } catch (err: any) {
-      alert(err.message);
-      setZipState({ phase: 'error' });
-    } finally {
-      setIsExportingImages(false);
-    }
-  }
-
-  const renderZipProgress = () => {
-    if (!zipState) return "Download Reports";
-    if (zipState.phase === 'starting') return "Preparing...";
-    if (zipState.phase === 'processing') {
-      const p = zipState.processed || 0;
-      const t = zipState.total || 0;
-      if (t === 0) return "Preparing...";
-      const pct = Math.round((p / t) * 100);
-      return `[ Preparing ${pct}% ] ${p} / ${t}`;
-    }
-    if (zipState.phase === 'ready') return "Download Reports";
-    if (zipState.phase === 'error') return "Error preparing ZIP";
-    return "Download Reports";
-  };
-
-
   return (
     <>
       <div className="flex gap-2 items-center flex-wrap">
@@ -388,16 +378,16 @@ export function ExportControls({ year }: ExportControlsProps) {
 
         <button
           onClick={handleExportImages}
-          disabled={isExportingImages || isExporting || zipState?.phase === 'processing' || zipState?.phase === 'starting'}
+          disabled={isActive || isExporting}
           className="h-10 px-4 rounded-xl border border-[#F0D9A8] text-[#854F0B] font-semibold text-sm hover:bg-[#FAEEDA] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          {(isExportingImages || zipState?.phase === 'processing' || zipState?.phase === 'starting') ? <FiLoader size={16} className="animate-spin" /> : <FiDownload size={16} />}
-          {renderZipProgress()}
+          {isActive ? <FiLoader size={16} className="animate-spin" /> : <FiDownload size={16} />}
+          {renderButtonText()}
         </button>
 
         <button
           onClick={handleExport}
-          disabled={isExporting || isExportingImages}
+          disabled={isExporting || isActive}
           className="h-10 px-4 rounded-xl bg-[#027D3F] hover:bg-[#02612f] text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
         >
           {isExporting ? <FiLoader size={16} className="animate-spin" /> : <FiDownload size={16} />}
