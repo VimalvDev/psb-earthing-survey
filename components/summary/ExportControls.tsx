@@ -310,7 +310,7 @@ export function ExportControls({ year }: ExportControlsProps) {
              earthing = "yes";
              isCompleted = true;
           } else if (nextSurvey) {
-             finalDate = `NEW INSTALLATION - ${formatDateSafely(nextSurvey.visit_date)}`;
+             finalDate = `NEW DATA - ${formatDateSafely(nextSurvey.visit_date)}`;
              spd = "yes";
              earthing = "yes";
              isSpecialNextYear = true;

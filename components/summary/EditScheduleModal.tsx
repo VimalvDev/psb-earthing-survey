@@ -531,7 +531,7 @@ export function EditScheduleModal({ year, onClose }: EditScheduleModalProps) {
                             className="w-full px-3 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-[#027D3F] focus:ring-1 focus:ring-[#027D3F] transition-all bg-white text-gray-800"
                           >
                             <option value="existing_amc">Existing / AMC</option>
-                            <option value="new_installation">New Installation</option>
+                            <option value="new_installation">New Data</option>
                           </select>
                         </td>
                         <td className="px-4 py-2">

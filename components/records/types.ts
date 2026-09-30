@@ -69,7 +69,7 @@ export const DEFAULT_FILTERS: Filters = {
 
 export const CATEGORY_LABELS: Record<BranchCategory, string> = {
   existing_amc: "Existing / AMC",
-  new_installation: "New Installation",
+  new_installation: "New Data",
 }
 
 export const ITEMS_PER_PAGE = 10
