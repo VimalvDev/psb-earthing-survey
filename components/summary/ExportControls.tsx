@@ -117,18 +117,21 @@ function formatDateSafely(val: any): string {
 
 function exportExcel(records: any[], yearString: string) {
   const headerText = `PSB REPORT FOR THE YEAR ${yearString}`
-  const headers = ["Branch Code", "Branch Address", "State", "District", "Zone", "Visit Date", "Spd", "Earthing"]
+  const headers = ["Branch Code", "Report Status", "Branch Address", "Manager Name", "Manager Mobile No.", "State", "District", "Zone", "Visit Date", "Spd", "Earthing"]
   const aoa: any[][] = [[headerText], headers]
   
   records.forEach(r => {
     aoa.push([
-      r.bic ?? "", r.address ?? "", r.state ?? "", r.district ?? "", r.zone ?? "",
+      r.bic ?? "",
+      r._hasReport ? "Done" : "",
+      r.address ?? "", r.manager_name ?? "", r.phone_no ?? "",
+      r.state ?? "", r.district ?? "", r.zone ?? "",
       r._isSpecialNextYear ? r.visit_date : formatDateSafely(r.visit_date), r.spd ?? "", r.earthing ?? ""
     ])
   })
   
   const worksheet = XLSX.utils.aoa_to_sheet(aoa)
-  worksheet["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }]
+  worksheet["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 10 } }]
   
   const cellA1 = worksheet[XLSX.utils.encode_cell({ r: 0, c: 0 })]
   if (cellA1) cellA1.s = { font: { bold: true, sz: 16 }, alignment: { horizontal: "center", vertical: "center" } }
@@ -145,9 +148,9 @@ function exportExcel(records: any[], yearString: string) {
     }
   }
 
-  // Apply row highlights for special records
+  // Apply row highlights for all new installation branches
   records.forEach((r, i) => {
-    if (r._isPendingNewInstallation) {
+    if (r._category === "new_installation") {
       const rowIndex = i + 2; // +2 because header is row 0 and 1
       for (let C = 0; C < headers.length; ++C) {
         const address = XLSX.utils.encode_cell({ r: rowIndex, c: C });
@@ -159,7 +162,7 @@ function exportExcel(records: any[], yearString: string) {
     }
   });
 
-  worksheet["!cols"] = [{ wch: 15 }, { wch: 60 }, { wch: 25 }, { wch: 25 }, { wch: 25 }, { wch: 30 }, { wch: 10 }, { wch: 10 }]
+  worksheet["!cols"] = [{ wch: 15 }, { wch: 15 }, { wch: 60 }, { wch: 25 }, { wch: 18 }, { wch: 25 }, { wch: 25 }, { wch: 25 }, { wch: 30 }, { wch: 10 }, { wch: 10 }]
   const workbook = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(workbook, worksheet, "Records")
   XLSX.writeFile(workbook, `psb-earthing-records-${yearString}.xlsx`)
@@ -220,7 +223,7 @@ export function ExportControls({ year }: ExportControlsProps) {
       let branchesData: any[] = []
       let fromB = 0
       while (true) {
-        const { data, error } = await supabase.from("branches").select("id, bic, address, state, district, zone, branch_name, branch_category").order("bic", { ascending: true }).range(fromB, fromB + 999)
+        const { data, error } = await supabase.from("branches").select("id, bic, address, state, district, zone, branch_name, branch_category, manager_name, phone_no").order("bic", { ascending: true }).range(fromB, fromB + 999)
         if (error) throw error
         branchesData = branchesData.concat(data || [])
         if (!data || data.length < 1000) break
@@ -324,12 +327,14 @@ export function ExportControls({ year }: ExportControlsProps) {
         }
 
         return {
-          bic: b.bic, address: b.address, state: b.state, district: b.district, zone: b.zone,
+          bic: b.bic, address: b.address, manager_name: b.manager_name, phone_no: b.phone_no,
+          state: b.state, district: b.district, zone: b.zone,
           branch_name: b.branch_name, visit_date: finalDate, spd, earthing,
           _category: b.branch_category,
           _isCompleted: isCompleted,
           _isSpecialNextYear: isSpecialNextYear,
-          _isPendingNewInstallation: b.branch_category === "new_installation" && !isCompleted
+          _isPendingNewInstallation: b.branch_category === "new_installation" && !isCompleted,
+          _hasReport: currentYearSurveysByBranchId.has(b.id)
         }
       })
 

@@ -47,6 +47,16 @@ export default function SummaryPage() {
   const defaultYear = user?.allowed_years && user.allowed_years.length > 0 ? user.allowed_years[0] : "";
   const effectiveYear = selectedYear === "auto" ? defaultYear : selectedYear;
 
+  // Filter available years by the user's allowed_years (if restricted)
+  const availableYears = (() => {
+    const allYears = filterOptions?.years ?? [];
+    if (user?.allowed_years && user.allowed_years.length > 0) {
+      return allYears.filter(y => user.allowed_years!.includes(y));
+    }
+    return allYears;
+  })();
+  const isYearRestricted = user?.allowed_years && user.allowed_years.length > 0;
+
   const filters = { ...DEFAULT_FILTERS, year: effectiveYear, category: activeCategory };
 
   const {
@@ -79,22 +89,22 @@ export default function SummaryPage() {
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2.5 sm:items-center">
-            {filterOptions?.years && filterOptions.years.length > 1 ? (
+            {availableYears.length > 1 ? (
               <select
                 value={selectedYear === "auto" ? effectiveYear : selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
                 className="appearance-none w-full sm:w-auto rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-gray-700 outline-none transition focus:border-[#027D3F] focus:ring-1 focus:ring-[#027D3F]"
               >
-                <option value="">All Financial Years</option>
-                {filterOptions.years.map((year) => (
+                {!isYearRestricted && <option value="">All Financial Years</option>}
+                {availableYears.map((year) => (
                   <option key={year} value={year}>
                     FY {year}
                   </option>
                 ))}
               </select>
-            ) : filterOptions?.years?.length === 1 ? (
+            ) : availableYears.length === 1 ? (
               <div className="rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-gray-700">
-                FY {filterOptions.years[0]}
+                FY {availableYears[0]}
               </div>
             ) : null}
             <Link
